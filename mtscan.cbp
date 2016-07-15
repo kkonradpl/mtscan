@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="mtscan" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option platforms="Unix;Mac;" />
+				<Option output="bin/Debug/mtscan" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add library="libgps" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option platforms="Unix;Mac;" />
+				<Option output="bin/Release/mtscan" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O3" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="libgps" />
+				</Linker>
+			</Target>
+			<Target title="Debug-win">
+				<Option platforms="Windows;" />
+				<Option output="bin/Debug-win/mtscan" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug-win/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add option="-lws2_32" />
+					<Add option="-lwinmm" />
+				</Linker>
+			</Target>
+			<Target title="Release-win">
+				<Option platforms="Windows;" />
+				<Option output="bin/Release-win/mtscan" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release-win/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O3" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-lws2_32" />
+					<Add option="-lwinmm" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="`pkg-config gtk+-2.0 --cflags`" />
+		</Compiler>
+		<Linker>
+			<Add option="`pkg-config gtk+-2.0 --libs`" />
+			<Add library="z" />
+			<Add library="libssh" />
+			<Add library="yajl" />
+		</Linker>
+		<Unit filename="conf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="conf.h" />
+		<Unit filename="conn.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="conn.h" />
+		<Unit filename="export.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="export.h" />
+		<Unit filename="gps.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="gps.h" />
+		<Unit filename="icon.rc">
+			<Option compilerVar="WINDRES" />
+			<Option target="Debug-win" />
+			<Option target="Release-win" />
+		</Unit>
+		<Unit filename="log.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="log.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="model.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="model.h" />
+		<Unit filename="mt-ssh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mt-ssh.h" />
+		<Unit filename="mtscan.h" />
+		<Unit filename="network.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="network.h" />
+		<Unit filename="scanlist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="scanlist.h" />
+		<Unit filename="signals.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="signals.h" />
+		<Unit filename="ui-connect.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-connect.h" />
+		<Unit filename="ui-dialogs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-dialogs.h" />
+		<Unit filename="ui-icons.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-icons.h" />
+		<Unit filename="ui-toolbar.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-toolbar.h" />
+		<Unit filename="ui-update.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-update.h" />
+		<Unit filename="ui-view-menu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-view-menu.h" />
+		<Unit filename="ui-view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-view.h" />
+		<Unit filename="ui.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui.h" />
+		<Unit filename="win32.c">
+			<Option compilerVar="CC" />
+			<Option target="Debug-win" />
+			<Option target="Release-win" />
+		</Unit>
+		<Unit filename="win32.h">
+			<Option target="Debug-win" />
+			<Option target="Release-win" />
+		</Unit>
+		<Extensions>
+			<envvars />
+			<code_completion />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

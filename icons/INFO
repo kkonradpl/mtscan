@@ -1,0 +1,4 @@
+mtscan-export: GNOME mimetypes/text-html icon
+mtscan-screen: GNOME apps/applets-screenshooter icon
+mtscan-dark: based on GNOME-colors apps/utilities-terminal icon
+mtscan-gps: GNOME-colors categories/applications-internet icon
