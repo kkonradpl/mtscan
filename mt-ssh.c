@@ -201,25 +201,27 @@ static gboolean
 mt_ssh_verify(mtscan_conn_t     *conn,
               ssh_session session)
 {
-    gint state;
-    ssh_key srv_pubkey;
     guchar *hash;
     size_t hlen;
     gchar *hexa;
     mtscan_conn_cmd_t *msg;
     gchar *message;
+    gint state = ssh_is_server_known(session);
 
-    state = ssh_is_server_known(session);
+#if LIBSSH_VERSION_MAJOR >= 0 && LIBSSH_VERSION_MINOR >= 6
+    ssh_key srv_pubkey;
     if(ssh_get_publickey(session, &srv_pubkey) < 0)
-    {
         return FALSE;
-    }
     if(ssh_get_publickey_hash(srv_pubkey, SSH_PUBLICKEY_HASH_SHA1, &hash, &hlen) < 0)
     {
         ssh_key_free(srv_pubkey);
         return FALSE;
     }
     ssh_key_free(srv_pubkey);
+#else
+    if((hlen = ssh_get_pubkey_hash(session, &hash) < 0))
+        return FALSE;
+#endif
 
     switch(state)
     {
@@ -297,6 +299,8 @@ mt_ssh_read(mtscan_conn_t     *conn,
     gboolean dispatch_scan = TRUE;
     gchar *dispatch_scanlist = NULL;
     gchar *str_prompt = g_strdup_printf("\x1b[9999B[%s@", conn->login);
+    struct timeval timeout;
+    ssh_channel in_channels[2];
 
     while(ssh_channel_is_open(channel) && !ssh_channel_is_eof(channel))
     {
@@ -357,7 +361,24 @@ mt_ssh_read(mtscan_conn_t     *conn,
             goto cleanup;
         }
 
-        n = ssh_channel_read_timeout(channel, buffer+offset, sizeof(buffer)-1-offset, 0, READ_TIMEOUT_MSEC);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = READ_TIMEOUT_MSEC * 1000;
+        in_channels[0] = channel;
+        in_channels[1] = NULL;
+        if(ssh_channel_select(in_channels, NULL, NULL, &timeout) == SSH_EINTR)
+            continue;
+        if(ssh_channel_is_eof(channel) != 0)
+            goto cleanup;
+        if(in_channels[0] == NULL)
+            continue;
+
+        n = ssh_channel_poll(channel, 0);
+        if(n < 0)
+            goto cleanup;
+        if(n == 0)
+            continue;
+
+        n = ssh_channel_read(channel, buffer+offset, sizeof(buffer)-1-offset, 0);
         if(n < 0)
             goto cleanup;
         if(n == 0)
