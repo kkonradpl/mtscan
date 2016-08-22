@@ -23,7 +23,7 @@ typedef struct mtscan_gtk
     GtkToolItem *b_scan;
     GtkToolItem *b_restart;
     GtkToolItem *b_scanlist_default;
-    GtkToolItem *b_scanlist_full;
+    GtkToolItem *b_scanlist_custom;
     GtkToolItem *b_scanlist;
 
     GtkToolItem *b_new;

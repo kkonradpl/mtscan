@@ -11,11 +11,14 @@
 #include "export.h"
 #include "gps.h"
 
+static gchar range_full[] = "4920-6000";
+static gchar range_ext[] = "5330-5490,5720-5785,default,5790-5900,5055-5170,default,4920-5050,5905-6000,default";
+
 static void ui_toolbar_connect(GtkWidget*, gpointer);
 static void ui_toolbar_scan(GtkWidget*, gpointer);
 static void ui_toolbar_restart(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist_default(GtkWidget*, gpointer);
-static void ui_toolbar_scanlist_full(GtkWidget*, gpointer);
+static void ui_toolbar_scanlist_custom(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist(GtkWidget*, gpointer);
 
 static void ui_toolbar_new(GtkWidget*, gpointer);
@@ -78,17 +81,31 @@ ui_toolbar_create(GtkWidget *box)
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_default, -1);
     gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_default), "clicked", accel_group, GDK_KEY_4, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
-    ui.b_scanlist_full = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON), "Full scan-list");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_full), "Full scan-list (Ctrl+5)");
-    g_signal_connect(ui.b_scanlist_full, "clicked", G_CALLBACK(ui_toolbar_scanlist_full), NULL);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_full, -1);
-    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_full), "clicked", accel_group, GDK_KEY_5, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-
     ui.b_scanlist = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON), "Custom scan-list");
     gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist), "Custom scan-list (Ctrl+L)");
     g_signal_connect(ui.b_scanlist, "clicked", G_CALLBACK(ui_toolbar_scanlist), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist, -1);
     gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist), "clicked", accel_group, GDK_KEY_l, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+
+    ui.b_scanlist_custom = gtk_menu_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON), "Custom scan-list");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_custom), "Full scan-list (Ctrl+5)");
+    g_signal_connect(ui.b_scanlist_custom, "clicked", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
+
+    GtkWidget *menu = gtk_menu_new();
+    GtkWidget *item_ext = gtk_image_menu_item_new_with_label("Extended scan-list");
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_ext), gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_MENU));
+    g_signal_connect(item_ext, "activate", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_ext);
+
+    GtkWidget *item_full = gtk_image_menu_item_new_with_label("Full scan-list (4920-6000)");
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_full), gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_MENU));
+    g_signal_connect(item_full, "activate", G_CALLBACK(ui_toolbar_scanlist_custom), range_full);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_full);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(ui.b_scanlist_custom), menu);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_custom, -1);
+    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_custom), "clicked", accel_group, GDK_KEY_5, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
 
@@ -248,16 +265,15 @@ ui_toolbar_scanlist_default(GtkWidget *widget,
 }
 
 static void
-ui_toolbar_scanlist_full(GtkWidget *widget,
-                         gpointer   data)
+ui_toolbar_scanlist_custom(GtkWidget *widget,
+                           gpointer   data)
 {
-    static gboolean set_scanlist = FALSE;
-    static gchar range[] = "4920-6000";
-    //static gchar range[] = "5330-5490,5720-5785,default,5790-5900,5055-5170,default,4920-5050,5905-6000,default";
     static gchar msg[] = "Are you sure to set the scan-list to full range: <b>%s</b>?\n\n"
                          "<b>Warning:</b> Using an antenna with poor SWR may lead to PA failure during active scanning. "
                          "If unsure, set tx-power to low value before continuing.";
+    static gboolean set_scanlist = FALSE;
     GtkWidget *dialog;
+    gchar* range = (gchar*)data;
 
     if(!set_scanlist)
     {
