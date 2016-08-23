@@ -4,10 +4,12 @@
 #include "ui-view.h"
 #include "conn.h"
 #include "model.h"
+#include "scanlist.h"
 
 static void ui_view_popup_addr(GtkWidget*, gpointer);
 static void ui_view_popup_oui(GtkWidget*, gpointer);
 static void ui_view_popup_map(GtkWidget*, gpointer);
+static void ui_view_popup_scanlist(GtkWidget*, gpointer);
 static void ui_view_popup_lock(GtkWidget*, gpointer);
 static void ui_view_popup_remove(GtkWidget*, gpointer);
 
@@ -48,11 +50,21 @@ ui_view_popup_menu(GtkWidget      *treeview,
 
     if(frequency)
     {
-        gchar *freq = g_strdup_printf("Lock to %s MHz", model_format_frequency(frequency));
+        const gchar* frequency_string = model_format_frequency(frequency);
+        gchar *freq = g_strdup_printf("Lock to %s MHz", frequency_string);
         GtkWidget *item_lock_to_freq = gtk_menu_item_new_with_label(freq);
         g_signal_connect(item_lock_to_freq, "activate", (GCallback)ui_view_popup_lock, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_lock_to_freq);
         g_free(freq);
+
+        if(scanlist_active())
+        {
+            gchar *scanlist = g_strdup_printf("Select in scan-list");
+            GtkWidget *item_scanlist = gtk_menu_item_new_with_label(scanlist);
+            g_signal_connect(item_scanlist, "activate", (GCallback)ui_view_popup_scanlist, treeview);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_scanlist);
+            g_free(scanlist);
+        }
     }
 
     if(!isnan(latitude) && !isnan(longitude))
@@ -147,6 +159,27 @@ ui_view_popup_map(GtkWidget *menuitem,
         ui_show_uri(uri);
         g_free(uri);
     }
+}
+
+static void
+ui_view_popup_scanlist(GtkWidget *menuitem,
+                       gpointer   data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(data);
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+    GtkTreeModel *store;
+    GtkTreeIter iter;
+    gint frequency;
+
+    if(!gtk_tree_selection_get_selected(selection, &store, &iter))
+        return;
+
+    gtk_tree_model_get(store, &iter, COL_FREQUENCY, &frequency, -1);
+
+    if(!frequency)
+        return;
+
+    scanlist_add(frequency/1000);
 }
 
 static void

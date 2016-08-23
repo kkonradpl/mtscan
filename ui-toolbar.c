@@ -88,7 +88,7 @@ ui_toolbar_create(GtkWidget *box)
     gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist), "clicked", accel_group, GDK_KEY_l, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     ui.b_scanlist_custom = gtk_menu_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON), "Custom scan-list");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_custom), "Full scan-list (Ctrl+5)");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_custom), "Custom scan-list (Ctrl+5)");
     g_signal_connect(ui.b_scanlist_custom, "clicked", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
 
     GtkWidget *menu = gtk_menu_new();

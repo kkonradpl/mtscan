@@ -49,6 +49,11 @@ static void scanlist_foreach_set(gpointer, gpointer, gpointer);
 static gboolean scanlist_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean freq_in_list(gint, const gint*);
 
+gboolean
+scanlist_active()
+{
+    return GPOINTER_TO_INT(scanlist_window);
+}
 
 void
 scanlist_dialog()
@@ -61,7 +66,7 @@ scanlist_dialog()
     gchar buff[100];
     gint freq;
 
-    if(scanlist_window)
+    if(scanlist_active())
     {
         gtk_window_present(GTK_WINDOW(scanlist_window));
         return;
@@ -269,4 +274,15 @@ freq_in_list(gint        freq,
         if(*list++ == freq)
             return TRUE;
     return FALSE;
+}
+
+void
+scanlist_add(gint frequency)
+{
+    gpointer ptr;
+    if(!scanlist_active())
+        return;
+
+    if((ptr = g_hash_table_lookup(freqmap, GINT_TO_POINTER(frequency))))
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ptr), TRUE);
 }
