@@ -39,6 +39,7 @@ static const gint freq_5GHz_5745_5825[] =
     5745, 5765, 5785, 5805, 5825, 0
 };
 
+static gboolean scanlist_hide(GtkWidget*, GdkEvent*, gpointer);
 static void scanlist_destroy(GtkWidget*, gpointer);
 static void scanlist_preset(GtkWidget*, gpointer);
 static void scanlist_set(GtkWidget*, gpointer);
@@ -154,15 +155,25 @@ scanlist_dialog()
     gtk_container_add(GTK_CONTAINER(box_button), b_apply);
 
     b_close = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
-    g_signal_connect_swapped(b_close, "clicked", G_CALLBACK(gtk_widget_destroy), scanlist_window);
+    g_signal_connect_swapped(b_close, "clicked", G_CALLBACK(gtk_widget_hide), scanlist_window);
     gtk_container_add(GTK_CONTAINER(box_button), b_close);
 
     g_signal_connect(scanlist_window, "key-press-event", G_CALLBACK(scanlist_key), NULL);
+    g_signal_connect(scanlist_window, "delete-event", G_CALLBACK(scanlist_hide), NULL);
     g_signal_connect(scanlist_window, "destroy", G_CALLBACK(scanlist_destroy), NULL);
     gtk_widget_show_all(scanlist_window);
 
     /* Scan-list is now centered over parent, don't stay on top anymore */
     gtk_window_set_transient_for(GTK_WINDOW(scanlist_window), NULL);
+}
+
+static gboolean
+scanlist_hide(GtkWidget *widget,
+              GdkEvent  *event,
+              gpointer   data)
+{
+    gtk_widget_hide(widget);
+    return TRUE;
 }
 
 static void
