@@ -15,7 +15,7 @@
 #define FREQS_PER_LINE 20
 
 GtkWidget *scanlist_window = NULL;
-GHashTable *freqmap;
+GTree *freqtree;
 
 /* TODO
 static const gint freq_2GHz[] =
@@ -42,12 +42,13 @@ static const gint freq_5GHz_5745_5825[] =
 static void scanlist_destroy(GtkWidget*, gpointer);
 static void scanlist_preset(GtkWidget*, gpointer);
 static void scanlist_set(GtkWidget*, gpointer);
-static void scanlist_foreach_str(gpointer, gpointer, gpointer);
+static gboolean scanlist_foreach_str(gpointer, gpointer, gpointer);
 static void scanlist_all(GtkWidget*, gpointer);
 static void scanlist_clear(GtkWidget*, gpointer);
-static void scanlist_foreach_set(gpointer, gpointer, gpointer);
+static gboolean scanlist_foreach_set(gpointer, gpointer, gpointer);
 static gboolean scanlist_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean freq_in_list(gint, const gint*);
+static gint gintcmp(gconstpointer, gconstpointer);
 
 gboolean
 scanlist_active()
@@ -72,7 +73,7 @@ scanlist_dialog()
         return;
     }
 
-    freqmap = g_hash_table_new(g_direct_hash, g_direct_equal);
+    freqtree = g_tree_new((GCompareFunc)gintcmp);
 
     scanlist_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_modal(GTK_WINDOW(scanlist_window), FALSE);
@@ -119,7 +120,8 @@ scanlist_dialog()
         gtk_label_set_markup(GTK_LABEL(freq_label), buff);
         gtk_container_add(GTK_CONTAINER(freq_button), freq_label);
         gtk_box_pack_start(GTK_BOX(freq_box), freq_button, FALSE, FALSE, 1);
-        g_hash_table_insert(freqmap, GINT_TO_POINTER(freq), freq_button);
+        g_tree_insert(freqtree, GINT_TO_POINTER(freq), freq_button);
+        printf("INSERT\n");
     }
 
     box_button = gtk_hbutton_box_new();
@@ -128,11 +130,11 @@ scanlist_dialog()
     gtk_box_pack_start(GTK_BOX(content), box_button, FALSE, FALSE, 5);
 
     b_clear = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
-    g_signal_connect(b_clear, "clicked", G_CALLBACK(scanlist_clear), freqmap);
+    g_signal_connect(b_clear, "clicked", G_CALLBACK(scanlist_clear), freqtree);
     gtk_container_add(GTK_CONTAINER(box_button), b_clear);
 
     b_all = gtk_button_new_with_label("Select all");
-    g_signal_connect(b_all, "clicked", G_CALLBACK(scanlist_all), freqmap);
+    g_signal_connect(b_all, "clicked", G_CALLBACK(scanlist_all), freqtree);
     gtk_container_add(GTK_CONTAINER(box_button), b_all);
 
     b_preset_lo = gtk_button_new_with_label("5180-5320");
@@ -148,7 +150,7 @@ scanlist_dialog()
     gtk_container_add(GTK_CONTAINER(box_button), b_preset_upp);
 
     b_apply = gtk_button_new_from_stock(GTK_STOCK_APPLY);
-    g_signal_connect(b_apply, "clicked", G_CALLBACK(scanlist_set), freqmap);
+    g_signal_connect(b_apply, "clicked", G_CALLBACK(scanlist_set), freqtree);
     gtk_container_add(GTK_CONTAINER(box_button), b_apply);
 
     b_close = gtk_button_new_from_stock(GTK_STOCK_CLOSE);
@@ -167,7 +169,7 @@ static void
 scanlist_destroy(GtkWidget *widget,
                  gpointer   data)
 {
-    g_hash_table_destroy(freqmap);
+    g_tree_destroy(freqtree);
     scanlist_window = NULL;
 }
 
@@ -179,7 +181,7 @@ scanlist_preset(GtkWidget *widget,
     gpointer ptr;
     while(*preset)
     {
-        if((ptr = g_hash_table_lookup(freqmap, GINT_TO_POINTER(*preset))))
+        if((ptr = g_tree_lookup(freqtree, GINT_TO_POINTER(*preset))))
             gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ptr), TRUE);
         preset++;
     }
@@ -189,7 +191,7 @@ static void
 scanlist_set(GtkWidget *widget,
              gpointer   data)
 {
-    GHashTable *freqmap = (GHashTable*)data;
+    GTree *freqtree = (GTree*)data;
     GString *str;
     gchar *output;
     gint len;
@@ -198,7 +200,7 @@ scanlist_set(GtkWidget *widget,
         return;
 
     str = g_string_new("");
-    g_hash_table_foreach(freqmap, scanlist_foreach_str, str);
+    g_tree_foreach(freqtree, scanlist_foreach_str, str);
     output = g_string_free(str, FALSE);
     len = strlen(output);
     if(output[0] == '\0')
@@ -215,7 +217,7 @@ scanlist_set(GtkWidget *widget,
     g_async_queue_push(conn->queue, conn_command_new(COMMAND_SET_SCANLIST, output));
 }
 
-static void
+static gboolean
 scanlist_foreach_str(gpointer key,
                      gpointer value,
                      gpointer data)
@@ -225,31 +227,33 @@ scanlist_foreach_str(gpointer key,
     GtkWidget *widget = (GtkWidget*)value;
     if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
         g_string_append_printf(str, "%d,", freq);
+    return FALSE;
 }
 
 static void
 scanlist_all(GtkWidget *widget,
              gpointer   data)
 {
-    GHashTable *freqmap = (GHashTable*)data;
-    g_hash_table_foreach(freqmap, scanlist_foreach_set, GINT_TO_POINTER(TRUE));
+    GTree *freqtree = (GTree*)data;
+    g_tree_foreach(freqtree, scanlist_foreach_set, GINT_TO_POINTER(TRUE));
 }
 
 static void
 scanlist_clear(GtkWidget *widget,
                gpointer   data)
 {
-    GHashTable *freqmap = (GHashTable*)data;
-    g_hash_table_foreach(freqmap, scanlist_foreach_set, GINT_TO_POINTER(FALSE));
+    GTree *freqtree = (GTree*)data;
+    g_tree_foreach(freqtree, scanlist_foreach_set, GINT_TO_POINTER(FALSE));
 }
 
-static void
+static gboolean
 scanlist_foreach_set(gpointer key,
                      gpointer value,
                      gpointer data)
 {
     GtkWidget *widget = (GtkWidget*)value;
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), GPOINTER_TO_INT(data));
+    return FALSE;
 }
 
 static gboolean
@@ -283,6 +287,13 @@ scanlist_add(gint frequency)
     if(!scanlist_active())
         return;
 
-    if((ptr = g_hash_table_lookup(freqmap, GINT_TO_POINTER(frequency))))
+    if((ptr = g_tree_lookup(freqtree, GINT_TO_POINTER(frequency))))
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ptr), TRUE);
+}
+
+static gint
+gintcmp(gconstpointer a,
+        gconstpointer b)
+{
+    return a - b;
 }
