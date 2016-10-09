@@ -11,11 +11,12 @@
 #define CONF_DEFAULT_WINDOW_WIDTH  1000
 #define CONF_DEFAULT_WINDOW_HEIGHT 500
 
-#define CONF_DEFAULT_INTERFACE_LAST_PROFILE -1
-#define CONF_DEFAULT_INTERFACE_SOUND        FALSE
-#define CONF_DEFAULT_INTERFACE_DARK_MODE    FALSE
-#define CONF_DEFAULT_INTERFACE_GPS          FALSE
-#define CONF_DEFAULT_INTERFACE_SIGNALS      FALSE
+#define CONF_DEFAULT_INTERFACE_LAST_PROFILE  -1
+#define CONF_DEFAULT_INTERFACE_SOUND         FALSE
+#define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
+#define CONF_DEFAULT_INTERFACE_GPS           FALSE
+#define CONF_DEFAULT_INTERFACE_LATLON_COLUMN TRUE
+#define CONF_DEFAULT_INTERFACE_SIGNALS       FALSE
 
 #define CONF_DEFAULT_PROFILE_NAME           "unnamed"
 #define CONF_DEFAULT_PROFILE_HOST           ""
@@ -27,6 +28,11 @@
 #define CONF_DEFAULT_PROFILE_DURATION       FALSE
 #define CONF_DEFAULT_PROFILE_REMOTE         FALSE
 #define CONF_DEFAULT_PROFILE_BACKGROUND     FALSE
+
+#define CONF_DEFAULT_PATH_LOG_OPEN   ""
+#define CONF_DEFAULT_PATH_LOG_SAVE   ""
+#define CONF_DEFAULT_PATH_LOG_EXPORT ""
+
 
 #define CONF_PROFILE_GROUP "profile_"
 
@@ -46,10 +52,16 @@ typedef struct conf
     gboolean interface_dark_mode;
     gboolean interface_gps;
     gboolean interface_signals;
+    gboolean interface_latlon_column;
     gint     interface_last_profile;
 
     /* [profile_x] */
     GtkListStore *profiles;
+
+    /* [path] */
+    gchar *path_log_open;
+    gchar *path_log_save;
+    gchar *path_log_export;
 } conf_t;
 
 static conf_t conf;
@@ -58,7 +70,7 @@ static void     conf_read();
 static gboolean conf_read_boolean(const gchar*, const gchar*, gboolean);
 static gint     conf_read_integer(const gchar*, const gchar*, gint);
 static gchar*   conf_read_string(const gchar*, const gchar*, const gchar*);
-//static void     conf_change_string(gchar**, const gchar*);
+static void     conf_change_string(gchar**, const gchar*);
 static void     conf_read_profiles();
 static void     conf_set_profiles();
 static gboolean conf_set_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
@@ -115,9 +127,14 @@ conf_read()
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
     conf.interface_signals = conf_read_boolean("interface", "signals", CONF_DEFAULT_INTERFACE_SIGNALS);
-    conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
+    conf.interface_latlon_column = conf_read_boolean("interface", "latlon_column", CONF_DEFAULT_INTERFACE_LATLON_COLUMN);
 
+    conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
     conf_read_profiles(conf.keyfile, conf.profiles);
+
+    conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
+    conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
+    conf.path_log_export = conf_read_string("path", "log_export", CONF_DEFAULT_PATH_LOG_EXPORT);
 
     if(!file_exists)
         conf_save();
@@ -174,7 +191,6 @@ conf_read_string(const gchar *group_name,
     return value;
 }
 
-/*
 static void
 conf_change_string(gchar      **ptr,
                    const gchar *value)
@@ -182,7 +198,6 @@ conf_change_string(gchar      **ptr,
     g_free(*ptr);
     *ptr = g_strdup(value);
 }
-*/
 
 static void
 conf_read_profiles()
@@ -263,9 +278,14 @@ conf_save()
     g_key_file_set_boolean(conf.keyfile, "interface", "dark_mode", conf.interface_dark_mode);
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
     g_key_file_set_boolean(conf.keyfile, "interface", "signals", conf.interface_signals);
+    g_key_file_set_boolean(conf.keyfile, "interface", "latlon_column", conf.interface_latlon_column);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
     conf_set_profiles(conf.keyfile, conf.profiles);
+
+    g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
+    g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
+    g_key_file_set_string(conf.keyfile, "path", "log_export", conf.path_log_export);
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -390,6 +410,18 @@ conf_set_interface_signals(gboolean signals)
     conf.interface_signals = signals;
 }
 
+gboolean
+conf_get_interface_latlon_column()
+{
+    return conf.interface_latlon_column;
+}
+
+void
+conf_set_interface_latlon_column(gboolean latlon_column)
+{
+    conf.interface_latlon_column = latlon_column;
+}
+
 gint
 conf_get_interface_last_profile()
 {
@@ -455,4 +487,41 @@ conf_profile_free(mtscan_profile_t *profile)
     g_free(profile->login);
     g_free(profile->password);
     g_free(profile->iface);
+}
+
+
+const gchar*
+conf_get_path_log_open()
+{
+    return conf.path_log_open;
+}
+
+void
+conf_set_path_log_open(const gchar *path)
+{
+    conf_change_string(&conf.path_log_open, path);
+}
+
+const gchar*
+conf_get_path_log_save()
+{
+    return conf.path_log_save;
+}
+
+void
+conf_set_path_log_save(const gchar *path)
+{
+    conf_change_string(&conf.path_log_save, path);
+}
+
+const gchar*
+conf_get_path_log_export()
+{
+    return conf.path_log_export;
+}
+
+void
+conf_set_path_log_export(const gchar *path)
+{
+    conf_change_string(&conf.path_log_export, path);
 }

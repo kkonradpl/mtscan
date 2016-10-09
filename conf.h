@@ -55,7 +55,10 @@ gboolean conf_get_interface_gps();
 void conf_set_interface_gps(gboolean);
 
 gboolean conf_get_interface_signals();
-void conf_set_interface_signals(gboolean signals);
+void conf_set_interface_signals(gboolean);
+
+gboolean conf_get_interface_latlon_column();
+void conf_set_interface_latlon_column(gboolean);
 
 gint conf_get_interface_last_profile();
 void conf_set_interface_last_profile(gint);
@@ -66,5 +69,15 @@ GtkListStore* conf_get_profiles();
 GtkTreeIter conf_profile_add(mtscan_profile_t*);
 mtscan_profile_t conf_profile_get(GtkTreeIter*);
 void conf_profile_free(mtscan_profile_t*);
+
+/* Configuration [path] */
+const gchar* conf_get_path_log_open();
+void conf_set_path_log_open(const gchar*);
+
+const gchar* conf_get_path_log_save();
+void conf_set_path_log_save(const gchar*);
+
+const gchar* conf_get_path_log_export();
+void conf_set_path_log_export(const gchar*);
 
 #endif

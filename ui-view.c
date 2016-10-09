@@ -90,6 +90,7 @@ ui_view_new(mtscan_model_t *model)
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes("SSID", renderer, "text", COL_SSID, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_expand(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_SSID));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_SSID), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
@@ -233,6 +234,8 @@ ui_view_new(mtscan_model_t *model)
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LATITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LATITUDE), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    if(!conf_get_interface_latlon_column())
+        gtk_tree_view_column_set_visible(column, FALSE);
 
     /* Longitude column */
     renderer = gtk_cell_renderer_text_new();
@@ -243,6 +246,8 @@ ui_view_new(mtscan_model_t *model)
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LONGITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    if(!conf_get_interface_latlon_column())
+        gtk_tree_view_column_set_visible(column, FALSE);
 
     g_signal_connect(treeview, "popup-menu", G_CALLBACK(ui_view_popup), NULL);
     g_signal_connect(treeview, "button-press-event", G_CALLBACK(ui_view_clicked), NULL);
@@ -595,4 +600,15 @@ ui_view_dark_mode(GtkWidget *treeview,
         gtk_widget_modify_text(treeview, GTK_STATE_SELECTED, NULL);
         gtk_widget_modify_text(treeview, GTK_STATE_ACTIVE, NULL);
     }
+}
+
+void
+ui_view_latlon_column(GtkWidget *treeview,
+                      gboolean   visible)
+{
+    GtkTreeViewColumn *column;
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(treeview), COL_LATITUDE);
+    gtk_tree_view_column_set_visible(column, visible);
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(treeview), COL_LONGITUDE);
+    gtk_tree_view_column_set_visible(column, visible);
 }

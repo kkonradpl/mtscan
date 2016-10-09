@@ -3,6 +3,7 @@
 #include "ui-dialogs.h"
 #include "log.h"
 #include "export.h"
+#include "conf.h"
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
@@ -47,12 +48,19 @@ ui_dialog_open(gboolean merge)
     GtkWidget *dialog;
     GtkFileFilter *filter, *filter_all;
     GSList *filenames = NULL;
+    const gchar *dir;
+    gchar *new_dir;
 
     dialog = gtk_file_chooser_dialog_new((!merge ? "Open file" : "Merge file"),
                                          GTK_WINDOW(ui.window),
                                          GTK_FILE_CHOOSER_ACTION_OPEN,
                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+
+    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), merge);
+
+    if(dir = conf_get_path_log_open())
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
     filter = gtk_file_filter_new();
     gtk_file_filter_set_name(filter, filetype_default);
@@ -65,12 +73,15 @@ ui_dialog_open(gboolean merge)
     gtk_file_filter_add_pattern(filter_all, "*");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter_all);
 
-    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), merge);
     if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
     {
         filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
         log_open(filenames, merge);
         g_slist_free_full(filenames, g_free);
+
+        new_dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
+        conf_set_path_log_open(new_dir);
+        g_free(new_dir);
     }
     gtk_widget_destroy(dialog);
 }
@@ -82,6 +93,7 @@ ui_dialog_save(gboolean save_as)
     GtkWidget *check_buttton;
     GtkFileFilter *filter;
     gboolean state = FALSE;
+    const gchar *dir;
 
     if(!ui.filename || save_as)
     {
@@ -94,6 +106,9 @@ ui_dialog_save(gboolean save_as)
 
         gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dialog), TRUE);
         gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+
+        if(dir = conf_get_path_log_save())
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
         check_buttton = gtk_check_button_new_with_label("Compress (.gz)");
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_buttton), TRUE);
@@ -127,7 +142,7 @@ ui_dialog_save_response(GtkWidget *dialog,
                         gpointer   user_data)
 {
     gboolean *state = (gboolean*)user_data;
-    gchar *filename;
+    gchar *filename, *dir;
     gboolean compress;
     gboolean add_suffix;
 
@@ -190,6 +205,10 @@ ui_dialog_save_response(GtkWidget *dialog,
     ui.changed = FALSE;
     ui_set_title(filename);
 
+    dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
+    conf_set_path_log_save(dir);
+    g_free(dir);
+
     *state = TRUE;
     gtk_widget_destroy(dialog);
 }
@@ -213,6 +232,7 @@ ui_dialog_export()
     GtkWidget *dialog;
     GtkFileFilter *filter;
     gboolean state = FALSE;
+    const gchar *dir;
 
     dialog = gtk_file_chooser_dialog_new("Export log as HTML",
                                          GTK_WINDOW(ui.window),
@@ -223,6 +243,9 @@ ui_dialog_export()
 
     gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dialog), TRUE);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+
+    if(dir = conf_get_path_log_export())
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
     filter = gtk_file_filter_new();
     gtk_file_filter_set_name(filter, "HTML file");
@@ -241,8 +264,7 @@ ui_dialog_export_response(GtkWidget *dialog,
                           gpointer   user_data)
 {
     gboolean *state = (gboolean*)user_data;;
-    gchar *filename;
-    gchar *ext;
+    gchar *filename, *dir, *ext;
     FILE *fp;
 
     if(response_id != GTK_RESPONSE_ACCEPT)
@@ -279,6 +301,10 @@ ui_dialog_export_response(GtkWidget *dialog,
 
     export_html(ui.model, fp, ui.name);
     fclose(fp);
+
+    dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
+    conf_set_path_log_export(dir);
+    g_free(dir);
 
     *state = TRUE;
     gtk_widget_destroy(dialog);

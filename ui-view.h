@@ -9,6 +9,7 @@ void ui_view_unlock(GtkWidget*);
 void ui_view_remove_iter(GtkTreeView*, GtkTreeModel*, GtkTreeIter*);
 void ui_view_check_position(GtkWidget*);
 void ui_view_dark_mode(GtkWidget*, gboolean);
+void ui_view_latlon_column(GtkWidget*, gboolean);
 
 #endif
 

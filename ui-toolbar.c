@@ -87,9 +87,9 @@ ui_toolbar_create(GtkWidget *box)
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist, -1);
     gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist), "clicked", accel_group, GDK_KEY_l, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
-    ui.b_scanlist_custom = gtk_menu_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON), "Custom scan-list");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_custom), "Custom scan-list (Ctrl+5)");
-    g_signal_connect(ui.b_scanlist_custom, "clicked", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
+    ui.b_scanlist_preset = gtk_menu_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON), "Preset scan-list");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_preset), "Preset scan-list (Ctrl+5)");
+    g_signal_connect(ui.b_scanlist_preset, "clicked", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
 
     GtkWidget *menu = gtk_menu_new();
     GtkWidget *item_ext = gtk_image_menu_item_new_with_label("Extended scan-list");
@@ -103,9 +103,9 @@ ui_toolbar_create(GtkWidget *box)
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_full);
 
     gtk_widget_show_all(menu);
-    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(ui.b_scanlist_custom), menu);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_custom, -1);
-    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_custom), "clicked", accel_group, GDK_KEY_5, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(ui.b_scanlist_preset), menu);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_preset, -1);
+    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_preset), "clicked", accel_group, GDK_KEY_5, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
 
