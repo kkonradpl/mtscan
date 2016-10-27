@@ -59,7 +59,7 @@ ui_dialog_open(gboolean merge)
 
     gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), merge);
 
-    if(dir = conf_get_path_log_open())
+    if((dir = conf_get_path_log_open()))
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
     filter = gtk_file_filter_new();
@@ -107,7 +107,7 @@ ui_dialog_save(gboolean save_as)
         gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dialog), TRUE);
         gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 
-        if(dir = conf_get_path_log_save())
+        if((dir = conf_get_path_log_save()))
             gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
         check_buttton = gtk_check_button_new_with_label("Compress (.gz)");
@@ -244,7 +244,7 @@ ui_dialog_export()
     gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dialog), TRUE);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 
-    if(dir = conf_get_path_log_export())
+    if((dir = conf_get_path_log_export()))
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
     filter = gtk_file_filter_new();
