@@ -309,6 +309,9 @@ ui_view_key_press(GtkWidget   *widget,
     GtkTreeModel *store;
     GtkTreeSelection *selection;
     GtkTreeIter iter;
+    GtkClipboard *clipboard;
+    gchar *string;
+
     if(event->keyval == GDK_KEY_Delete)
     {
         selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
@@ -317,6 +320,17 @@ ui_view_key_press(GtkWidget   *widget,
             if(ui_dialog_yesno(GTK_WINDOW(gtk_widget_get_toplevel(widget)), "Are you sure you want to remove this network?"))
                 ui_view_remove_iter(GTK_TREE_VIEW(widget), store, &iter);
             return TRUE;
+        }
+    }
+    else if(event->keyval == GDK_KEY_c && event->state & GDK_CONTROL_MASK)
+    {
+        selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+        if(gtk_tree_selection_get_selected(selection, &store, &iter))
+        {
+            gtk_tree_model_get(store, &iter, COL_SSID, &string, -1);
+            clipboard = gtk_widget_get_clipboard(widget, GDK_SELECTION_CLIPBOARD);
+            gtk_clipboard_set_text(clipboard, string, -1);
+            g_free(string);
         }
     }
     return FALSE;
