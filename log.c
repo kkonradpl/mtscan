@@ -91,6 +91,12 @@ typedef struct read_context
     signals_node_t *signal;
 } read_ctx_t;
 
+typedef struct save_context
+{
+    yajl_gen gen;
+    gboolean strip;
+} save_ctx_t;
+
 static gint parse_integer(gpointer, long long int);
 static gint parse_double(gpointer, double);
 static gint parse_string(gpointer, const guchar*, size_t);
@@ -427,13 +433,14 @@ parse_array_end(gpointer ptr)
 }
 
 gboolean
-log_save(gchar *filename)
+log_save(gchar    *filename,
+         gboolean  strip)
 {
     gzFile gzfp = NULL;
     FILE *fp = NULL;
     gchar *ext;
     gboolean compression;
-    yajl_gen gen;
+    save_ctx_t ctx;
     const guchar *json_string;
     size_t json_length;
     gint wrote;
@@ -455,12 +462,13 @@ log_save(gchar *filename)
         return FALSE;
     }
 
-    gen = yajl_gen_alloc(NULL);
-    //yajl_gen_config(gen, yajl_gen_beautify, 1);
-    yajl_gen_map_open(gen);
-    gtk_tree_model_foreach(GTK_TREE_MODEL(ui.model->store), log_save_foreach, gen);
-    yajl_gen_map_close(gen);
-    yajl_gen_get_buf(gen, &json_string, &json_length);
+    ctx.gen = yajl_gen_alloc(NULL);
+    ctx.strip = strip;
+    //yajl_gen_config(ctx.gen, yajl_gen_beautify, 1);
+    yajl_gen_map_open(ctx.gen);
+    gtk_tree_model_foreach(GTK_TREE_MODEL(ui.model->store), log_save_foreach, &ctx);
+    yajl_gen_map_close(ctx.gen);
+    yajl_gen_get_buf(ctx.gen, &json_string, &json_length);
 
     if(compression)
     {
@@ -473,7 +481,7 @@ log_save(gchar *filename)
         fclose(fp);
     }
 
-    yajl_gen_free(gen);
+    yajl_gen_free(ctx.gen);
 
     if(json_length != wrote)
     {
@@ -493,7 +501,7 @@ log_save_foreach(GtkTreeModel *store,
                  GtkTreeIter  *iter,
                  gpointer      data)
 {
-    yajl_gen gen = (yajl_gen)data;
+    save_ctx_t *ctx = (save_ctx_t*)data;
     network_t net;
     signals_node_t *sample;
     const gchar *buffer;
@@ -520,100 +528,100 @@ log_save_foreach(GtkTreeModel *store,
                        COL_SIGNALS, &net.signals,
                        -1);
 
-    yajl_gen_string(gen, (guchar*)net.address, strlen(net.address));
-    yajl_gen_map_open(gen);
+    yajl_gen_string(ctx->gen, (guchar*)net.address, strlen(net.address));
+    yajl_gen_map_open(ctx->gen);
 
     buffer = model_format_frequency(net.frequency);
-    yajl_gen_string(gen, (guchar*)keys[KEY_FREQUENCY], strlen(keys[KEY_FREQUENCY]));
-    yajl_gen_number(gen, buffer, strlen(buffer));
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_FREQUENCY], strlen(keys[KEY_FREQUENCY]));
+    yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_CHANNEL], strlen(keys[KEY_CHANNEL]));
-    yajl_gen_string(gen, (guchar*)net.channel, strlen(net.channel));
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_CHANNEL], strlen(keys[KEY_CHANNEL]));
+    yajl_gen_string(ctx->gen, (guchar*)net.channel, strlen(net.channel));
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_MODE], strlen(keys[KEY_MODE]));
-    yajl_gen_string(gen, (guchar*)net.mode, strlen(net.mode));
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_MODE], strlen(keys[KEY_MODE]));
+    yajl_gen_string(ctx->gen, (guchar*)net.mode, strlen(net.mode));
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_SSID], strlen(keys[KEY_SSID]));
-    yajl_gen_string(gen, (guchar*)net.ssid, strlen(net.ssid));
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_SSID], strlen(keys[KEY_SSID]));
+    yajl_gen_string(ctx->gen, (guchar*)net.ssid, strlen(net.ssid));
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_RADIONAME], strlen(keys[KEY_RADIONAME]));
-    yajl_gen_string(gen, (guchar*)net.radioname, strlen(net.radioname));
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_RADIONAME], strlen(keys[KEY_RADIONAME]));
+    yajl_gen_string(ctx->gen, (guchar*)net.radioname, strlen(net.radioname));
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_RSSI], strlen(keys[KEY_RSSI]));
-    yajl_gen_integer(gen, net.rssi);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_RSSI], strlen(keys[KEY_RSSI]));
+    yajl_gen_integer(ctx->gen, net.rssi);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_PRIVACY], strlen(keys[KEY_PRIVACY]));
-    yajl_gen_integer(gen, net.flags.privacy);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_PRIVACY], strlen(keys[KEY_PRIVACY]));
+    yajl_gen_integer(ctx->gen, net.flags.privacy);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_ROUTEROS], strlen(keys[KEY_ROUTEROS]));
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_ROUTEROS], strlen(keys[KEY_ROUTEROS]));
     if(net.routeros_ver && strlen(net.routeros_ver))
-        yajl_gen_string(gen, (guchar*)net.routeros_ver, strlen(net.routeros_ver));
+        yajl_gen_string(ctx->gen, (guchar*)net.routeros_ver, strlen(net.routeros_ver));
     else
-        yajl_gen_integer(gen, net.flags.routeros);
+        yajl_gen_integer(ctx->gen, net.flags.routeros);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_NSTREME], strlen(keys[KEY_NSTREME]));
-    yajl_gen_integer(gen, net.flags.nstreme);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_NSTREME], strlen(keys[KEY_NSTREME]));
+    yajl_gen_integer(ctx->gen, net.flags.nstreme);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_TDMA], strlen(keys[KEY_TDMA]));
-    yajl_gen_integer(gen, net.flags.tdma);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_TDMA], strlen(keys[KEY_TDMA]));
+    yajl_gen_integer(ctx->gen, net.flags.tdma);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_WDS], strlen(keys[KEY_WDS]));
-    yajl_gen_integer(gen, net.flags.wds);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WDS], strlen(keys[KEY_WDS]));
+    yajl_gen_integer(ctx->gen, net.flags.wds);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_BRIDGE], strlen(keys[KEY_BRIDGE]));
-    yajl_gen_integer(gen, net.flags.bridge);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_BRIDGE], strlen(keys[KEY_BRIDGE]));
+    yajl_gen_integer(ctx->gen, net.flags.bridge);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_FIRSTSEEN], strlen(keys[KEY_FIRSTSEEN]));
-    yajl_gen_integer(gen, net.firstseen);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_FIRSTSEEN], strlen(keys[KEY_FIRSTSEEN]));
+    yajl_gen_integer(ctx->gen, net.firstseen);
 
-    yajl_gen_string(gen, (guchar*)keys[KEY_LASTSEEN], strlen(keys[KEY_LASTSEEN]));
-    yajl_gen_integer(gen, net.lastseen);
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LASTSEEN], strlen(keys[KEY_LASTSEEN]));
+    yajl_gen_integer(ctx->gen, net.lastseen);
 
     if(!isnan(net.latitude) && !isnan(net.longitude))
     {
         buffer = model_format_gps(net.latitude);
-        yajl_gen_string(gen, (guchar*)keys[KEY_LATITUDE], strlen(keys[KEY_LATITUDE]));
-        yajl_gen_number(gen, buffer, strlen(buffer));
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LATITUDE], strlen(keys[KEY_LATITUDE]));
+        yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
         buffer = model_format_gps(net.longitude);
-        yajl_gen_string(gen, (guchar*)keys[KEY_LONGITUDE], strlen(keys[KEY_LONGITUDE]));
-        yajl_gen_number(gen, buffer, strlen(buffer));
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LONGITUDE], strlen(keys[KEY_LONGITUDE]));
+        yajl_gen_number(ctx->gen, buffer, strlen(buffer));
     }
 
-    if(net.signals->head)
+    if(net.signals->head && !ctx->strip)
     {
-        yajl_gen_string(gen, (guchar*)keys[KEY_SIGNALS], strlen(keys[KEY_SIGNALS]));
-        yajl_gen_array_open(gen);
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_SIGNALS], strlen(keys[KEY_SIGNALS]));
+        yajl_gen_array_open(ctx->gen);
 
         sample = net.signals->head;
         while(sample)
         {
-            yajl_gen_map_open(gen);
+            yajl_gen_map_open(ctx->gen);
 
-            yajl_gen_string(gen, (guchar*)keys_signals[KEY_SIGNALS_TIMESTAMP], strlen(keys_signals[KEY_SIGNALS_TIMESTAMP]));
-            yajl_gen_integer(gen, sample->timestamp);
+            yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_TIMESTAMP], strlen(keys_signals[KEY_SIGNALS_TIMESTAMP]));
+            yajl_gen_integer(ctx->gen, sample->timestamp);
 
-            yajl_gen_string(gen, (guchar*)keys_signals[KEY_SIGNALS_RSSI], strlen(keys_signals[KEY_SIGNALS_RSSI]));
-            yajl_gen_integer(gen, sample->rssi);
+            yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_RSSI], strlen(keys_signals[KEY_SIGNALS_RSSI]));
+            yajl_gen_integer(ctx->gen, sample->rssi);
 
             if(!isnan(sample->latitude) && !isnan(sample->longitude))
             {
                 buffer = model_format_gps(sample->latitude);
-                yajl_gen_string(gen, (guchar*)keys_signals[KEY_SIGNALS_LATITUDE], strlen(keys_signals[KEY_SIGNALS_LATITUDE]));
-                yajl_gen_number(gen, buffer, strlen(buffer));
+                yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LATITUDE], strlen(keys_signals[KEY_SIGNALS_LATITUDE]));
+                yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
                 buffer = model_format_gps(sample->longitude);
-                yajl_gen_string(gen, (guchar*)keys_signals[KEY_SIGNALS_LONGITUDE], strlen(keys_signals[KEY_SIGNALS_LONGITUDE]));
-                yajl_gen_number(gen, buffer, strlen(buffer));
+                yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LONGITUDE], strlen(keys_signals[KEY_SIGNALS_LONGITUDE]));
+                yajl_gen_number(ctx->gen, buffer, strlen(buffer));
             }
 
-            yajl_gen_map_close(gen);
+            yajl_gen_map_close(ctx->gen);
             sample = sample->next;
         }
 
-        yajl_gen_array_close(gen);
+        yajl_gen_array_close(ctx->gen);
     }
-    yajl_gen_map_close(gen);
+    yajl_gen_map_close(ctx->gen);
 
 
     /* Signals are stored in GtkListStore just as pointer,

@@ -90,7 +90,9 @@ gboolean
 ui_dialog_save(gboolean save_as)
 {
     GtkWidget *dialog;
-    GtkWidget *check_buttton;
+    GtkWidget *box;
+    GtkWidget *compression;
+    GtkWidget *strip;
     GtkFileFilter *filter;
     gboolean state = FALSE;
     const gchar *dir;
@@ -110,9 +112,19 @@ ui_dialog_save(gboolean save_as)
         if((dir = conf_get_path_log_save()))
             gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
-        check_buttton = gtk_check_button_new_with_label("Compress (.gz)");
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_buttton), TRUE);
-        gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), check_buttton);
+        box = gtk_vbox_new(TRUE, 2);
+
+        compression = gtk_check_button_new_with_label("Compress (.gz)");
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(compression), TRUE);
+        gtk_box_pack_start(GTK_BOX(box), compression, TRUE, TRUE, 0);
+        g_object_set_data(G_OBJECT(dialog), "mtscan-compression", compression);
+
+        strip = gtk_check_button_new_with_label("Strip all signal samples");
+        gtk_box_pack_start(GTK_BOX(box), strip, TRUE, TRUE, 0);
+        g_object_set_data(G_OBJECT(dialog), "mtscan-strip", strip);
+
+		gtk_widget_show_all(box);
+        gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), box);
 
         filter = gtk_file_filter_new();
         gtk_file_filter_set_name(filter, filetype_default);
@@ -125,7 +137,7 @@ ui_dialog_save(gboolean save_as)
     }
     else
     {
-        state = log_save(ui.filename);
+        state = log_save(ui.filename, FALSE);
         if(state)
         {
             /* update the window title */
@@ -144,6 +156,7 @@ ui_dialog_save_response(GtkWidget *dialog,
     gboolean *state = (gboolean*)user_data;
     gchar *filename, *dir;
     gboolean compress;
+    gboolean strip;
     gboolean add_suffix;
 
     if(response_id != GTK_RESPONSE_ACCEPT)
@@ -161,7 +174,8 @@ ui_dialog_save_response(GtkWidget *dialog,
         return;
     }
 
-    compress = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(gtk_file_chooser_get_extra_widget(GTK_FILE_CHOOSER(dialog))));
+    compress = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-compression")));
+    strip = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip")));
 
     if(compress)
         add_suffix = !str_has_suffix(filename, APP_FILE_EXT ".gz");
@@ -195,7 +209,7 @@ ui_dialog_save_response(GtkWidget *dialog,
         return;
     }
 
-    if(!log_save(filename))
+    if(!log_save(filename, strip))
     {
         g_free(filename);
         return;
