@@ -630,9 +630,9 @@ mt_ssh_scan_start(mtscan_conn_t     *conn,
     if(conn->state == STATE_PROMPT)
     {
         if(conn->background && conn->duration)
-            str_scan = g_strdup_printf("/interface wireless scan %s background=yes duration=%d\r", conn->iface, conn->duration);
+            str_scan = g_strdup_printf(":delay 250ms; /interface wireless scan %s background=yes duration=%d\r", conn->iface, conn->duration);
         else if(conn->background)
-            str_scan = g_strdup_printf("/interface wireless scan %s background=yes\r", conn->iface);
+            str_scan = g_strdup_printf(":delay 250ms; /interface wireless scan %s background=yes\r", conn->iface);
         else if(conn->duration)
             str_scan = g_strdup_printf("/interface wireless scan %s duration=%d\r", conn->iface, conn->duration);
         else
