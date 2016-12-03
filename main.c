@@ -56,6 +56,10 @@ main(gint   argc,
     GSList *filenames = NULL;
     gint i;
 
+    /* hack for the yajl bug:
+       https://github.com/lloyd/yajl/issues/79 */
+    gtk_disable_setlocale();
+
     gtk_init(&argc, &argv);
 
 #ifdef G_OS_WIN32
