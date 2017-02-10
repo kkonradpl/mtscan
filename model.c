@@ -12,6 +12,7 @@
 static const GdkColor new_network_color      = { 0, 0x9000, 0xEE00, 0x9000 };
 static const GdkColor new_network_color_dark = { 0, 0x2F00, 0x4F00, 0x2F00 };
 
+static gint model_sort_ascii_string(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_rssi(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_gps(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_version(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
@@ -49,6 +50,8 @@ mtscan_model_new()
                                       G_TYPE_DOUBLE,   /* COL_LONGITUDE */
                                       G_TYPE_POINTER); /* COL_SIGNALS   */
 
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_SSID, model_sort_ascii_string, GINT_TO_POINTER(COL_SSID), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_RADIONAME, model_sort_ascii_string, GINT_TO_POINTER(COL_RADIONAME), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_RSSI, model_sort_rssi, NULL, NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LATITUDE, model_sort_gps, GINT_TO_POINTER(COL_LATITUDE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LONGITUDE, model_sort_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
@@ -62,6 +65,34 @@ mtscan_model_new()
     model->buffer = NULL;
 	model->clear_active_all = FALSE;
     return model;
+}
+
+
+static gint
+model_sort_ascii_string(GtkTreeModel *model,
+                        GtkTreeIter  *a,
+                        GtkTreeIter  *b,
+                        gpointer      data)
+{
+    gint column = GPOINTER_TO_INT(data);
+    gchar *v1, *v2;
+    gint ret;
+
+    gtk_tree_model_get(model, a,
+                       column, &v1,
+                       -1);
+
+    gtk_tree_model_get(model, b,
+                       column, &v2,
+                       -1);
+
+    /* Don't care about UTF-8 chars now,
+       as these are escaped by RouterOS */
+    ret = g_ascii_strcasecmp(v1, v2);
+
+    g_free(v1);
+    g_free(v2);
+    return ret;
 }
 
 static gint
