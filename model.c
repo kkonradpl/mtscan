@@ -9,6 +9,9 @@
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 #define GPS_DOUBLE_PREC 1e-6
 
+#define MIKROTIK_LOW_SIGNAL_BUGFIX  1
+#define MIKROTIK_HIGH_SIGNAL_BUGFIX 1
+
 static const GdkColor new_network_color      = { 0, 0x9000, 0xEE00, 0x9000 };
 static const GdkColor new_network_color_dark = { 0, 0x2F00, 0x4F00, 0x2F00 };
 
@@ -408,12 +411,12 @@ model_update_network(mtscan_model_t *model,
         }
 
 #if MIKROTIK_LOW_SIGNAL_BUGFIX
-        if(net->rssi >= -12 && net->rssi <= -10 && maxrssi <= -15)
-            net->rssi = -100;
+        if(net->rssi >= -12 && net->rssi <= -10 && current_maxrssi <= -15)
+            net->rssi = current_maxrssi;
 #endif
 #if MIKROTIK_HIGH_SIGNAL_BUGFIX
         if(net->rssi >= 10)
-            net->rssi = maxrssi;
+            net->rssi = current_maxrssi;
 #endif
 
         if(conf_get_interface_signals())
@@ -475,15 +478,6 @@ model_update_network(mtscan_model_t *model,
     else
     {
         /* Add a new network */
-#if MIKROTIK_LOW_SIGNAL_BUGFIX
-        if(net->rssi >= -12 && net->rssi <= -10)
-            net->rssi = -100;
-#endif
-#if MIKROTIK_HIGH_SIGNAL_BUGFIX
-        if(net->rssi >= 10)
-            net->rssi = -100;
-#endif
-
         net->signals = signals_new();
         if(conf_get_interface_signals())
             signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude));
