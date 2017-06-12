@@ -49,56 +49,40 @@ signals_append(signals_t      *list,
     }
 }
 
-gboolean
-signals_merge_and_free(signals_t **list,
-                       signals_t  *merge)
+void
+signals_merge(signals_t *list,
+              signals_t *merge)
 {
     signals_node_t *current_list;
     signals_node_t *current_merge;
     signals_node_t *tmp;
 
-    if((*list)->head == NULL)
-    {
-        g_free(*list);
-        *list = merge;
-        /* Return TRUE when pointer to the list changes */
-        return TRUE;
-    }
-
     if(merge->head == NULL)
-    {
-        g_free(merge);
-        return FALSE;
-    }
+        return;
 
-    current_merge = merge->head;
-    if(merge->tail->timestamp <= (*list)->head->timestamp)
+    if(list->head == NULL)
+    {
+        /* Move */
+        list->head = merge->head;
+        list->tail = merge->tail;
+    }
+    else if(merge->tail->timestamp <= list->head->timestamp)
     {
         /* Prepend */
-        while(current_merge)
-        {
-            tmp = current_merge->next;
-            current_merge->next = (*list)->head;
-            (*list)->head = current_merge;
-            current_merge = tmp;
-        }
+        merge->tail->next = list->head;
+        list->head = merge->head;
     }
-    else if(merge->head->timestamp >= (*list)->tail->timestamp)
+    else if(merge->head->timestamp >= list->tail->timestamp)
     {
         /* Append */
-        while(current_merge)
-        {
-            tmp = current_merge->next;
-            current_merge->next = NULL;
-            (*list)->tail->next = current_merge;
-            (*list)->tail = current_merge;
-            current_merge = tmp;
-        }
+        list->tail->next = merge->head;
+        list->tail = merge->tail;
     }
     else
     {
         /* Insert */
-        current_list = (*list)->head;
+        current_list = list->head;
+        current_merge = merge->head;
         while(current_merge)
         {
             tmp = current_merge->next;
@@ -109,7 +93,7 @@ signals_merge_and_free(signals_t **list,
                 current_list = current_list->next;
             }
             if(!current_list->next)
-                (*list)->tail = current_merge;
+                list->tail = current_merge;
             current_merge->next = current_list->next;
             current_list->next = current_merge;
 
@@ -118,8 +102,8 @@ signals_merge_and_free(signals_t **list,
         }
     }
 
-    g_free(merge);
-    return FALSE;
+    merge->head = NULL;
+    merge->tail = NULL;
 }
 
 void

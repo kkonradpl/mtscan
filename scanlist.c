@@ -39,7 +39,6 @@ static const gint freq_5GHz_5745_5825[] =
     5745, 5765, 5785, 5805, 5825, 0
 };
 
-static gboolean scanlist_hide(GtkWidget*, GdkEvent*, gpointer);
 static void scanlist_destroy(GtkWidget*, gpointer);
 static void scanlist_preset(GtkWidget*, gpointer);
 static void scanlist_set(GtkWidget*, gpointer);
@@ -50,12 +49,6 @@ static gboolean scanlist_foreach_set(gpointer, gpointer, gpointer);
 static gboolean scanlist_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean freq_in_list(gint, const gint*);
 static gint gintcmp(gconstpointer, gconstpointer);
-
-gboolean
-scanlist_active()
-{
-    return GPOINTER_TO_INT(scanlist_window);
-}
 
 void
 scanlist_dialog()
@@ -68,7 +61,7 @@ scanlist_dialog()
     gchar buff[100];
     gint freq;
 
-    if(scanlist_active())
+    if(scanlist_window)
     {
         gtk_window_present(GTK_WINDOW(scanlist_window));
         return;
@@ -122,7 +115,6 @@ scanlist_dialog()
         gtk_container_add(GTK_CONTAINER(freq_button), freq_label);
         gtk_box_pack_start(GTK_BOX(freq_box), freq_button, FALSE, FALSE, 1);
         g_tree_insert(freqtree, GINT_TO_POINTER(freq), freq_button);
-        printf("INSERT\n");
     }
 
     box_button = gtk_hbutton_box_new();
@@ -159,21 +151,12 @@ scanlist_dialog()
     gtk_container_add(GTK_CONTAINER(box_button), b_close);
 
     g_signal_connect(scanlist_window, "key-press-event", G_CALLBACK(scanlist_key), NULL);
-    g_signal_connect(scanlist_window, "delete-event", G_CALLBACK(scanlist_hide), NULL);
+    g_signal_connect(scanlist_window, "delete-event", G_CALLBACK(gtk_widget_hide), NULL);
     g_signal_connect(scanlist_window, "destroy", G_CALLBACK(scanlist_destroy), NULL);
     gtk_widget_show_all(scanlist_window);
 
     /* Scan-list is now centered over parent, don't stay on top anymore */
     gtk_window_set_transient_for(GTK_WINDOW(scanlist_window), NULL);
-}
-
-static gboolean
-scanlist_hide(GtkWidget *widget,
-              GdkEvent  *event,
-              gpointer   data)
-{
-    gtk_widget_hide(widget);
-    return TRUE;
 }
 
 static void
@@ -275,7 +258,7 @@ scanlist_key(GtkWidget   *widget,
     guint current = gdk_keyval_to_upper(event->keyval);
     if(current == GDK_KEY_Escape)
     {
-        gtk_widget_destroy(widget);
+        gtk_widget_hide(widget);
         return TRUE;
     }
     return FALSE;
@@ -295,7 +278,7 @@ void
 scanlist_add(gint frequency)
 {
     gpointer ptr;
-    if(!scanlist_active())
+    if(!scanlist_window)
         return;
 
     if((ptr = g_tree_lookup(freqtree, GINT_TO_POINTER(frequency))))

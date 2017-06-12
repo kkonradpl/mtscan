@@ -2,25 +2,35 @@
 #define MTSCAN_UI_DIALOGS_H_
 #include <gtk/gtk.h>
 
-#define UI_DIALOG_CANCEL    -1
-#define UI_DIALOG_OPEN       0
-#define UI_DIALOG_OPEN_MERGE 1
-#define UI_DIALOG_SAVE       0
-#define UI_DIALOG_SAVE_AS    1
+enum
+{
+    UI_DIALOG_YES = GTK_RESPONSE_YES,
+    UI_DIALOG_NO = GTK_RESPONSE_NO,
+    UI_DIALOG_CANCEL = GTK_RESPONSE_CANCEL,
+    UI_DIALOG_OPEN = 0,
+    UI_DIALOG_MERGE = 1,
+};
 
-void ui_dialog(GtkWidget*, GtkMessageType, const gchar*, const gchar*, ...);
+typedef struct
+{
+    gchar *filename;
+    gboolean compress;
+    gboolean strip_signals;
+    gboolean strip_gps;
+} ui_dialog_save_t;
 
-void ui_dialog_open(gboolean);
-gboolean ui_dialog_save(gboolean);
-gboolean ui_dialog_export();
+void ui_dialog(GtkWindow*, GtkMessageType, const gchar*, const gchar*, ...);
 
-gboolean ui_dialog_ask_unsaved();
-gint ui_dialog_ask_open_or_merge();
-gint ui_dialog_ask_merge(gint);
+GSList* ui_dialog_open(GtkWindow*, gboolean);
+ui_dialog_save_t* ui_dialog_save(GtkWindow*);
+gchar* ui_dialog_export(GtkWindow*);
 
-gboolean ui_dialog_yesno(GtkWindow*, const gchar*);
+gint ui_dialog_ask_unsaved(GtkWindow*);
+gint ui_dialog_ask_open_or_merge(GtkWindow*);
+gint ui_dialog_ask_merge(GtkWindow*, gint);
+gint ui_dialog_yesno(GtkWindow*, const gchar*);
 
-void ui_dialog_about();
+void ui_dialog_about(GtkWindow*);
 
 #endif
 

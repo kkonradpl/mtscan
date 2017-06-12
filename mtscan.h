@@ -1,11 +1,12 @@
 #ifndef MTSCAN_H_
 #define MTSCAN_H_
 
-#define APP_NAME       "MTscan"
-#define APP_VERSION    "0.1-git"
-#define APP_ICON       "mtscan"
-#define APP_FILE_EXT   ".mtscan"
-#define APP_SOUND_EXEC "paplay"
+#define APP_NAME          "MTscan"
+#define APP_VERSION       "0.2-git"
+#define APP_ICON          "mtscan"
+#define APP_FILE_EXT      ".mtscan"
+#define APP_FILE_COMPRESS ".gz"
+#define APP_SOUND_EXEC    "paplay"
 
 #define APP_SOUND_NETWORK "wav/network.wav"
 #define APP_SOUND_GPSLOST "wav/gpslost.wav"

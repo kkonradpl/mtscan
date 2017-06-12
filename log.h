@@ -3,6 +3,6 @@
 #include <gtk/gtk.h>
 
 void log_open(GSList*, gboolean);
-gboolean log_save(gchar*, gboolean);
+gboolean log_save(gchar*, gboolean, gboolean, GList*);
 
 #endif

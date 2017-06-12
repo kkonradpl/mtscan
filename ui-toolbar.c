@@ -8,6 +8,7 @@
 #include "scanlist.h"
 #include "ui-connect.h"
 #include "ui-toolbar.h"
+#include "ui-preferences.h"
 #include "export.h"
 #include "gps.h"
 
@@ -33,7 +34,6 @@ static void ui_toolbar_preferences(GtkWidget*, gpointer);
 static void ui_toolbar_sound(GtkWidget*, gpointer);
 static void ui_toolbar_mode(GtkWidget*, gpointer);
 static void ui_toolbar_gps(GtkWidget*, gpointer);
-static void ui_toolbar_signals(GtkWidget*, gpointer);
 static void ui_toolbar_about(GtkWidget*, gpointer);
 
 /* ToggleToolButton's 'clicked' callback contain
@@ -41,7 +41,7 @@ static void ui_toolbar_about(GtkWidget*, gpointer);
    work with gtk_widget_add_accelerator. */
 
 GtkWidget*
-ui_toolbar_create(GtkWidget *box)
+ui_toolbar_create()
 {
     GtkAccelGroup *accel_group;
     GtkWidget *toolbar;
@@ -51,7 +51,6 @@ ui_toolbar_create(GtkWidget *box)
 
     toolbar = gtk_toolbar_new();
     gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS);
-    gtk_box_pack_start(GTK_BOX(box), toolbar, FALSE, FALSE, 0);
 
     ui.b_connect = gtk_toggle_tool_button_new();
     gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_connect), gtk_image_new_from_stock(GTK_STOCK_CONNECT, GTK_ICON_SIZE_BUTTON));
@@ -181,13 +180,6 @@ ui_toolbar_create(GtkWidget *box)
     g_signal_connect(ui.b_gps, "clicked", G_CALLBACK(ui_toolbar_gps), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_gps, -1);
 
-    ui.b_signals = gtk_toggle_tool_button_new();
-    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_signals), gtk_image_new_from_stock(GTK_STOCK_FILE, GTK_ICON_SIZE_BUTTON));
-    gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_signals), "Record all signal samples");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_signals), "Record all signal samples");
-    g_signal_connect(ui.b_signals, "clicked", G_CALLBACK(ui_toolbar_signals), NULL);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_signals, -1);
-
     ui.b_about = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_ABOUT, GTK_ICON_SIZE_BUTTON), "About");
     gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_about), "About " APP_NAME);
     g_signal_connect(ui.b_about, "clicked", G_CALLBACK(ui_toolbar_about), NULL);
@@ -305,45 +297,93 @@ static void
 ui_toolbar_new(GtkWidget *widget,
                gpointer   data)
 {
-    if(ui.changed && !ui_dialog_ask_unsaved())
-        return;
-    ui_clear();
-    ui_set_title(NULL);
+    if(ui_can_discard_unsaved())
+    {
+        ui_clear();
+        ui_set_title(NULL);
+    }
 }
 
 static void
 ui_toolbar_open(GtkWidget *widget,
                 gpointer   data)
 {
-    ui_dialog_open(UI_DIALOG_OPEN);
+    GSList *filenames;
+    filenames = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_OPEN);
+    if(filenames)
+    {
+        log_open(filenames, FALSE);
+        g_slist_free_full(filenames, g_free);
+    }
 }
 
 static void
 ui_toolbar_merge(GtkWidget *widget,
                  gpointer   data)
 {
-    ui_dialog_open(UI_DIALOG_OPEN_MERGE);
+    GSList *filenames;
+    filenames = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_MERGE);
+    if(filenames)
+    {
+        log_open(filenames, TRUE);
+        g_slist_free_full(filenames, g_free);
+    }
 }
 
 static void
 ui_toolbar_save(GtkWidget *widget,
                 gpointer   data)
 {
-    ui_dialog_save(UI_DIALOG_SAVE);
+    if(!ui.filename)
+    {
+        ui_toolbar_save_as(widget, data);
+        return;
+    }
+
+    if(log_save(ui.filename, FALSE, FALSE, NULL))
+    {
+        /* update the window title */
+        ui.changed = FALSE;
+        ui_set_title(ui.filename);
+    }
 }
 
 static void
 ui_toolbar_save_as(GtkWidget *widget,
                    gpointer   data)
 {
-    ui_dialog_save(UI_DIALOG_SAVE_AS);
+    ui_dialog_save_t *s = ui_dialog_save(GTK_WINDOW(ui.window));
+    if(s)
+    {
+        if(log_save(s->filename, s->strip_signals, s->strip_gps, NULL))
+        {
+            /* update the window title */
+            ui.changed = FALSE;
+            ui_set_title(s->filename);
+        }
+        else
+        {
+            g_free(s->filename);
+        }
+        g_free(s);
+    }
 }
 
 static void
 ui_toolbar_export(GtkWidget *widget,
                   gpointer   data)
 {
-    ui_dialog_export();
+    gchar *filename = ui_dialog_export(GTK_WINDOW(ui.window));
+    if(filename)
+    {
+        if(!export_html(filename, ui.name, ui.model))
+            ui_dialog(GTK_WINDOW(ui.window),
+                      GTK_MESSAGE_ERROR,
+                      "Error",
+                      "Unable to export the log to a file:\n%s",
+                      filename);
+        g_free(filename);
+    }
 }
 
 static void
@@ -357,7 +397,7 @@ static void
 ui_toolbar_preferences(GtkWidget *widget,
                        gpointer   data)
 {
-    /* TODO */
+    ui_preferences_dialog();
 }
 
 static void
@@ -396,7 +436,7 @@ ui_toolbar_gps(GtkWidget *widget,
     conf_set_interface_gps(pressed);
 
     if(pressed)
-        gps_start("localhost", 2947);
+        gps_start(conf_get_preferences_gps_hostname(), conf_get_preferences_gps_tcp_port());
     else
         gps_stop();
 
@@ -406,21 +446,8 @@ ui_toolbar_gps(GtkWidget *widget,
 }
 
 static void
-ui_toolbar_signals(GtkWidget *widget,
-                   gpointer   data)
-{
-    static gboolean pressed = FALSE;
-    pressed = !pressed;
-    conf_set_interface_signals(pressed);
-
-    g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_signals), NULL);
-    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(widget), pressed);
-    g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_signals), NULL);
-}
-
-static void
 ui_toolbar_about(GtkWidget *widget,
                  gpointer   data)
 {
-    ui_dialog_about();
+    ui_dialog_about(GTK_WINDOW(ui.window));
 }

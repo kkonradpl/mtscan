@@ -1,22 +1,23 @@
 #include <string.h>
 #include <glib/gstdio.h>
+#include <math.h>
 #include "ui-dialogs.h"
 #include "conf.h"
+#include "ui-view.h"
 
 #define CONF_DIR  "mtscan"
 #define CONF_FILE "mtscan.conf"
 
-#define CONF_DEFAULT_WINDOW_X      -1
-#define CONF_DEFAULT_WINDOW_Y      -1
-#define CONF_DEFAULT_WINDOW_WIDTH  1000
-#define CONF_DEFAULT_WINDOW_HEIGHT 500
+#define CONF_DEFAULT_WINDOW_X         -1
+#define CONF_DEFAULT_WINDOW_Y         -1
+#define CONF_DEFAULT_WINDOW_WIDTH     1000
+#define CONF_DEFAULT_WINDOW_HEIGHT    500
+#define CONF_DEFAULT_WINDOW_MAXIMIZED FALSE
 
 #define CONF_DEFAULT_INTERFACE_LAST_PROFILE  -1
 #define CONF_DEFAULT_INTERFACE_SOUND         FALSE
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
 #define CONF_DEFAULT_INTERFACE_GPS           FALSE
-#define CONF_DEFAULT_INTERFACE_LATLON_COLUMN TRUE
-#define CONF_DEFAULT_INTERFACE_SIGNALS       FALSE
 
 #define CONF_DEFAULT_PROFILE_NAME           "unnamed"
 #define CONF_DEFAULT_PROFILE_HOST           ""
@@ -33,26 +34,31 @@
 #define CONF_DEFAULT_PATH_LOG_SAVE   ""
 #define CONF_DEFAULT_PATH_LOG_EXPORT ""
 
+#define CONF_DEFAULT_PREFERENCES_ICON_SIZE         18
+#define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN     1
+#define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN     FALSE
+#define CONF_DEFAULT_PREFERENCES_SIGNALS           TRUE
+#define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME      "localhost"
+#define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT      2947
 
 #define CONF_PROFILE_GROUP "profile_"
 
 typedef struct conf
 {
-    gchar *path;
+    gchar    *path;
     GKeyFile *keyfile;
 
     /* [window] */
-    gint window_x;
-    gint window_y;
-    gint window_width;
-    gint window_height;
+    gint     window_x;
+    gint     window_y;
+    gint     window_width;
+    gint     window_height;
+    gboolean window_maximized;
 
     /* [interface] */
     gboolean interface_sound;
     gboolean interface_dark_mode;
     gboolean interface_gps;
-    gboolean interface_signals;
-    gboolean interface_latlon_column;
     gint     interface_last_profile;
 
     /* [profile_x] */
@@ -62,6 +68,15 @@ typedef struct conf
     gchar *path_log_open;
     gchar *path_log_save;
     gchar *path_log_export;
+
+    /* [preferences] */
+    gint     preferences_icon_size;
+    gint     preferences_search_column;
+    gboolean preferences_latlon_column;
+    gboolean preferences_signals;
+
+    gchar *preferences_gps_hostname;
+    gint   preferences_gps_tcp_port;
 } conf_t;
 
 static conf_t conf;
@@ -122,12 +137,11 @@ conf_read()
     conf.window_y = conf_read_integer("window", "y", CONF_DEFAULT_WINDOW_Y);
     conf.window_width = conf_read_integer("window", "width", CONF_DEFAULT_WINDOW_WIDTH);
     conf.window_height = conf_read_integer("window", "height", CONF_DEFAULT_WINDOW_HEIGHT);
+    conf.window_maximized = conf_read_boolean("window", "maximized", CONF_DEFAULT_WINDOW_MAXIMIZED);
 
     conf.interface_sound = conf_read_boolean("interface", "sound", CONF_DEFAULT_INTERFACE_SOUND);
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
-    conf.interface_signals = conf_read_boolean("interface", "signals", CONF_DEFAULT_INTERFACE_SIGNALS);
-    conf.interface_latlon_column = conf_read_boolean("interface", "latlon_column", CONF_DEFAULT_INTERFACE_LATLON_COLUMN);
 
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
     conf_read_profiles(conf.keyfile, conf.profiles);
@@ -135,6 +149,13 @@ conf_read()
     conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
     conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
     conf.path_log_export = conf_read_string("path", "log_export", CONF_DEFAULT_PATH_LOG_EXPORT);
+
+    conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
+    conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
+    conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
+    conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
+    conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
+    conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
 
     if(!file_exists)
         conf_save();
@@ -273,12 +294,11 @@ conf_save()
     g_key_file_set_integer(conf.keyfile, "window", "y", conf.window_y);
     g_key_file_set_integer(conf.keyfile, "window", "width", conf.window_width);
     g_key_file_set_integer(conf.keyfile, "window", "height", conf.window_height);
+    g_key_file_set_boolean(conf.keyfile, "window", "maximized", conf.window_maximized);
 
     g_key_file_set_boolean(conf.keyfile, "interface", "sound", conf.interface_sound);
     g_key_file_set_boolean(conf.keyfile, "interface", "dark_mode", conf.interface_dark_mode);
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
-    g_key_file_set_boolean(conf.keyfile, "interface", "signals", conf.interface_signals);
-    g_key_file_set_boolean(conf.keyfile, "interface", "latlon_column", conf.interface_latlon_column);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
     conf_set_profiles(conf.keyfile, conf.profiles);
@@ -286,6 +306,13 @@ conf_save()
     g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
     g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
     g_key_file_set_string(conf.keyfile, "path", "log_export", conf.path_log_export);
+
+    g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
+    g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
+    g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
+    g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -363,6 +390,18 @@ conf_set_window_position(gint width,
 }
 
 gboolean
+conf_get_window_maximized()
+{
+    return conf.window_maximized;
+}
+
+void
+conf_set_window_maximized(gboolean value)
+{
+    conf.window_maximized = value;
+}
+
+gboolean
 conf_get_interface_sound()
 {
     return conf.interface_sound;
@@ -396,30 +435,6 @@ void
 conf_set_interface_gps(gboolean gps)
 {
     conf.interface_gps = gps;
-}
-
-gboolean
-conf_get_interface_signals()
-{
-    return conf.interface_signals;
-}
-
-void
-conf_set_interface_signals(gboolean signals)
-{
-    conf.interface_signals = signals;
-}
-
-gboolean
-conf_get_interface_latlon_column()
-{
-    return conf.interface_latlon_column;
-}
-
-void
-conf_set_interface_latlon_column(gboolean latlon_column)
-{
-    conf.interface_latlon_column = latlon_column;
 }
 
 gint
@@ -524,4 +539,76 @@ void
 conf_set_path_log_export(const gchar *path)
 {
     conf_change_string(&conf.path_log_export, path);
+}
+
+gint
+conf_get_preferences_icon_size()
+{
+    return conf.preferences_icon_size;
+}
+
+void
+conf_set_preferences_icon_size(gint value)
+{
+    conf.preferences_icon_size = value;
+}
+
+gint
+conf_get_preferences_search_column()
+{
+    return conf.preferences_search_column;
+}
+
+void
+conf_set_preferences_search_column(gint value)
+{
+    conf.preferences_search_column = value;
+}
+
+gboolean
+conf_get_preferences_latlon_column()
+{
+    return conf.preferences_latlon_column;
+}
+
+void
+conf_set_preferences_latlon_column(gboolean value)
+{
+    conf.preferences_latlon_column = value;
+}
+
+gboolean
+conf_get_preferences_signals()
+{
+    return conf.preferences_signals;
+}
+
+void
+conf_set_preferences_signals(gboolean value)
+{
+    conf.preferences_signals = value;
+}
+
+const gchar*
+conf_get_preferences_gps_hostname()
+{
+    return conf.preferences_gps_hostname;
+}
+
+void
+conf_set_preferences_gps_hostname(const gchar *value)
+{
+    conf_change_string(&conf.preferences_gps_hostname, value);
+}
+
+gint
+conf_get_preferences_gps_tcp_port()
+{
+    return conf.preferences_gps_tcp_port;
+}
+
+void
+conf_set_preferences_gps_tcp_port(gint value)
+{
+    conf.preferences_gps_tcp_port = value;
 }

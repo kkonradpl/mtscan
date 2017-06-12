@@ -429,7 +429,7 @@ connection_dialog_profile_remove(GtkWidget *widget,
     GtkTreeIter iter;
     if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(c_profile), &iter))
     {
-        if(ui_dialog_yesno(GTK_WINDOW(dialog), "Are you sure you want to remove the selected profile?"))
+        if(ui_dialog_yesno(GTK_WINDOW(dialog), "Are you sure you want to remove the selected profile?") == UI_DIALOG_YES)
             gtk_list_store_remove(GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(c_profile))), &iter);
     }
 }
@@ -438,7 +438,7 @@ static void
 connection_dialog_profile_clear(GtkWidget *widget,
                                 gpointer   data)
 {
-    if(ui_dialog_yesno(GTK_WINDOW(dialog), "Are you sure you want to remove ALL profiles?"))
+    if(ui_dialog_yesno(GTK_WINDOW(dialog), "Are you sure you want to remove ALL profiles?") == UI_DIALOG_YES)
         gtk_list_store_clear(GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(c_profile))));
 }
 
@@ -577,14 +577,14 @@ connection_callback_info(gpointer ptr)
             break;
 
         case CONN_MSG_AUTH_VERIFY:
-            if(ui_dialog_yesno(GTK_WINDOW(dialog), (gchar*)data->data))
+            if(ui_dialog_yesno(GTK_WINDOW(dialog), (gchar*)data->data) == UI_DIALOG_YES)
                 g_async_queue_push(conn->queue, conn_command_new(COMMAND_AUTH, NULL));
             else
                 g_async_queue_push(conn->queue, conn_command_new(COMMAND_DISCONNECT, NULL));
             break;
 
         case CONN_MSG_AUTH_ERROR:
-            ui_dialog(dialog, GTK_MESSAGE_ERROR, APP_NAME, "<b>SSH error:</b>\n%s", (gchar*)data->data);
+            ui_dialog(GTK_WINDOW(dialog), GTK_MESSAGE_ERROR, APP_NAME, "<b>SSH error:</b>\n%s", (gchar*)data->data);
             break;
 
         case CONN_MSG_CONNECTED:
@@ -606,7 +606,7 @@ connection_callback_info(gpointer ptr)
             }
             else
             {
-                ui_dialog(ui.window, GTK_MESSAGE_ERROR, APP_NAME, "<b>Scanning error:</b>\n%s", (gchar*)data->data);
+                ui_dialog(GTK_WINDOW(ui.window), GTK_MESSAGE_ERROR, APP_NAME, "<b>Scanning error:</b>\n%s", (gchar*)data->data);
                 ui_update_scanning_state(FALSE);
             }
             break;

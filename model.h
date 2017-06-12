@@ -41,7 +41,6 @@ typedef struct mtscan_model
 enum
 {
     COL_STATE,
-    COL_ICON,
     COL_BG,
     COL_ADDRESS,
     COL_FREQUENCY,
@@ -86,7 +85,7 @@ void mtscan_model_set_new_timeout(mtscan_model_t*, gint);
 void mtscan_model_disable_sorting(mtscan_model_t*);
 void mtscan_model_enable_sorting(mtscan_model_t*);
 
-const gchar* model_format_address(gchar*);
+const gchar* model_format_address(const gchar*);
 const gchar* model_format_frequency(gint);
 const gchar* model_format_date(gint64);
 const gchar* model_format_gps(gdouble);

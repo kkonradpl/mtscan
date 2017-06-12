@@ -110,27 +110,30 @@ static void export_write_css(FILE*, gchar*, guint);
 static gboolean export_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 
 
-void
-export_html(mtscan_model_t *model,
-            FILE           *fp,
-            const gchar    *name)
+gboolean
+export_html(const gchar    *filename,
+            const gchar    *name,
+            mtscan_model_t *model)
 {
+    FILE *fp;
     gchar *string;
     gchar *date;
     gchar *title;
     GDateTime *now;
 
+    if(!(fp = fopen(filename, "w")))
+        return FALSE;
+
     now = g_date_time_new_now_local();
+
     date = g_date_time_format(now, "%Y-%m-%d %H:%M:%S");
-    g_date_time_unref(now);
-
-    title = (name ? g_strdup_printf(APP_NAME " - %s", name) : NULL);
-
-    string = g_markup_printf_escaped(html_header, date, (title ? title : APP_NAME));
+    title = (name ? g_strdup_printf(APP_NAME " - %s", name) : g_strdup(APP_NAME));
+    string = g_markup_printf_escaped(html_header, date, title);
     fwrite(string, sizeof(char), strlen(string), fp);
     g_free(date);
     g_free(title);
     g_free(string);
+    g_date_time_unref(now);
 
     export_write_css(fp, "marginal", SIGNAL_ICON_MARGINAL);
     export_write_css(fp, "weak", SIGNAL_ICON_WEAK);
@@ -142,6 +145,9 @@ export_html(mtscan_model_t *model,
     fwrite(html_header2, sizeof(char), strlen(html_header2), fp);
     gtk_tree_model_foreach(GTK_TREE_MODEL(model->store), export_foreach, fp);
     fwrite(html_footer, sizeof(char), strlen(html_footer), fp);
+    fclose(fp);
+
+    return TRUE;
 }
 
 static void

@@ -20,6 +20,12 @@
 #define UI_DRAG_URI_LIST_ID 0
 static const GtkTargetEntry drop_types[] = {{ "text/uri-list", 0, UI_DRAG_URI_LIST_ID }};
 static const gint n_drop_types = sizeof(drop_types) / sizeof(drop_types[0]);
+static const char rc_string[] = "style \"minimal-toolbar-style\"\n"
+                                "{\n"
+                                    "GtkToolbar::shadow-type = GTK_SHADOW_NONE\n"
+                                 "}\n"
+                                 "widget \"*.minimal-toolbar\" style\n\"minimal-toolbar-style\"\n";
+
 
 static void ui_restore();
 static gboolean ui_key(GtkWidget*, GdkEventKey*, gpointer);
@@ -31,28 +37,44 @@ static gchar* ui_get_name(const gchar*);
 void
 ui_init()
 {
-    ui_icon_load(UI_ICON_SIZE);
+    gint icon_size = conf_get_preferences_icon_size();
+
+    ui_icon_size(icon_size);
+    gtk_rc_parse_string(rc_string);
 
     ui.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_icon_name(APP_ICON);
     gtk_container_set_border_width(GTK_CONTAINER(ui.window), 0);
     ui_set_title(NULL);
 
-    ui.box = gtk_vbox_new(FALSE, 2);
+    ui.box = gtk_vbox_new(FALSE, 0);
     gtk_container_set_border_width(GTK_CONTAINER(ui.box), 0);
     gtk_container_add(GTK_CONTAINER(ui.window), ui.box);
 
-    ui.toolbar = ui_toolbar_create(ui.box);
+    gtk_box_pack_start(GTK_BOX(ui.box), gtk_hseparator_new(), FALSE, FALSE, 0);
+
+    ui.box_toolbar = gtk_hbox_new(FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(ui.box), ui.box_toolbar, FALSE, FALSE, 0);
+
+    ui.toolbar = ui_toolbar_create();
+    gtk_widget_set_name(ui.toolbar, "minimal-toolbar");
+    gtk_box_pack_start(GTK_BOX(ui.box_toolbar), ui.toolbar, TRUE, TRUE, 1);
+
+    gtk_box_pack_start(GTK_BOX(ui.box), gtk_hseparator_new(), FALSE, FALSE, 0);
 
     ui.scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(ui.scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_box_pack_start(GTK_BOX(ui.box), ui.scroll, TRUE, TRUE, 0);
 
-    ui.treeview = ui_view_new(ui.model);
+    ui.treeview = ui_view_new(ui.model, icon_size);
     gtk_container_add(GTK_CONTAINER(ui.scroll), ui.treeview);
 
+    ui.statusbar_align = gtk_alignment_new(0, 0, 0, 0);
+    gtk_alignment_set_padding(GTK_ALIGNMENT(ui.statusbar_align), 2, 0, 0, 0);
+    gtk_box_pack_start(GTK_BOX(ui.box), ui.statusbar_align, FALSE, FALSE, 0);
+
     ui.statusbar = gtk_hbox_new(FALSE, 6);
-    gtk_box_pack_start(GTK_BOX(ui.box), ui.statusbar, FALSE, FALSE, 1);
+    gtk_container_add(GTK_CONTAINER(ui.statusbar_align), ui.statusbar);
 
     ui.heartbeat = gtk_drawing_area_new();
     gtk_widget_set_tooltip_text(ui.heartbeat, "Activity icon");
@@ -72,10 +94,11 @@ ui_init()
     ui.l_conn_status = gtk_label_new(NULL);
     gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.l_conn_status, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(ui.statusbar), gtk_vseparator_new(), FALSE, FALSE, 5);
-
+    ui.group_gps = gtk_hbox_new(FALSE, 6);
+    gtk_box_pack_start(GTK_BOX(ui.group_gps), gtk_vseparator_new(), FALSE, FALSE, 5);
     ui.l_gps_status = gtk_label_new(NULL);
-    gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.l_gps_status, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(ui.group_gps), ui.l_gps_status, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.group_gps, FALSE, FALSE, 0);
 
     ui_status_gps_timeout(NULL);
     g_timeout_add(1000, ui_status_gps_timeout, NULL);
@@ -88,6 +111,7 @@ ui_init()
 
     ui_restore();
     ui_disconnected();
+
     gtk_widget_show_all(ui.window);
 }
 
@@ -106,6 +130,9 @@ ui_restore()
                                 conf_get_window_width(),
                                 conf_get_window_height());
 
+    if(conf_get_window_maximized())
+        gtk_window_maximize(GTK_WINDOW(ui.window));
+
     if(conf_get_interface_dark_mode())
         g_signal_emit_by_name(ui.b_mode, "clicked");
 
@@ -115,8 +142,8 @@ ui_restore()
     if(conf_get_interface_gps())
         g_signal_emit_by_name(ui.b_gps, "clicked");
 
-    if(conf_get_interface_signals())
-        g_signal_emit_by_name(ui.b_signals, "clicked");
+    if(!conf_get_preferences_latlon_column())
+        ui_view_latlon_column(ui.treeview, FALSE);
 }
 
 static gboolean
@@ -124,21 +151,26 @@ ui_delete_event(GtkWidget *widget,
                 GdkEvent  *event,
                 gpointer   data)
 {
-    gboolean really_quit = TRUE;
+    GdkWindow *window;
+    gboolean really_quit;
+    gboolean maximized;
     gint x, y;
 
-    if(ui.changed)
-        really_quit = ui_dialog_ask_unsaved();
-
+    really_quit = ui_can_discard_unsaved();
     if(really_quit)
     {
-        gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
-        conf_set_window_xy(x, y);
-        gtk_window_get_size(GTK_WINDOW(widget), &x, &y);
-        conf_set_window_position(x, y);
+        window = gtk_widget_get_window(GTK_WIDGET(widget));
+        maximized = window && (gdk_window_get_state(window) & GDK_WINDOW_STATE_MAXIMIZED);
+        if(!maximized)
+        {
+            gtk_window_get_position(GTK_WINDOW(ui.window), &x, &y);
+            conf_set_window_xy(x, y);
+            gtk_window_get_size(GTK_WINDOW(ui.window), &x, &y);
+            conf_set_window_position(x, y);
+        }
+        conf_set_window_maximized(maximized);
         conf_save();
     }
-
     return !really_quit;
 }
 
@@ -193,7 +225,7 @@ ui_drag_data_received(GtkWidget        *widget,
 
     if(filenames)
     {
-        action = (count > 1 ? ui_dialog_ask_merge(count) : ui_dialog_ask_open_or_merge());
+        action = (count > 1 ? ui_dialog_ask_merge(GTK_WINDOW(ui.window), count) : ui_dialog_ask_open_or_merge(GTK_WINDOW(ui.window)));
         if(action != UI_DIALOG_CANCEL)
             log_open(filenames, action);
         g_slist_free_full(filenames, g_free);
@@ -246,6 +278,7 @@ ui_status_gps_timeout(gpointer data)
         }
         last_gps_state = state;
     }
+
     return TRUE;
 }
 
@@ -286,6 +319,24 @@ ui_changed()
     {
         ui.changed = TRUE;
         ui_set_title(ui.filename);
+    }
+}
+
+gboolean
+ui_can_discard_unsaved()
+{
+    if(!ui.changed)
+        return TRUE;
+
+    switch(ui_dialog_ask_unsaved(GTK_WINDOW(ui.window)))
+    {
+    case UI_DIALOG_YES:
+        g_signal_emit_by_name(ui.b_save, "clicked", NULL);
+        return !ui.changed;
+    case UI_DIALOG_NO:
+        return TRUE;
+    default:
+        return FALSE;
     }
 }
 
@@ -353,7 +404,6 @@ ui_get_name(const gchar *filename)
     return name;
 }
 
-
 void
 ui_clear()
 {
@@ -371,7 +421,7 @@ ui_show_uri(const gchar *uri)
     GError *err = NULL;
     if(!gtk_show_uri(NULL, uri, gtk_get_current_event_time(), &err))
     {
-        ui_dialog(ui.window, GTK_MESSAGE_ERROR, "Error", "%s", err->message);
+        ui_dialog(GTK_WINDOW(ui.window), GTK_MESSAGE_ERROR, "Error", "%s", err->message);
         g_error_free(err);
     }
 #endif
@@ -399,9 +449,6 @@ ui_play_sound(gchar *filename)
 void
 ui_screenshot()
 {
-    GdkPixmap *pixmap;
-    GdkPixbuf *pixbuf;
-    GError *err = NULL;
     gint width, height;
     time_t tt = time(NULL);
     gchar *filename;
@@ -409,6 +456,30 @@ ui_screenshot()
 
     strftime(t, sizeof(t), "%Y%m%d-%H%M%S", localtime(&tt));
     filename = g_strdup_printf("%s/mtscan-%s.png", g_get_home_dir(), t);
+
+#if GTK_CHECK_VERSION (3, 0, 0)
+    cairo_surface_t *surface;
+    cairo_t *cr;
+    width = gtk_widget_get_allocated_width(ui.window);
+    height = gtk_widget_get_allocated_height(ui.window);
+    surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                         width,
+                                         height);
+    cr = cairo_create(surface);
+    gtk_widget_draw(ui.window, cr);
+    cairo_destroy(cr);
+    if(cairo_surface_write_to_png(surface, filename) != CAIRO_STATUS_SUCCESS)
+    {
+        ui_dialog(GTK_WINDOW(ui.window),
+                  GTK_MESSAGE_ERROR,
+                  "Screenshot",
+                  "Unable to save a screenshot.");
+    }
+    cairo_surface_destroy(surface);
+#else
+    GdkPixmap *pixmap;
+    GdkPixbuf *pixbuf;
+    GError *err = NULL;
 
     gtk_widget_queue_draw(ui.window);
     gdk_window_process_all_updates();
@@ -418,7 +489,7 @@ ui_screenshot()
     pixbuf = gdk_pixbuf_get_from_drawable(NULL, pixmap, NULL, 0, 0, 0, 0, width, height);
     if(!gdk_pixbuf_save(pixbuf, filename, "png", &err, NULL))
     {
-        ui_dialog(ui.window,
+        ui_dialog(GTK_WINDOW(ui.window),
                   GTK_MESSAGE_ERROR,
                   "Screenshot",
                   "%s",
@@ -428,4 +499,5 @@ ui_screenshot()
     g_object_unref(G_OBJECT(pixmap));
     g_object_unref(G_OBJECT(pixbuf));
     g_free(filename);
+#endif
 }

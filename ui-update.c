@@ -38,7 +38,6 @@ ui_update_network(gpointer data)
         net->latitude = NAN;
         net->longitude = NAN;
     }
-
     net->signals = NULL;
     mtscan_model_buffer_add(ui.model, net);
     return FALSE;

@@ -10,13 +10,13 @@
 #include "conn.h"
 #include "signals.h"
 
-static void ui_view_configure(GtkWidget*);
 static gboolean ui_view_popup(GtkWidget*, gpointer);
 static gboolean ui_view_clicked(GtkWidget*, GdkEventButton*, gpointer);
 static gboolean ui_view_key_press(GtkWidget*, GdkEventKey*, gpointer);
 static void ui_view_size_alloc(GtkWidget *widget, GtkAllocation *allocation, gpointer);
 static gboolean ui_view_disable_motion_redraw(GtkWidget*, GdkEvent*, gpointer);
 static void ui_view_format_background(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter* , gpointer);
+static void ui_view_format_icon(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_freq(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_date(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_level(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
@@ -24,23 +24,26 @@ static void ui_view_format_gps(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeMode
 static void ui_view_column_clicked(GtkTreeViewColumn*, gpointer);
 
 GtkWidget*
-ui_view_new(mtscan_model_t *model)
+ui_view_new(mtscan_model_t *model,
+            gint            icon_size)
 {
     GtkWidget *treeview;
     GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
 
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model->store));
+    gtk_tree_selection_set_mode(gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview)), GTK_SELECTION_MULTIPLE);
     g_object_set_data(G_OBJECT(treeview), "mtscan-model", model);
 
     /* Activity column */
     renderer = gtk_cell_renderer_pixbuf_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    gtk_cell_renderer_set_fixed_size(renderer, UI_ICON_SIZE, UI_ICON_SIZE);
-    column = gtk_tree_view_column_new_with_attributes("", renderer, "pixbuf", COL_ICON, "cell-background-gdk", COL_BG, NULL);
+    gtk_cell_renderer_set_fixed_size(renderer, icon_size, icon_size);
+    g_object_set_data(G_OBJECT(treeview), "mtscan-icon-renderer", renderer);
+    column = gtk_tree_view_column_new_with_attributes("", renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_PRIVACY));
-    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_PRIVACY), NULL);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_icon, NULL, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* Address column */
@@ -233,9 +236,8 @@ ui_view_new(mtscan_model_t *model)
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LATITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LATITUDE), NULL);
+    g_object_set_data(G_OBJECT(treeview), "mtscan-column-latitude", column);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-    if(!conf_get_interface_latlon_column())
-        gtk_tree_view_column_set_visible(column, FALSE);
 
     /* Longitude column */
     renderer = gtk_cell_renderer_text_new();
@@ -245,9 +247,8 @@ ui_view_new(mtscan_model_t *model)
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LONGITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
+    g_object_set_data(G_OBJECT(treeview), "mtscan-column-longitude", column);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-    if(!conf_get_interface_latlon_column())
-        gtk_tree_view_column_set_visible(column, FALSE);
 
     g_signal_connect(treeview, "popup-menu", G_CALLBACK(ui_view_popup), NULL);
     g_signal_connect(treeview, "button-press-event", G_CALLBACK(ui_view_clicked), NULL);
@@ -261,18 +262,43 @@ ui_view_new(mtscan_model_t *model)
     return treeview;
 }
 
-static void
+void
 ui_view_configure(GtkWidget *view)
 {
     gtk_tree_view_set_enable_search(GTK_TREE_VIEW(view), TRUE);
-    gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_SSID);
+
+    switch(conf_get_preferences_search_column())
+    {
+    case 0:
+        gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_ADDRESS);
+        break;
+    case 1:
+        gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_SSID);
+        break;
+    case 2:
+        gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_RADIONAME);
+        break;
+    }
+
+}
+
+void
+ui_view_set_icon_size(GtkWidget *view,
+                      gint       size)
+{
+    GtkCellRenderer *renderer = GTK_CELL_RENDERER(g_object_get_data(G_OBJECT(view), "mtscan-icon-renderer"));
+    if(renderer)
+        gtk_cell_renderer_set_fixed_size(renderer, size, size);
+
+    ui_icon_size(size);
+    g_signal_emit_by_name(view, "style-set", NULL, NULL);
 }
 
 static gboolean
 ui_view_popup(GtkWidget *treeview,
               gpointer   data)
 {
-    ui_view_popup_menu(treeview, NULL, data);
+    ui_view_menu(treeview, NULL, data);
     return TRUE;
 }
 
@@ -291,10 +317,13 @@ ui_view_clicked(GtkWidget      *treeview,
                                          (gint)event->y,
                                          &path, NULL, NULL, NULL))
         {
-            gtk_tree_selection_unselect_all(selection);
-            gtk_tree_selection_select_path(selection, path);
+            if(!gtk_tree_selection_path_is_selected(selection, path))
+            {
+                gtk_tree_selection_unselect_all(selection);
+                gtk_tree_selection_select_path(selection, path);
+            }
             gtk_tree_path_free(path);
-            ui_view_popup_menu(treeview, event, data);
+            ui_view_menu(treeview, event, data);
             return TRUE;
         }
     }
@@ -306,33 +335,48 @@ ui_view_key_press(GtkWidget   *widget,
                   GdkEventKey *event,
                   gpointer     data)
 {
-    GtkTreeModel *store;
+    GtkTreeModel *model;
     GtkTreeSelection *selection;
     GtkTreeIter iter;
+    GList *list;
+    GList *i;
     GtkClipboard *clipboard;
+    GString *str;
     gchar *string;
 
     if(event->keyval == GDK_KEY_Delete)
     {
-        selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
-        if(gtk_tree_selection_get_selected(selection, &store, &iter))
-        {
-            if(ui_dialog_yesno(GTK_WINDOW(gtk_widget_get_toplevel(widget)), "Are you sure you want to remove this network?"))
-                ui_view_remove_iter(GTK_TREE_VIEW(widget), store, &iter);
-            return TRUE;
-        }
+        ui_view_remove_selection(widget);
     }
     else if(event->keyval == GDK_KEY_c && event->state & GDK_CONTROL_MASK)
     {
         selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
-        if(gtk_tree_selection_get_selected(selection, &store, &iter))
+        list = gtk_tree_selection_get_selected_rows(selection, &model);
+
+        if(!list)
+            return FALSE;
+
+        str = g_string_new("");
+        for(i=list; i; i=i->next)
         {
-            gtk_tree_model_get(store, &iter, COL_SSID, &string, -1);
-            clipboard = gtk_widget_get_clipboard(widget, GDK_SELECTION_CLIPBOARD);
-            gtk_clipboard_set_text(clipboard, string, -1);
+            gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
+            gtk_tree_model_get(model, &iter, COL_SSID, &string, -1);
+            if(strlen(string))
+                g_string_append_printf(str, "%s, ", string);
             g_free(string);
         }
+
+        string = g_string_free(str, FALSE);
+        /* Remove ending comma */
+        string[strlen(string)-2] = '\0';
+
+        clipboard = gtk_widget_get_clipboard(widget, GDK_SELECTION_CLIPBOARD);
+        gtk_clipboard_set_text(clipboard, string, -1);
+        g_free(string);
+        g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
+        g_list_free(list);
     }
+
     return FALSE;
 }
 
@@ -389,6 +433,29 @@ ui_view_format_background(GtkTreeViewColumn *col,
     }
 
     g_object_set(renderer, "cell-background-gdk", color, NULL);
+}
+
+static void
+ui_view_format_icon(GtkTreeViewColumn *col,
+                    GtkCellRenderer   *renderer,
+                    GtkTreeModel      *store,
+                    GtkTreeIter       *iter,
+                    gpointer           data)
+{
+    gint state;
+    gint rssi;
+    gboolean privacy;
+
+    gtk_tree_model_get(store, iter,
+                       COL_STATE, &state,
+                       COL_RSSI, &rssi,
+                       COL_PRIVACY, &privacy, -1);
+
+    if(state == MODEL_STATE_INACTIVE)
+        rssi = MODEL_NO_SIGNAL;
+
+    g_object_set(renderer, "pixbuf", ui_icon(rssi, privacy), NULL);
+    ui_view_format_background(col, renderer, store, iter, data);
 }
 
 static void
@@ -541,39 +608,82 @@ ui_view_unlock(GtkWidget *treeview)
 }
 
 void
-ui_view_remove_iter(GtkTreeView  *treeview,
-                    GtkTreeModel *store,
-                    GtkTreeIter  *iter)
+ui_view_remove_iter(GtkWidget    *treeview,
+                    GtkTreeIter  *iter,
+                    gboolean      reselect)
 {
+    GtkTreeModel *store = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
     GtkTreeSelection *selection;
     GtkTreeIter iter_selection = *iter;
     GtkTreeIter iter_tmp;
-    gboolean move_selection = gtk_tree_model_iter_next(store, &iter_selection);
+    gboolean move_selection = (reselect && gtk_tree_model_iter_next(store, &iter_selection));
     mtscan_model_t *model = g_object_get_data(G_OBJECT(treeview), "mtscan-model");
 
     mtscan_model_remove(model, iter);
     ui_changed();
     ui_status_update_networks();
 
-    /* Did we remove last item in the list? */
-    if(!move_selection)
+    if(reselect)
     {
-        move_selection = gtk_tree_model_get_iter_first(store, &iter_selection);
+        /* Did we remove last item in the list? */
+        if(!move_selection)
+        {
+            move_selection = gtk_tree_model_get_iter_first(store, &iter_selection);
+            if(move_selection)
+            {
+                iter_tmp = iter_selection;
+                while(gtk_tree_model_iter_next(store, &iter_tmp))
+                    iter_selection = iter_tmp;
+            }
+        }
+
+        /* Select next item */
         if(move_selection)
         {
-            iter_tmp = iter_selection;
-            while(gtk_tree_model_iter_next(store, &iter_tmp))
-                iter_selection = iter_tmp;
+            selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+            gtk_tree_selection_unselect_all(selection);
+            gtk_tree_selection_select_iter(selection, &iter_selection);
         }
     }
+}
 
-    /* Select next item */
-    if(move_selection)
+void
+ui_view_remove_selection(GtkWidget *treeview)
+{
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
+    GList *i, *iterlist = NULL;
+    gint count = g_list_length(list);
+    gchar *string;
+
+    if(!list)
+        return;
+
+    if(count == 1)
+        string = g_strdup_printf("Are you sure you want to remove the selected network?");
+    else
+        string = g_strdup_printf("Are you sure you want to remove %d selected networks?", count);
+
+    if(ui_dialog_yesno(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(treeview))), string) == UI_DIALOG_YES)
     {
-        selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-        gtk_tree_selection_unselect_all(selection);
-        gtk_tree_selection_select_iter(selection, &iter_selection);
+        for(i=list; i; i=i->next)
+        {
+            gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
+            iterlist = g_list_append(iterlist, (gpointer)gtk_tree_iter_copy(&iter));
+        }
+
+        for(i=iterlist; i; i=i->next)
+            ui_view_remove_iter(treeview, (GtkTreeIter*)(i->data), FALSE);
+
+        g_list_foreach(iterlist, (GFunc)gtk_tree_iter_free, NULL);
+        g_list_free(iterlist);
     }
+
+    g_free(string);
+    g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
+    g_list_free(list);
 }
 
 void
@@ -621,8 +731,8 @@ ui_view_latlon_column(GtkWidget *treeview,
                       gboolean   visible)
 {
     GtkTreeViewColumn *column;
-    column = gtk_tree_view_get_column(GTK_TREE_VIEW(treeview), COL_LATITUDE);
+    column = GTK_TREE_VIEW_COLUMN(g_object_get_data(G_OBJECT(treeview), "mtscan-column-latitude"));
     gtk_tree_view_column_set_visible(column, visible);
-    column = gtk_tree_view_get_column(GTK_TREE_VIEW(treeview), COL_LONGITUDE);
+    column = GTK_TREE_VIEW_COLUMN(g_object_get_data(G_OBJECT(treeview), "mtscan-column-longitude"));
     gtk_tree_view_column_set_visible(column, visible);
 }

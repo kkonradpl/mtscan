@@ -135,6 +135,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui-icons.h" />
+		<Unit filename="ui-preferences.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui-preferences.h" />
 		<Unit filename="ui-toolbar.c">
 			<Option compilerVar="CC" />
 		</Unit>

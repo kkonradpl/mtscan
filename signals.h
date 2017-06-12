@@ -21,7 +21,7 @@ signals_t* signals_new();
 signals_node_t* signals_node_new0();
 signals_node_t* signals_node_new(gint64, gint8, gdouble, gdouble);
 void signals_append(signals_t*, signals_node_t*);
-gboolean signals_merge_and_free(signals_t**, signals_t*);
+void signals_merge(signals_t*, signals_t*);
 void signals_free(signals_t*);
 
 #endif

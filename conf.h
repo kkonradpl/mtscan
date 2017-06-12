@@ -44,6 +44,9 @@ gint conf_get_window_width();
 gint conf_get_window_height();
 void conf_set_window_position(gint, gint);
 
+gboolean conf_get_window_maximized();
+void conf_set_window_maximized(gboolean);
+
 /* Configuration [interface] */
 gboolean conf_get_interface_sound();
 void conf_set_interface_sound(gboolean);
@@ -53,12 +56,6 @@ void conf_set_interface_dark_mode(gboolean);
 
 gboolean conf_get_interface_gps();
 void conf_set_interface_gps(gboolean);
-
-gboolean conf_get_interface_signals();
-void conf_set_interface_signals(gboolean);
-
-gboolean conf_get_interface_latlon_column();
-void conf_set_interface_latlon_column(gboolean);
 
 gint conf_get_interface_last_profile();
 void conf_set_interface_last_profile(gint);
@@ -79,5 +76,24 @@ void conf_set_path_log_save(const gchar*);
 
 const gchar* conf_get_path_log_export();
 void conf_set_path_log_export(const gchar*);
+
+/* Configuration [preferences] */
+gint conf_get_preferences_icon_size();
+void conf_set_preferences_icon_size(gint);
+
+gint conf_get_preferences_search_column();
+void conf_set_preferences_search_column(gint);
+
+gboolean conf_get_preferences_latlon_column();
+void conf_set_preferences_latlon_column(gboolean);
+
+gboolean conf_get_preferences_signals();
+void conf_set_preferences_signals(gboolean);
+
+const gchar* conf_get_preferences_gps_hostname();
+void conf_set_preferences_gps_hostname(const gchar*);
+
+gint conf_get_preferences_gps_tcp_port();
+void conf_set_preferences_gps_tcp_port(gint);
 
 #endif

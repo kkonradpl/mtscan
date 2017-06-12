@@ -69,7 +69,7 @@ static const gchar *const keys_signals[] =
     "t",
     "s",
     "lat",
-    "lon",
+    "lon"
 };
 
 enum
@@ -77,7 +77,7 @@ enum
     KEY_SIGNALS_TIMESTAMP = KEY_UNKNOWN+1,
     KEY_SIGNALS_RSSI,
     KEY_SIGNALS_LATITUDE,
-    KEY_SIGNALS_LONGITUDE,
+    KEY_SIGNALS_LONGITUDE
 };
 
 typedef struct read_context
@@ -94,7 +94,8 @@ typedef struct read_context
 typedef struct save_context
 {
     yajl_gen gen;
-    gboolean strip;
+    gboolean strip_signals;
+    gboolean strip_gps;
 } save_ctx_t;
 
 static gint parse_integer(gpointer, long long int);
@@ -137,7 +138,7 @@ log_open(GSList   *filenames,
     yajl_status status;
     read_ctx_t context;
 
-    if(ui.changed && !ui_dialog_ask_unsaved())
+    if(!ui_can_discard_unsaved())
         return;
 
     context.merge = merge;
@@ -154,7 +155,7 @@ log_open(GSList   *filenames,
         gzfp = gzopen(filename, "r");
         if(!gzfp)
         {
-            ui_dialog(ui.window,
+            ui_dialog(GTK_WINDOW(ui.window),
                       GTK_MESSAGE_ERROR,
                       "Error",
                       "Failed to open a file:\n%s", filename);
@@ -180,7 +181,7 @@ log_open(GSList   *filenames,
                     err_string = gzerror(gzfp, &err);
                     if(err)
                     {
-                        ui_dialog(ui.window,
+                        ui_dialog(GTK_WINDOW(ui.window),
                                   GTK_MESSAGE_ERROR,
                                   "Error",
                                   "Failed to read a file:\n%s\n\n%s",
@@ -200,7 +201,7 @@ log_open(GSList   *filenames,
             {
                 network_free(&context.network);
                 g_free(context.signal);
-                ui_dialog(ui.window,
+                ui_dialog(GTK_WINDOW(ui.window),
                           GTK_MESSAGE_ERROR,
                           "Error",
                           "The selected file is corrupted or is not a valid MTscan log:\n%s",
@@ -433,8 +434,10 @@ parse_array_end(gpointer ptr)
 }
 
 gboolean
-log_save(gchar    *filename,
-         gboolean  strip)
+log_save(gchar       *filename,
+         gboolean     strip_signals,
+         gboolean     strip_gps,
+         GList       *iterlist)
 {
     gzFile gzfp = NULL;
     FILE *fp = NULL;
@@ -444,6 +447,7 @@ log_save(gchar    *filename,
     const guchar *json_string;
     size_t json_length;
     gint wrote;
+    GList *i;
 
     ext = strrchr(filename, '.');
     compression = (ext && !g_ascii_strcasecmp(ext, ".gz"));
@@ -455,7 +459,7 @@ log_save(gchar    *filename,
 
     if(!gzfp && !fp)
     {
-        ui_dialog(ui.window,
+        ui_dialog(GTK_WINDOW(ui.window),
                   GTK_MESSAGE_ERROR,
                   "Error",
                   "Unable to save a file:\n%s", filename);
@@ -463,10 +467,21 @@ log_save(gchar    *filename,
     }
 
     ctx.gen = yajl_gen_alloc(NULL);
-    ctx.strip = strip;
+    ctx.strip_signals = strip_signals;
+    ctx.strip_gps = strip_gps;
     //yajl_gen_config(ctx.gen, yajl_gen_beautify, 1);
     yajl_gen_map_open(ctx.gen);
-    gtk_tree_model_foreach(GTK_TREE_MODEL(ui.model->store), log_save_foreach, &ctx);
+
+    if(iterlist)
+    {
+        for(i=iterlist; i; i=i->next)
+            log_save_foreach(GTK_TREE_MODEL(ui.model->store), NULL, (GtkTreeIter*)(i->data), &ctx);
+    }
+    else
+    {
+        gtk_tree_model_foreach(GTK_TREE_MODEL(ui.model->store), log_save_foreach, &ctx);
+    }
+
     yajl_gen_map_close(ctx.gen);
     yajl_gen_get_buf(ctx.gen, &json_string, &json_length);
 
@@ -485,7 +500,7 @@ log_save(gchar    *filename,
 
     if(json_length != wrote)
     {
-        ui_dialog(ui.window,
+        ui_dialog(GTK_WINDOW(ui.window),
                   GTK_MESSAGE_ERROR,
                   "Error",
                   "Unable to save a file:\n%s\n\nWrote only %d of %d uncompressed bytes.",
@@ -577,7 +592,7 @@ log_save_foreach(GtkTreeModel *store,
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LASTSEEN], strlen(keys[KEY_LASTSEEN]));
     yajl_gen_integer(ctx->gen, net.lastseen);
 
-    if(!isnan(net.latitude) && !isnan(net.longitude))
+    if(!isnan(net.latitude) && !isnan(net.longitude) && !ctx->strip_gps)
     {
         buffer = model_format_gps(net.latitude);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LATITUDE], strlen(keys[KEY_LATITUDE]));
@@ -588,7 +603,7 @@ log_save_foreach(GtkTreeModel *store,
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
     }
 
-    if(net.signals->head && !ctx->strip)
+    if(net.signals->head && !ctx->strip_signals)
     {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_SIGNALS], strlen(keys[KEY_SIGNALS]));
         yajl_gen_array_open(ctx->gen);
@@ -604,7 +619,7 @@ log_save_foreach(GtkTreeModel *store,
             yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_RSSI], strlen(keys_signals[KEY_SIGNALS_RSSI]));
             yajl_gen_integer(ctx->gen, sample->rssi);
 
-            if(!isnan(sample->latitude) && !isnan(sample->longitude))
+            if(!isnan(sample->latitude) && !isnan(sample->longitude) && !ctx->strip_gps)
             {
                 buffer = model_format_gps(sample->latitude);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LATITUDE], strlen(keys_signals[KEY_SIGNALS_LATITUDE]));

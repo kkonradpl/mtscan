@@ -6,17 +6,11 @@
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 
-#ifndef G_OS_WIN32
-#define UI_ICON_SIZE 19
-#else
-#define UI_ICON_SIZE 18
-#endif
-
-
 typedef struct mtscan_gtk
 {
     GtkWidget *window;
     GtkWidget *box;
+    GtkWidget *box_toolbar;
 
     GtkWidget *toolbar;
     GtkToolItem *b_connect;
@@ -38,17 +32,17 @@ typedef struct mtscan_gtk
     GtkToolItem *b_sound;
     GtkToolItem *b_mode;
     GtkToolItem *b_gps;
-    GtkToolItem *b_signals;
     GtkToolItem *b_about;
 
     GtkWidget *scroll;
     GtkWidget *treeview;
 
+    GtkWidget *statusbar_align;
     GtkWidget *statusbar;
     GtkWidget *heartbeat;
     GtkWidget *l_net_status;
     GtkWidget *l_conn_status;
-    GtkWidget *l_gps_status;
+    GtkWidget *group_gps, *l_gps_status;
 
     mtscan_model_t *model;
     gchar *filename;
@@ -66,6 +60,7 @@ void ui_init();
 void ui_connected(const gchar*, const gchar*, const gchar*);
 void ui_disconnected();
 void ui_changed();
+gboolean ui_can_discard_unsaved();
 void ui_status_update_networks();
 
 void ui_set_title(gchar*);

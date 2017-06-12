@@ -5,8 +5,8 @@
 
 enum
 {
-    ICONS_OPEN,
-    ICONS_PRIVACY,
+    ICONS_OPEN = 0,
+    ICONS_PRIVACY = 1,
     ICONS_COUNT
 };
 
@@ -21,7 +21,8 @@ typedef struct ui_icons
     GdkPixbuf *perfect;
 } ui_icons_t;
 
-static ui_icons_t icons[ICONS_COUNT];
+static gint icon_size = 0;
+static ui_icons_t icons[ICONS_COUNT] = {0};
 
 static const gchar svg_header[] = "<svg version=\"1.1\" baseProfile=\"full\" width=\"48\" height=\"48\" xmlns=\"http://www.w3.org/2000/svg\">";
 static const gchar svg_circle[] = "<circle cx=\"24\" cy=\"24\" r=\"22\" stroke=\"black\" stroke-width=\"2\" fill=\"#%06X\" />";
@@ -33,26 +34,67 @@ static const gchar svg_priv[] =
 static const gchar svg_footer[] = "</svg>";
 
 static GdkPixbuf* ui_icon_draw(gint, guint, gboolean);
-
+static void ui_icon_flush();
 
 void
-ui_icon_load(gint size)
+ui_icon_size(gint new_icon_size)
 {
-    icons[ICONS_OPEN].none = ui_icon_draw(size, SIGNAL_ICON_NONE, FALSE);
-    icons[ICONS_OPEN].marginal = ui_icon_draw(size, SIGNAL_ICON_MARGINAL, FALSE);
-    icons[ICONS_OPEN].weak = ui_icon_draw(size, SIGNAL_ICON_WEAK, FALSE);
-    icons[ICONS_OPEN].medium = ui_icon_draw(size, SIGNAL_ICON_MEDIUM, FALSE);
-    icons[ICONS_OPEN].good = ui_icon_draw(size, SIGNAL_ICON_GOOD, FALSE);
-    icons[ICONS_OPEN].strong = ui_icon_draw(size, SIGNAL_ICON_STRONG, FALSE);
-    icons[ICONS_OPEN].perfect = ui_icon_draw(size, SIGNAL_ICON_PERFECT, FALSE);
+    if(icon_size != new_icon_size)
+    {
+        icon_size = new_icon_size;
+        ui_icon_flush();
+    }
+}
 
-    icons[ICONS_PRIVACY].none = ui_icon_draw(size, SIGNAL_ICON_NONE, TRUE);
-    icons[ICONS_PRIVACY].marginal = ui_icon_draw(size, SIGNAL_ICON_MARGINAL, TRUE);
-    icons[ICONS_PRIVACY].weak = ui_icon_draw(size, SIGNAL_ICON_WEAK, TRUE);
-    icons[ICONS_PRIVACY].medium = ui_icon_draw(size, SIGNAL_ICON_MEDIUM, TRUE);
-    icons[ICONS_PRIVACY].good = ui_icon_draw(size, SIGNAL_ICON_GOOD, TRUE);
-    icons[ICONS_PRIVACY].strong = ui_icon_draw(size, SIGNAL_ICON_STRONG, TRUE);
-    icons[ICONS_PRIVACY].perfect = ui_icon_draw(size, SIGNAL_ICON_PERFECT, TRUE);
+GdkPixbuf*
+ui_icon(gint rssi,
+        gint type)
+{
+    if(rssi == MODEL_NO_SIGNAL)
+    {
+        if(!icons[type].none)
+            icons[type].none = ui_icon_draw(icon_size, SIGNAL_ICON_NONE, (type == ICONS_PRIVACY));
+        return icons[type].none;
+    }
+
+    if(rssi <= SIGNAL_LEVEL_MARGINAL_OVER)
+    {
+        if(!icons[type].marginal)
+            icons[type].marginal = ui_icon_draw(icon_size, SIGNAL_ICON_MARGINAL, (type == ICONS_PRIVACY));
+        return icons[type].marginal;
+    }
+
+    if(rssi <= SIGNAL_LEVEL_WEAK_OVER)
+    {
+        if(!icons[type].weak)
+            icons[type].weak = ui_icon_draw(icon_size, SIGNAL_ICON_WEAK, (type == ICONS_PRIVACY));
+        return icons[type].weak;
+    }
+
+    if(rssi <= SIGNAL_LEVEL_MEDIUM_OVER)
+    {
+        if(!icons[type].medium)
+            icons[type].medium = ui_icon_draw(icon_size, SIGNAL_ICON_MEDIUM, (type == ICONS_PRIVACY));
+        return icons[type].medium;
+    }
+
+    if(rssi <= SIGNAL_LEVEL_GOOD_OVER)
+    {
+        if(!icons[type].good)
+            icons[type].good = ui_icon_draw(icon_size, SIGNAL_ICON_GOOD, (type == ICONS_PRIVACY));
+        return icons[type].good;
+    }
+
+    if(rssi <= SIGNAL_LEVEL_STRONG_OVER)
+    {
+        if(!icons[type].strong)
+            icons[type].strong = ui_icon_draw(icon_size, SIGNAL_ICON_STRONG, (type == ICONS_PRIVACY));
+        return icons[type].strong;
+    }
+
+    if(!icons[type].perfect)
+        icons[type].perfect = ui_icon_draw(icon_size, SIGNAL_ICON_PERFECT, (type == ICONS_PRIVACY));
+    return icons[type].perfect;
 }
 
 static GdkPixbuf*
@@ -82,24 +124,40 @@ ui_icon_draw(gint     size,
     return pixbuf;
 }
 
-GdkPixbuf*
-ui_icon(gint rssi,
-        gint type)
+static void
+ui_icon_flush()
 {
-    if(rssi == MODEL_NO_SIGNAL)
-        return icons[type].none;
-    if(rssi <= SIGNAL_LEVEL_MARGINAL_OVER)
-        return icons[type].marginal;
-    if(rssi <= SIGNAL_LEVEL_WEAK_OVER)
-        return icons[type].weak;
-    if(rssi <= SIGNAL_LEVEL_MEDIUM_OVER)
-        return icons[type].medium;
-    if(rssi <= SIGNAL_LEVEL_GOOD_OVER)
-        return icons[type].good;
-    if(rssi <= SIGNAL_LEVEL_STRONG_OVER)
-        return icons[type].strong;
+    int i;
+    for(i=ICONS_OPEN; i<ICONS_COUNT; i++)
+    {
+        if(icons[i].none)
+            g_object_unref(icons[i].none);
+        icons[i].none = NULL;
 
-    return icons[type].perfect;
+        if(icons[i].marginal)
+            g_object_unref(icons[i].marginal);
+        icons[i].marginal = NULL;
+
+        if(icons[i].weak)
+            g_object_unref(icons[i].weak);
+        icons[i].weak = NULL;
+
+        if(icons[i].medium)
+            g_object_unref(icons[i].medium);
+        icons[i].medium = NULL;
+
+        if(icons[i].good)
+            g_object_unref(icons[i].good);
+        icons[i].good = NULL;
+
+        if(icons[i].strong)
+            g_object_unref(icons[i].strong);
+        icons[i].strong = NULL;
+
+        if(icons[i].perfect)
+            g_object_unref(icons[i].perfect);
+        icons[i].perfect = NULL;
+    }
 }
 
 const gchar*

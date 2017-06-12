@@ -5,7 +5,6 @@
 #include <string.h>
 #include <windows.h>
 #include <mmsystem.h>
-#include "ui.h"
 #include "ui-dialogs.h"
 #include "win32.h"
 

@@ -7,7 +7,7 @@
 #include "conf.h"
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
-#define GPS_DOUBLE_PREC 1e-6
+#define GPS_DOUBLE_PREC (1e-6)
 
 #define MIKROTIK_LOW_SIGNAL_BUGFIX  1
 #define MIKROTIK_HIGH_SIGNAL_BUGFIX 1
@@ -17,7 +17,7 @@ static const GdkColor new_network_color_dark = { 0, 0x2F00, 0x4F00, 0x2F00 };
 
 static gint model_sort_ascii_string(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_rssi(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
-static gint model_sort_gps(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
+static gint model_sort_double(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_version(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static void model_free_foreach(gpointer, gpointer, gpointer);
 static gboolean model_clear_active_foreach(gpointer, gpointer, gpointer);
@@ -29,7 +29,6 @@ mtscan_model_new()
     mtscan_model_t *model = g_malloc(sizeof(mtscan_model_t));
     model->store = gtk_list_store_new(COL_COUNT,
                                       G_TYPE_INT,      /* COL_STATE     */
-                                      GDK_TYPE_PIXBUF, /* COL_ICON      */
                                       GDK_TYPE_COLOR,  /* COL_BG        */
                                       G_TYPE_STRING,   /* COL_ADDRESS   */
                                       G_TYPE_INT,      /* COL_FREQUENCY */
@@ -56,8 +55,8 @@ mtscan_model_new()
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_SSID, model_sort_ascii_string, GINT_TO_POINTER(COL_SSID), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_RADIONAME, model_sort_ascii_string, GINT_TO_POINTER(COL_RADIONAME), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_RSSI, model_sort_rssi, NULL, NULL);
-    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LATITUDE, model_sort_gps, GINT_TO_POINTER(COL_LATITUDE), NULL);
-    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LONGITUDE, model_sort_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LATITUDE, model_sort_double, GINT_TO_POINTER(COL_LATITUDE), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LONGITUDE, model_sort_double, GINT_TO_POINTER(COL_LONGITUDE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ROUTEROS_VER, model_sort_version, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
 
     model->map = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)gtk_tree_iter_free);
@@ -142,10 +141,10 @@ model_sort_rssi(GtkTreeModel *model,
 }
 
 static gint
-model_sort_gps(GtkTreeModel *model,
-               GtkTreeIter  *a,
-               GtkTreeIter  *b,
-               gpointer      data)
+model_sort_double(GtkTreeModel *model,
+                  GtkTreeIter  *a,
+                  GtkTreeIter  *b,
+                  gpointer      data)
 {
     gint column = GPOINTER_TO_INT(data);
     gdouble v1, v2, diff;
@@ -278,7 +277,6 @@ model_clear_active_foreach(gpointer key,
     {
         gtk_list_store_set(GTK_LIST_STORE(store), iter,
                            COL_STATE, MODEL_STATE_INACTIVE,
-                           COL_ICON, ui_icon(MODEL_NO_SIGNAL, privacy),
                            COL_BG, NULL,
                            -1);
         model->clear_active_changed = TRUE;
@@ -349,6 +347,7 @@ mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
         state = MODEL_UPDATE_NONE;
     else
     {
+        model->buffer = g_slist_reverse(model->buffer);
         current = model->buffer;
         state = MODEL_UPDATE;
         while(current)
@@ -419,7 +418,7 @@ model_update_network(mtscan_model_t *model,
             net->rssi = current_maxrssi;
 #endif
 
-        if(conf_get_interface_signals())
+        if(conf_get_preferences_signals())
             signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude));
 
         /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE and COL_LONGITUDE */
@@ -427,7 +426,6 @@ model_update_network(mtscan_model_t *model,
         {
             gtk_list_store_set(model->store, iter_ptr,
                                COL_STATE, current_state,
-                               COL_ICON, ui_icon(net->rssi, net->flags.privacy),
                                COL_FREQUENCY, net->frequency,
                                COL_CHANNEL, (net->channel ? net->channel : ""),
                                COL_MODE, (net->mode ? net->mode : ""),
@@ -452,7 +450,6 @@ model_update_network(mtscan_model_t *model,
         {
             gtk_list_store_set(model->store, iter_ptr,
                                COL_STATE, current_state,
-                               COL_ICON, ui_icon(net->rssi, net->flags.privacy),
                                COL_FREQUENCY, net->frequency,
                                COL_CHANNEL, (net->channel ? net->channel : ""),
                                COL_MODE, (net->mode ? net->mode : ""),
@@ -479,12 +476,11 @@ model_update_network(mtscan_model_t *model,
     {
         /* Add a new network */
         net->signals = signals_new();
-        if(conf_get_interface_signals())
+        if(conf_get_preferences_signals())
             signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude));
 
         gtk_list_store_insert_with_values(model->store, &iter, -1,
                                           COL_STATE, MODEL_STATE_NEW,
-                                          COL_ICON, ui_icon(net->rssi, net->flags.privacy),
                                           COL_BG, (!conf_get_interface_dark_mode() ? &new_network_color : &new_network_color_dark),
                                           COL_ADDRESS, net->address,
                                           COL_FREQUENCY, net->frequency,
@@ -547,8 +543,7 @@ mtscan_model_add(mtscan_model_t *model,
                            -1);
 
         /* Merge signal samples */
-        if(signals_merge_and_free(&current_signals, net->signals))
-            gtk_list_store_set(model->store, iter_merge, COL_SIGNALS, current_signals, -1);
+        signals_merge(current_signals, net->signals);
 
         /* Update the first seen date, if required */
         if(net->firstseen < current_firstseen)
@@ -563,7 +558,6 @@ mtscan_model_add(mtscan_model_t *model,
         {
             gtk_list_store_set(model->store, iter_merge,
                                COL_FREQUENCY, net->frequency,
-                               COL_ICON, ui_icon(MODEL_NO_SIGNAL, net->flags.privacy),
                                COL_CHANNEL, (net->channel ? net->channel : ""),
                                COL_MODE, (net->mode ? net->mode : ""),
                                COL_SSID, (net->ssid ? net->ssid : ""),
@@ -594,7 +588,6 @@ mtscan_model_add(mtscan_model_t *model,
         /* Add a new network */
         gtk_list_store_insert_with_values(model->store, &iter, -1,
                                           COL_STATE, MODEL_STATE_INACTIVE,
-                                          COL_ICON, ui_icon(MODEL_NO_SIGNAL, net->flags.privacy),
                                           COL_ADDRESS, net->address,
                                           COL_FREQUENCY, net->frequency,
                                           COL_CHANNEL, (net->channel ? net->channel : ""),
@@ -622,11 +615,11 @@ mtscan_model_add(mtscan_model_t *model,
 
         /* Address is now used in the hash table */
         net->address = NULL;
-    }
 
-    /* Signals are stored in GtkListStore just as pointer,
-       so set it to NULL before freeing the struct */
-    net->signals = NULL;
+        /* Signals are stored in GtkListStore just as pointer,
+           so set it to NULL before freeing the struct */
+        net->signals = NULL;
+    }
 }
 
 void
@@ -662,7 +655,7 @@ mtscan_model_enable_sorting(mtscan_model_t *model)
 }
 
 const gchar*
-model_format_address(gchar *address)
+model_format_address(const gchar *address)
 {
     static gchar addr_separated[18];
     static gchar addr_unknown[] = "";

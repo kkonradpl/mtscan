@@ -1,9 +1,7 @@
 #include <string.h>
-#include "ui.h"
 #include "ui-dialogs.h"
-#include "log.h"
-#include "export.h"
 #include "conf.h"
+#include "mtscan.h"
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
@@ -11,11 +9,11 @@
 static const gchar* filetype_default = APP_NAME " file";
 
 static void ui_dialog_save_response(GtkWidget*, gint, gpointer);
-static gboolean str_has_suffix(const gchar*, const gchar*);
 static void ui_dialog_export_response(GtkWidget*, gint, gpointer);
+static gboolean str_has_suffix(const gchar*, const gchar*);
 
 void
-ui_dialog(GtkWidget      *window,
+ui_dialog(GtkWindow      *window,
           GtkMessageType  icon,
           const gchar    *title,
           const gchar    *format,
@@ -28,7 +26,7 @@ ui_dialog(GtkWidget      *window,
     va_start(args, format);
     msg = g_markup_vprintf_escaped(format, args);
     va_end(args);
-    dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+    dialog = gtk_message_dialog_new(window,
                                     GTK_DIALOG_MODAL,
                                     icon,
                                     GTK_BUTTONS_CLOSE,
@@ -42,8 +40,9 @@ ui_dialog(GtkWidget      *window,
     g_free(msg);
 }
 
-void
-ui_dialog_open(gboolean merge)
+GSList*
+ui_dialog_open(GtkWindow *window,
+               gboolean   merge)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter, *filter_all;
@@ -51,8 +50,8 @@ ui_dialog_open(gboolean merge)
     const gchar *dir;
     gchar *new_dir;
 
-    dialog = gtk_file_chooser_dialog_new((!merge ? "Open file" : "Merge file"),
-                                         GTK_WINDOW(ui.window),
+    dialog = gtk_file_chooser_dialog_new((merge ? "Merge files" : "Open file"),
+                                         window,
                                          GTK_FILE_CHOOSER_ACTION_OPEN,
                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
@@ -65,7 +64,7 @@ ui_dialog_open(gboolean merge)
     filter = gtk_file_filter_new();
     gtk_file_filter_set_name(filter, filetype_default);
     gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT);
-    gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT ".gz");
+    gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT APP_FILE_COMPRESS);
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
     filter_all = gtk_file_filter_new();
@@ -76,76 +75,76 @@ ui_dialog_open(gboolean merge)
     if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
     {
         filenames = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-        log_open(filenames, merge);
-        g_slist_free_full(filenames, g_free);
-
         new_dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
         conf_set_path_log_open(new_dir);
         g_free(new_dir);
     }
+
     gtk_widget_destroy(dialog);
+    return filenames;
 }
 
-gboolean
-ui_dialog_save(gboolean save_as)
+ui_dialog_save_t*
+ui_dialog_save(GtkWindow *window)
 {
     GtkWidget *dialog;
     GtkWidget *box;
     GtkWidget *compression;
-    GtkWidget *strip;
+    GtkWidget *strip_signals;
+    GtkWidget *strip_gps;
     GtkFileFilter *filter;
-    gboolean state = FALSE;
     const gchar *dir;
+    gchar *new_dir;
+    ui_dialog_save_t *ret = NULL;
 
-    if(!ui.filename || save_as)
+    dialog = gtk_file_chooser_dialog_new("Save log as",
+                                         window,
+                                         GTK_FILE_CHOOSER_ACTION_SAVE,
+                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                         NULL);
+
+    gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dialog), TRUE);
+    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+
+    if((dir = conf_get_path_log_save()))
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
+
+    box = gtk_hbox_new(FALSE, 12);
+
+    compression = gtk_check_button_new_with_label("Compress (.gz)");
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(compression), TRUE);
+    gtk_box_pack_start(GTK_BOX(box), compression, FALSE, FALSE, 0);
+    g_object_set_data(G_OBJECT(dialog), "mtscan-compression", compression);
+
+    strip_signals = gtk_check_button_new_with_label("Strip signal samples");
+    gtk_box_pack_start(GTK_BOX(box), strip_signals, FALSE, FALSE, 0);
+    g_object_set_data(G_OBJECT(dialog), "mtscan-strip-signals", strip_signals);
+
+    strip_gps = gtk_check_button_new_with_label("Strip GPS data");
+    gtk_box_pack_start(GTK_BOX(box), strip_gps, FALSE, FALSE, 0);
+    g_object_set_data(G_OBJECT(dialog), "mtscan-strip-gps", strip_gps);
+
+    gtk_widget_show_all(box);
+    gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), box);
+
+    filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, filetype_default);
+    gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT);
+    gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT APP_FILE_COMPRESS);
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+    g_signal_connect(dialog, "response", G_CALLBACK(ui_dialog_save_response), &ret);
+    while(gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_NONE);
+
+    if(ret)
     {
-        dialog = gtk_file_chooser_dialog_new("Save log as",
-                                             GTK_WINDOW(ui.window),
-                                             GTK_FILE_CHOOSER_ACTION_SAVE,
-                                             GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                             GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
-                                             NULL);
-
-        gtk_file_chooser_set_create_folders(GTK_FILE_CHOOSER(dialog), TRUE);
-        gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
-
-        if((dir = conf_get_path_log_save()))
-            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
-
-        box = gtk_vbox_new(TRUE, 2);
-
-        compression = gtk_check_button_new_with_label("Compress (.gz)");
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(compression), TRUE);
-        gtk_box_pack_start(GTK_BOX(box), compression, TRUE, TRUE, 0);
-        g_object_set_data(G_OBJECT(dialog), "mtscan-compression", compression);
-
-        strip = gtk_check_button_new_with_label("Strip all signal samples");
-        gtk_box_pack_start(GTK_BOX(box), strip, TRUE, TRUE, 0);
-        g_object_set_data(G_OBJECT(dialog), "mtscan-strip", strip);
-
-		gtk_widget_show_all(box);
-        gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), box);
-
-        filter = gtk_file_filter_new();
-        gtk_file_filter_set_name(filter, filetype_default);
-        gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT);
-        gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT ".gz");
-        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-
-        g_signal_connect(dialog, "response", G_CALLBACK(ui_dialog_save_response), &state);
-        while(gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_NONE);
+        new_dir = g_path_get_dirname(ret->filename);
+        conf_set_path_log_save(new_dir);
+        g_free(new_dir);
     }
-    else
-    {
-        state = log_save(ui.filename, FALSE);
-        if(state)
-        {
-            /* update the window title */
-            ui.changed = FALSE;
-            ui_set_title(ui.filename);
-        }
-    }
-    return state;
+
+    return ret;
 }
 
 static void
@@ -153,10 +152,11 @@ ui_dialog_save_response(GtkWidget *dialog,
                         gint       response_id,
                         gpointer   user_data)
 {
-    gboolean *state = (gboolean*)user_data;
-    gchar *filename, *dir;
+    ui_dialog_save_t **ret = (ui_dialog_save_t**)user_data;
+    gchar *filename;
     gboolean compress;
-    gboolean strip;
+    gboolean strip_signals;
+    gboolean strip_gps;
     gboolean add_suffix;
 
     if(response_id != GTK_RESPONSE_ACCEPT)
@@ -167,18 +167,19 @@ ui_dialog_save_response(GtkWidget *dialog,
 
     if(!(filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog))))
     {
-        ui_dialog(dialog,
+        ui_dialog(GTK_WINDOW(dialog),
                   GTK_MESSAGE_ERROR,
                   "Error",
-                  "Unable to save a file.");
+                  "No file selected.");
         return;
     }
 
     compress = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-compression")));
-    strip = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip")));
+    strip_signals = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip-signals")));
+    strip_gps = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip-gps")));
 
     if(compress)
-        add_suffix = !str_has_suffix(filename, APP_FILE_EXT ".gz");
+        add_suffix = !str_has_suffix(filename, APP_FILE_EXT APP_FILE_COMPRESS);
     else
         add_suffix = !str_has_suffix(filename, APP_FILE_EXT);
 
@@ -193,63 +194,43 @@ ui_dialog_save_response(GtkWidget *dialog,
         {
             if(str_has_suffix(filename, APP_FILE_EXT))
             {
-                filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(".gz") + 1);
-                strcat(filename, ".gz");
+                filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(APP_FILE_COMPRESS) + 1);
+                strcat(filename, APP_FILE_COMPRESS);
             }
             else
             {
-                filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(APP_FILE_EXT ".gz") + 1);
-                strcat(filename, APP_FILE_EXT ".gz");
+                filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(APP_FILE_EXT APP_FILE_COMPRESS) + 1);
+                strcat(filename, APP_FILE_EXT APP_FILE_COMPRESS);
             }
         }
 
+        /* After adding the suffix, the GTK should check whether we can overwrite something. */
         gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), filename);
         gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
         g_free(filename);
         return;
     }
 
-    if(!log_save(filename, strip))
-    {
-        g_free(filename);
-        return;
-    }
+    *ret = g_malloc(sizeof(ui_dialog_save_t));
+    (*ret)->filename = filename;
+    (*ret)->compress = compress;
+    (*ret)->strip_signals = strip_signals;
+    (*ret)->strip_gps = strip_gps;
 
-    /* update the window title */
-    ui.changed = FALSE;
-    ui_set_title(filename);
-
-    dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
-    conf_set_path_log_save(dir);
-    g_free(dir);
-
-    *state = TRUE;
     gtk_widget_destroy(dialog);
 }
 
-static gboolean
-str_has_suffix(const gchar *string,
-               const gchar *suffix)
-{
-    size_t string_len = strlen(string);
-    size_t suffix_len = strlen(suffix);
-
-    if(string_len < suffix_len)
-        return FALSE;
-
-    return g_ascii_strncasecmp(string + string_len - suffix_len, suffix, suffix_len) == 0;
-}
-
-gboolean
-ui_dialog_export()
+gchar*
+ui_dialog_export(GtkWindow *window)
 {
     GtkWidget *dialog;
     GtkFileFilter *filter;
-    gboolean state = FALSE;
     const gchar *dir;
+    gchar *new_dir;
+    gchar *filename = NULL;
 
     dialog = gtk_file_chooser_dialog_new("Export log as HTML",
-                                         GTK_WINDOW(ui.window),
+                                         window,
                                          GTK_FILE_CHOOSER_ACTION_SAVE,
                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
@@ -267,9 +248,17 @@ ui_dialog_export()
     gtk_file_filter_add_pattern(filter, "*.htm");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-    g_signal_connect(dialog, "response", G_CALLBACK(ui_dialog_export_response), &state);
+    g_signal_connect(dialog, "response", G_CALLBACK(ui_dialog_export_response), &filename);
     while(gtk_dialog_run(GTK_DIALOG(dialog)) != GTK_RESPONSE_NONE);
-    return state;
+
+    if(filename)
+    {
+        new_dir = g_path_get_dirname(filename);
+        conf_set_path_log_export(new_dir);
+        g_free(new_dir);
+    }
+
+    return filename;
 }
 
 static void
@@ -277,9 +266,9 @@ ui_dialog_export_response(GtkWidget *dialog,
                           gint       response_id,
                           gpointer   user_data)
 {
-    gboolean *state = (gboolean*)user_data;;
-    gchar *filename, *dir, *ext;
-    FILE *fp;
+    gchar **ret = (gchar**)user_data;
+    gchar *filename;
+    gchar *ext;
 
     if(response_id != GTK_RESPONSE_ACCEPT)
     {
@@ -289,7 +278,10 @@ ui_dialog_export_response(GtkWidget *dialog,
 
     if(!(filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog))))
     {
-        ui_dialog(dialog, GTK_MESSAGE_ERROR, "Error", "Unable to save a file.");
+        ui_dialog(GTK_WINDOW(dialog),
+                  GTK_MESSAGE_ERROR,
+                  "Error",
+                  "No file selected.");
         return;
     }
 
@@ -299,38 +291,24 @@ ui_dialog_export_response(GtkWidget *dialog,
         filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(".html") + 1);
         strcat(filename, ".html");
 
+        /* After adding the suffix, the GTK should check whether we can overwrite something. */
         gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), filename);
         gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
         g_free(filename);
         return;
     }
 
-    if(!(fp = fopen(filename, "w")))
-    {
-        ui_dialog(dialog, GTK_MESSAGE_ERROR, "Error", "Unable to save a file:\n%s", filename);
-        g_free(filename);
-        return;
-    }
-    g_free(filename);
-
-    export_html(ui.model, fp, ui.name);
-    fclose(fp);
-
-    dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
-    conf_set_path_log_export(dir);
-    g_free(dir);
-
-    *state = TRUE;
+    *ret = filename;
     gtk_widget_destroy(dialog);
 }
 
-gboolean
-ui_dialog_ask_unsaved()
+gint
+ui_dialog_ask_unsaved(GtkWindow *window)
 {
     GtkWidget *dialog;
     gint response;
 
-    dialog = gtk_message_dialog_new(GTK_WINDOW(ui.window),
+    dialog = gtk_message_dialog_new(window,
                                     GTK_DIALOG_MODAL,
                                     GTK_MESSAGE_QUESTION,
                                     GTK_BUTTONS_NONE,
@@ -343,17 +321,15 @@ ui_dialog_ask_unsaved()
     gtk_window_set_title(GTK_WINDOW(dialog), APP_NAME);
     response = gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
-    if(response == GTK_RESPONSE_YES)
-        return ui_dialog_save(UI_DIALOG_SAVE);
-    return (response == GTK_RESPONSE_NO);
+    return response;
 }
 
 gint
-ui_dialog_ask_open_or_merge()
+ui_dialog_ask_open_or_merge(GtkWindow *window)
 {
     GtkWidget *dialog;
     gint response;
-    dialog = gtk_message_dialog_new(GTK_WINDOW(ui.window),
+    dialog = gtk_message_dialog_new(window,
                                     GTK_DIALOG_MODAL,
                                     GTK_MESSAGE_QUESTION,
                                     GTK_BUTTONS_NONE,
@@ -371,18 +347,19 @@ ui_dialog_ask_open_or_merge()
     case GTK_RESPONSE_NO:
         return UI_DIALOG_OPEN;
     case GTK_RESPONSE_YES:
-        return UI_DIALOG_OPEN_MERGE;
+        return UI_DIALOG_MERGE;
     default:
         return UI_DIALOG_CANCEL;
     }
 }
 
 gint
-ui_dialog_ask_merge(gint count)
+ui_dialog_ask_merge(GtkWindow *window,
+                    gint       count)
 {
     GtkWidget *dialog;
     gint response;
-    dialog = gtk_message_dialog_new(GTK_WINDOW(ui.window),
+    dialog = gtk_message_dialog_new(window,
                                     GTK_DIALOG_MODAL,
                                     GTK_MESSAGE_QUESTION,
                                     GTK_BUTTONS_NONE,
@@ -397,13 +374,13 @@ ui_dialog_ask_merge(gint count)
     switch(response)
     {
     case GTK_RESPONSE_YES:
-        return UI_DIALOG_OPEN_MERGE;
+        return UI_DIALOG_MERGE;
     default:
         return UI_DIALOG_CANCEL;
     }
 }
 
-gboolean
+gint
 ui_dialog_yesno(GtkWindow   *window,
                 const gchar *message)
 {
@@ -421,21 +398,21 @@ ui_dialog_yesno(GtkWindow   *window,
                            NULL);
     gtk_window_set_title(GTK_WINDOW(dialog), APP_NAME);
 
-    response = (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES);
+    response = gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
-    return response;
+    return (response == GTK_RESPONSE_YES ? GTK_RESPONSE_YES : GTK_RESPONSE_NO);
 }
 
 void
-ui_dialog_about()
+ui_dialog_about(GtkWindow *window)
 {
     GtkWidget *dialog = gtk_about_dialog_new();
     gtk_window_set_icon_name(GTK_WINDOW(dialog), GTK_STOCK_ABOUT);
-    gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(ui.window));
+    gtk_window_set_transient_for(GTK_WINDOW(dialog), window);
     gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dialog), APP_NAME);
     gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dialog), APP_VERSION);
     gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dialog), APP_ICON);
-    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2016  Konrad Kosmatka");
+    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2017  Konrad Kosmatka");
     gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(dialog), "Mikrotik RouterOS wireless scanner");
     gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dialog), "http://fmdx.pl/mtscan");
     gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(dialog), APP_LICENCE);
@@ -444,4 +421,17 @@ ui_dialog_about()
 #endif
     gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
+}
+
+static gboolean
+str_has_suffix(const gchar *string,
+               const gchar *suffix)
+{
+    size_t string_len = strlen(string);
+    size_t suffix_len = strlen(suffix);
+
+    if(string_len < suffix_len)
+        return FALSE;
+
+    return g_ascii_strncasecmp(string + string_len - suffix_len, suffix, suffix_len) == 0;
 }

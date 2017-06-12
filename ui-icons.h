@@ -16,7 +16,7 @@
 #define SIGNAL_ICON_STRONG   0x40FF00
 #define SIGNAL_ICON_PERFECT  0x00FF00
 
-void ui_icon_load(gint);
+void ui_icon_size(gint);
 GdkPixbuf* ui_icon(gint, gint);
 const gchar* ui_icon_string(gint);
 
