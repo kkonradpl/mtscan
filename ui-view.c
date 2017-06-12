@@ -21,6 +21,7 @@ static void ui_view_format_freq(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeMod
 static void ui_view_format_date(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_level(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_gps(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
+static void ui_view_format_azimuth(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_column_clicked(GtkTreeViewColumn*, gpointer);
 
 GtkWidget*
@@ -248,6 +249,18 @@ ui_view_new(mtscan_model_t *model,
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LONGITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
     g_object_set_data(G_OBJECT(treeview), "mtscan-column-longitude", column);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+
+    /* Azimuth column */
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_renderer_set_padding(renderer, 2, 0);
+    gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
+    gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    column = gtk_tree_view_column_new_with_attributes("Azi", renderer, "cell-background-gdk", COL_BG, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AZIMUTH));
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_azimuth, GINT_TO_POINTER(COL_AZIMUTH), NULL);
+    g_object_set_data(G_OBJECT(treeview), "mtscan-column-azimuth", column);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     g_signal_connect(treeview, "popup-menu", G_CALLBACK(ui_view_popup), NULL);
@@ -541,6 +554,29 @@ ui_view_format_gps(GtkTreeViewColumn *col,
 }
 
 static void
+ui_view_format_azimuth(GtkTreeViewColumn *col,
+                       GtkCellRenderer   *renderer,
+                       GtkTreeModel      *store,
+                       GtkTreeIter       *iter,
+                       gpointer           data)
+{
+    gint col_id = GPOINTER_TO_INT(data);
+    gchar text[16];
+    gfloat value;
+    gtk_tree_model_get(store, iter, col_id, &value, -1);
+    if(isnan(value))
+    {
+        g_object_set(renderer, "text", "", NULL);
+    }
+    else
+    {
+        snprintf(text, sizeof(text), "%.1f", value);
+        g_object_set(renderer, "text", text, NULL);
+    }
+    ui_view_format_background(col, renderer, store, iter, data);
+}
+
+static void
 ui_view_column_clicked(GtkTreeViewColumn *column,
                        gpointer           data)
 {
@@ -734,5 +770,14 @@ ui_view_latlon_column(GtkWidget *treeview,
     column = GTK_TREE_VIEW_COLUMN(g_object_get_data(G_OBJECT(treeview), "mtscan-column-latitude"));
     gtk_tree_view_column_set_visible(column, visible);
     column = GTK_TREE_VIEW_COLUMN(g_object_get_data(G_OBJECT(treeview), "mtscan-column-longitude"));
+    gtk_tree_view_column_set_visible(column, visible);
+}
+
+void
+ui_view_azimuth_column(GtkWidget *treeview,
+                       gboolean   visible)
+{
+    GtkTreeViewColumn *column;
+    column = GTK_TREE_VIEW_COLUMN(g_object_get_data(G_OBJECT(treeview), "mtscan-column-azimuth"));
     gtk_tree_view_column_set_visible(column, visible);
 }

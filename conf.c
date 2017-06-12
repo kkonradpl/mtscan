@@ -37,6 +37,7 @@
 #define CONF_DEFAULT_PREFERENCES_ICON_SIZE         18
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN     1
 #define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN     FALSE
+#define CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN    FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS           TRUE
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME      "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT      2947
@@ -73,6 +74,7 @@ typedef struct conf
     gint     preferences_icon_size;
     gint     preferences_search_column;
     gboolean preferences_latlon_column;
+    gboolean preferences_azimuth_column;
     gboolean preferences_signals;
 
     gchar *preferences_gps_hostname;
@@ -153,6 +155,7 @@ conf_read()
     conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
     conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
+    conf.preferences_azimuth_column = conf_read_boolean("preferences", "azimuth_column", CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
@@ -310,6 +313,7 @@ conf_save()
     g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "azimuth_column", conf.preferences_azimuth_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
@@ -575,6 +579,18 @@ void
 conf_set_preferences_latlon_column(gboolean value)
 {
     conf.preferences_latlon_column = value;
+}
+
+gboolean
+conf_get_preferences_azimuth_column()
+{
+    return conf.preferences_azimuth_column;
+}
+
+void
+conf_set_preferences_azimuth_column(gboolean value)
+{
+    conf.preferences_azimuth_column = value;
 }
 
 gboolean

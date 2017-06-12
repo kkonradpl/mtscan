@@ -62,6 +62,7 @@ enum
     COL_LASTSEEN,
     COL_LATITUDE,
     COL_LONGITUDE,
+    COL_AZIMUTH,
     COL_SIGNALS,
     COL_COUNT
 };
@@ -89,5 +90,6 @@ const gchar* model_format_address(const gchar*);
 const gchar* model_format_frequency(gint);
 const gchar* model_format_date(gint64);
 const gchar* model_format_gps(gdouble);
+const gchar* model_format_azimuth(gfloat);
 
 #endif

@@ -30,6 +30,7 @@ typedef struct network
     gint64 lastseen;
     gdouble latitude;
     gdouble longitude;
+    gfloat azimuth;
     signals_t *signals;
 } network_t;
 

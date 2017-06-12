@@ -8,6 +8,7 @@
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 #define GPS_DOUBLE_PREC (1e-6)
+#define AZI_FLOAT_PREC (1e-2)
 
 #define MIKROTIK_LOW_SIGNAL_BUGFIX  1
 #define MIKROTIK_HIGH_SIGNAL_BUGFIX 1
@@ -18,6 +19,7 @@ static const GdkColor new_network_color_dark = { 0, 0x2F00, 0x4F00, 0x2F00 };
 static gint model_sort_ascii_string(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_rssi(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_double(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
+static gint model_sort_float(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_version(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static void model_free_foreach(gpointer, gpointer, gpointer);
 static gboolean model_clear_active_foreach(gpointer, gpointer, gpointer);
@@ -50,6 +52,7 @@ mtscan_model_new()
                                       G_TYPE_INT64,    /* COL_LASTSEEN  */
                                       G_TYPE_DOUBLE,   /* COL_LATITUDE  */
                                       G_TYPE_DOUBLE,   /* COL_LONGITUDE */
+                                      G_TYPE_FLOAT,    /* COL_AZIMUTH   */
                                       G_TYPE_POINTER); /* COL_SIGNALS   */
 
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_SSID, model_sort_ascii_string, GINT_TO_POINTER(COL_SSID), NULL);
@@ -57,6 +60,7 @@ mtscan_model_new()
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_RSSI, model_sort_rssi, NULL, NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LATITUDE, model_sort_double, GINT_TO_POINTER(COL_LATITUDE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LONGITUDE, model_sort_double, GINT_TO_POINTER(COL_LONGITUDE), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_AZIMUTH, model_sort_float, GINT_TO_POINTER(COL_AZIMUTH), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ROUTEROS_VER, model_sort_version, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
 
     model->map = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)gtk_tree_iter_free);
@@ -172,6 +176,46 @@ model_sort_double(GtkTreeModel *model,
 
     diff = v1 - v2;
     if(fabs(diff) < GPS_DOUBLE_PREC)
+        return 0;
+
+    if(diff < 0)
+        return -1;
+
+    return 1;
+}
+
+static gint
+model_sort_float(GtkTreeModel *model,
+                 GtkTreeIter  *a,
+                 GtkTreeIter  *b,
+                 gpointer      data)
+{
+    gint column = GPOINTER_TO_INT(data);
+    gfloat v1, v2, diff;
+    gboolean v1_isnan, v2_isnan;
+
+    gtk_tree_model_get(model, a,
+                       column, &v1,
+                       -1);
+
+    gtk_tree_model_get(model, b,
+                       column, &v2,
+                       -1);
+
+    v1_isnan = isnan(v1);
+    v2_isnan = isnan(v2);
+
+    if(v1_isnan && v2_isnan)
+        return 0;
+
+    if(!v1_isnan && v2_isnan)
+        return -1;
+
+    if(v1_isnan && !v2_isnan)
+        return 1;
+
+    diff = v1 - v2;
+    if(fabs(diff) < AZI_FLOAT_PREC)
         return 0;
 
     if(diff < 0)
@@ -419,9 +463,9 @@ model_update_network(mtscan_model_t *model,
 #endif
 
         if(conf_get_preferences_signals())
-            signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude));
+            signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
 
-        /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE and COL_LONGITUDE */
+        /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE, COL_LONGITUDE and COL_AZIMUTH */
         if(net->rssi > current_maxrssi)
         {
             gtk_list_store_set(model->store, iter_ptr,
@@ -444,6 +488,7 @@ model_update_network(mtscan_model_t *model,
                                COL_LASTSEEN, net->firstseen,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
+                               COL_AZIMUTH, net->azimuth,
                                -1);
         }
         else
@@ -477,7 +522,7 @@ model_update_network(mtscan_model_t *model,
         /* Add a new network */
         net->signals = signals_new();
         if(conf_get_preferences_signals())
-            signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude));
+            signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
 
         gtk_list_store_insert_with_values(model->store, &iter, -1,
                                           COL_STATE, MODEL_STATE_NEW,
@@ -502,6 +547,7 @@ model_update_network(mtscan_model_t *model,
                                           COL_LASTSEEN, net->firstseen,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
+                                          COL_AZIMUTH, net->azimuth,
                                           COL_SIGNALS, net->signals,
                                           -1);
 
@@ -580,6 +626,7 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_MAXRSSI, net->rssi,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
+                               COL_AZIMUTH, net->azimuth,
                                -1);
         }
     }
@@ -608,6 +655,7 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_LASTSEEN, net->lastseen,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
+                                          COL_AZIMUTH, net->azimuth,
                                           COL_SIGNALS, net->signals,
                                           -1);
 
@@ -735,6 +783,20 @@ model_format_gps(gdouble value)
     gint i;
 
     g_ascii_formatd(output, sizeof(output), "%.6f", value);
+    for(i=strlen(output)-1; i>=0 && output[i] == '0'; i--);
+    if(i >= 0 && output[i] == '.')
+        i++;
+    output[i+1] = '\0';
+    return output;
+}
+
+const gchar*
+model_format_azimuth(gfloat value)
+{
+    static gchar output[12];
+    gint i;
+
+    g_ascii_formatd(output, sizeof(output), "%.2f", value);
     for(i=strlen(output)-1; i>=0 && output[i] == '0'; i--);
     if(i >= 0 && output[i] == '.')
         i++;

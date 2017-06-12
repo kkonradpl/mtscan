@@ -18,6 +18,7 @@ typedef struct ui_preferences
     GtkWidget *l_general_search_column;
     GtkWidget *c_general_search_column;
     GtkWidget *x_general_latlon_column;
+    GtkWidget *x_general_azimuth_column;
     GtkWidget *x_general_signals;
 
     GtkWidget *page_gps;
@@ -101,6 +102,10 @@ ui_preferences_dialog()
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_latlon_column, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
+    p.x_general_azimuth_column = gtk_check_button_new_with_label("Show azimuth column");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_azimuth_column, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
     gtk_table_attach(GTK_TABLE(p.table_general), gtk_hseparator_new(), 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
@@ -173,6 +178,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_general_icon_size), conf_get_preferences_icon_size());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_latlon_column), conf_get_preferences_latlon_column());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_azimuth_column), conf_get_preferences_azimuth_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_signals), conf_get_preferences_signals());
 
     /* GPS */
@@ -188,6 +194,7 @@ ui_preferences_apply(GtkWidget *widget,
     gint new_icon_size;
     gint new_search_column;
     gboolean new_latlon_column;
+    gboolean new_azimuth_column;
     const gchar *new_gps_hostname;
     gint new_gps_tcp_port;
 
@@ -211,6 +218,13 @@ ui_preferences_apply(GtkWidget *widget,
     {
         conf_set_preferences_latlon_column(new_latlon_column);
         ui_view_latlon_column(ui.treeview, new_latlon_column);
+    }
+
+    new_azimuth_column = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_azimuth_column));
+    if(new_azimuth_column != conf_get_preferences_azimuth_column())
+    {
+        conf_set_preferences_azimuth_column(new_azimuth_column);
+        ui_view_azimuth_column(ui.treeview, new_azimuth_column);
     }
 
     conf_set_preferences_signals(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_signals)));

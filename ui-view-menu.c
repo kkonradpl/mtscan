@@ -332,7 +332,7 @@ ui_view_menu_save_as(GtkWidget *menuitem,
             gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
             iterlist = g_list_append(iterlist, (gpointer)gtk_tree_iter_copy(&iter));
         }
-        log_save(s->filename, s->strip_signals, s->strip_gps, iterlist);
+        log_save(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, iterlist);
         g_free(s->filename);
         g_free(s);
     }

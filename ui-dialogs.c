@@ -92,6 +92,7 @@ ui_dialog_save(GtkWindow *window)
     GtkWidget *compression;
     GtkWidget *strip_signals;
     GtkWidget *strip_gps;
+    GtkWidget *strip_azi;
     GtkFileFilter *filter;
     const gchar *dir;
     gchar *new_dir;
@@ -125,6 +126,10 @@ ui_dialog_save(GtkWindow *window)
     gtk_box_pack_start(GTK_BOX(box), strip_gps, FALSE, FALSE, 0);
     g_object_set_data(G_OBJECT(dialog), "mtscan-strip-gps", strip_gps);
 
+    strip_azi = gtk_check_button_new_with_label("Strip azimuth data");
+    gtk_box_pack_start(GTK_BOX(box), strip_azi, FALSE, FALSE, 0);
+    g_object_set_data(G_OBJECT(dialog), "mtscan-strip-azi", strip_azi);
+
     gtk_widget_show_all(box);
     gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), box);
 
@@ -157,6 +162,7 @@ ui_dialog_save_response(GtkWidget *dialog,
     gboolean compress;
     gboolean strip_signals;
     gboolean strip_gps;
+    gboolean strip_azi;
     gboolean add_suffix;
 
     if(response_id != GTK_RESPONSE_ACCEPT)
@@ -177,6 +183,7 @@ ui_dialog_save_response(GtkWidget *dialog,
     compress = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-compression")));
     strip_signals = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip-signals")));
     strip_gps = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip-gps")));
+    strip_azi = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(dialog), "mtscan-strip-azi")));
 
     if(compress)
         add_suffix = !str_has_suffix(filename, APP_FILE_EXT APP_FILE_COMPRESS);
@@ -216,6 +223,7 @@ ui_dialog_save_response(GtkWidget *dialog,
     (*ret)->compress = compress;
     (*ret)->strip_signals = strip_signals;
     (*ret)->strip_gps = strip_gps;
+    (*ret)->strip_azi = strip_azi;
 
     gtk_widget_destroy(dialog);
 }

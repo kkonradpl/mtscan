@@ -340,7 +340,7 @@ ui_toolbar_save(GtkWidget *widget,
         return;
     }
 
-    if(log_save(ui.filename, FALSE, FALSE, NULL))
+    if(log_save(ui.filename, FALSE, FALSE, FALSE, NULL))
     {
         /* update the window title */
         ui.changed = FALSE;
@@ -355,7 +355,7 @@ ui_toolbar_save_as(GtkWidget *widget,
     ui_dialog_save_t *s = ui_dialog_save(GTK_WINDOW(ui.window));
     if(s)
     {
-        if(log_save(s->filename, s->strip_signals, s->strip_gps, NULL))
+        if(log_save(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, NULL))
         {
             /* update the window title */
             ui.changed = FALSE;

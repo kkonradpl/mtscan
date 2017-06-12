@@ -17,6 +17,7 @@ typedef struct
     gboolean compress;
     gboolean strip_signals;
     gboolean strip_gps;
+    gboolean strip_azi;
 } ui_dialog_save_t;
 
 void ui_dialog(GtkWindow*, GtkMessageType, const gchar*, const gchar*, ...);

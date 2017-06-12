@@ -40,6 +40,7 @@ static const gchar *const keys[] =
     "last",
     "lat",
     "lon",
+    "azi",
     "signals"
 };
 
@@ -61,6 +62,7 @@ enum
     KEY_LASTSEEN,
     KEY_LATITUDE,
     KEY_LONGITUDE,
+    KEY_AZIMUTH,
     KEY_SIGNALS
 };
 
@@ -69,7 +71,8 @@ static const gchar *const keys_signals[] =
     "t",
     "s",
     "lat",
-    "lon"
+    "lon",
+    "azi"
 };
 
 enum
@@ -77,7 +80,8 @@ enum
     KEY_SIGNALS_TIMESTAMP = KEY_UNKNOWN+1,
     KEY_SIGNALS_RSSI,
     KEY_SIGNALS_LATITUDE,
-    KEY_SIGNALS_LONGITUDE
+    KEY_SIGNALS_LONGITUDE,
+    KEY_SIGNALS_AZIMUTH
 };
 
 typedef struct read_context
@@ -96,6 +100,7 @@ typedef struct save_context
     yajl_gen gen;
     gboolean strip_signals;
     gboolean strip_gps;
+    gboolean strip_azi;
 } save_ctx_t;
 
 static gint parse_integer(gpointer, long long int);
@@ -285,6 +290,8 @@ parse_double(gpointer ptr,
             ctx->signal->latitude = value;
         else if(ctx->key == KEY_SIGNALS_LONGITUDE)
             ctx->signal->longitude = value;
+        else if(ctx->key == KEY_SIGNALS_AZIMUTH)
+            ctx->signal->azimuth = value;
     }
     else if(ctx->level == LEVEL_NETWORK)
     {
@@ -294,6 +301,8 @@ parse_double(gpointer ptr,
             ctx->network.latitude = value;
         else if(ctx->key == KEY_LONGITUDE)
             ctx->network.longitude = value;
+        else if(ctx->key == KEY_AZIMUTH)
+            ctx->network.azimuth = value;
     }
     return 1;
 }
@@ -437,6 +446,7 @@ gboolean
 log_save(gchar       *filename,
          gboolean     strip_signals,
          gboolean     strip_gps,
+         gboolean     strip_azi,
          GList       *iterlist)
 {
     gzFile gzfp = NULL;
@@ -469,6 +479,7 @@ log_save(gchar       *filename,
     ctx.gen = yajl_gen_alloc(NULL);
     ctx.strip_signals = strip_signals;
     ctx.strip_gps = strip_gps;
+    ctx.strip_azi = strip_azi;
     //yajl_gen_config(ctx.gen, yajl_gen_beautify, 1);
     yajl_gen_map_open(ctx.gen);
 
@@ -540,6 +551,7 @@ log_save_foreach(GtkTreeModel *store,
                        COL_LASTSEEN, &net.lastseen,
                        COL_LATITUDE, &net.latitude,
                        COL_LONGITUDE, &net.longitude,
+                       COL_AZIMUTH, &net.azimuth,
                        COL_SIGNALS, &net.signals,
                        -1);
 
@@ -603,6 +615,13 @@ log_save_foreach(GtkTreeModel *store,
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
     }
 
+    if(!isnan(net.azimuth) && !ctx->strip_azi)
+    {
+        buffer = model_format_azimuth(net.azimuth);
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AZIMUTH], strlen(keys[KEY_AZIMUTH]));
+        yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+    }
+
     if(net.signals->head && !ctx->strip_signals)
     {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_SIGNALS], strlen(keys[KEY_SIGNALS]));
@@ -627,6 +646,13 @@ log_save_foreach(GtkTreeModel *store,
 
                 buffer = model_format_gps(sample->longitude);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LONGITUDE], strlen(keys_signals[KEY_SIGNALS_LONGITUDE]));
+                yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+            }
+
+            if(!isnan(sample->azimuth) && !ctx->strip_azi)
+            {
+                buffer = model_format_azimuth(sample->azimuth);
+                yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_AZIMUTH], strlen(keys_signals[KEY_SIGNALS_AZIMUTH]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
             }
 

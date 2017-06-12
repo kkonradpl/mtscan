@@ -15,6 +15,7 @@ signals_node_new0()
     sample->rssi = 0;
     sample->latitude = NAN;
     sample->longitude = NAN;
+    sample->azimuth = NAN;
     return sample;
 }
 
@@ -22,13 +23,15 @@ signals_node_t*
 signals_node_new(gint64  timestamp,
                  gint8   rssi,
                  gdouble latitude,
-                 gdouble longitude)
+                 gdouble longitude,
+                 gfloat  azimuth)
 {
     signals_node_t *sample = g_malloc(sizeof(signals_node_t));
     sample->timestamp = timestamp;
     sample->rssi = rssi;
     sample->latitude = latitude;
     sample->longitude = longitude;
+    sample->azimuth = azimuth;
     return sample;
 }
 

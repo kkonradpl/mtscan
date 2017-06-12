@@ -87,6 +87,9 @@ void conf_set_preferences_search_column(gint);
 gboolean conf_get_preferences_latlon_column();
 void conf_set_preferences_latlon_column(gboolean);
 
+gboolean conf_get_preferences_azimuth_column();
+void conf_set_preferences_azimuth_column(gboolean);
+
 gboolean conf_get_preferences_signals();
 void conf_set_preferences_signals(gboolean);
 

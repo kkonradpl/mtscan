@@ -25,6 +25,7 @@ network_init(network_t *net)
     net->lastseen = 0;
     net->latitude = NAN;
     net->longitude = NAN;
+    net->azimuth = NAN;
     net->signals = NULL;
 }
 

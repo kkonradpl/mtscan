@@ -144,6 +144,9 @@ ui_restore()
 
     if(!conf_get_preferences_latlon_column())
         ui_view_latlon_column(ui.treeview, FALSE);
+
+    if(!conf_get_preferences_azimuth_column())
+        ui_view_azimuth_column(ui.treeview, FALSE);
 }
 
 static gboolean
