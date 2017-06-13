@@ -376,12 +376,19 @@ ui_toolbar_export(GtkWidget *widget,
     gchar *filename = ui_dialog_export(GTK_WINDOW(ui.window));
     if(filename)
     {
-        if(!export_html(filename, ui.name, ui.model))
+        if(!export_html(filename,
+                        ui.name,
+                        ui.model,
+                        TRUE,
+                        conf_get_preferences_latlon_column(),
+                        conf_get_preferences_azimuth_column()))
+        {
             ui_dialog(GTK_WINDOW(ui.window),
                       GTK_MESSAGE_ERROR,
                       "Error",
                       "Unable to export the log to a file:\n%s",
                       filename);
+        }
         g_free(filename);
     }
 }

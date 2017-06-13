@@ -67,8 +67,30 @@ enum
     COL_COUNT
 };
 
+#define MODEL_TEXT_ICON         ""
+#define MODEL_TEXT_ADDRESS      "Address"
+#define MODEL_TEXT_FREQUENCY    "Freq"
+#define MODEL_TEXT_CHANNEL      "Channel"
+#define MODEL_TEXT_MODE         "M"
+#define MODEL_TEXT_SSID         "SSID"
+#define MODEL_TEXT_RADIONAME    "Radio name"
+#define MODEL_TEXT_MAXRSSI      "S↑"
+#define MODEL_TEXT_RSSI         "S"
+#define MODEL_TEXT_NOISE        "NF"
+#define MODEL_TEXT_PRIVACY      "P"
+#define MODEL_TEXT_ROUTEROS     "R"
+#define MODEL_TEXT_NSTREME      "N"
+#define MODEL_TEXT_TDMA         "T"
+#define MODEL_TEXT_WDS          "W"
+#define MODEL_TEXT_BRIDGE       "B"
+#define MODEL_TEXT_ROUTEROS_VER "ROS"
+#define MODEL_TEXT_FIRSTSEEN    "First seen"
+#define MODEL_TEXT_LASTSEEN     "Last seen"
+#define MODEL_TEXT_LATITUDE     "Latitude"
+#define MODEL_TEXT_LONGITUDE    "Longitude"
+#define MODEL_TEXT_AZIMUTH      "Az"
+
 mtscan_model_t* mtscan_model_new();
-void mtscan_model_free(mtscan_model_t*);
 void mtscan_model_free(mtscan_model_t*);
 void mtscan_model_clear(mtscan_model_t*);
 void mtscan_model_clear_active(mtscan_model_t*);
@@ -89,7 +111,7 @@ void mtscan_model_enable_sorting(mtscan_model_t*);
 const gchar* model_format_address(const gchar*);
 const gchar* model_format_frequency(gint);
 const gchar* model_format_date(gint64);
-const gchar* model_format_gps(gdouble);
-const gchar* model_format_azimuth(gfloat);
+const gchar* model_format_gps(gdouble, gboolean);
+const gchar* model_format_azimuth(gfloat, gboolean);
 
 #endif

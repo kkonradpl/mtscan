@@ -606,18 +606,18 @@ log_save_foreach(GtkTreeModel *store,
 
     if(!isnan(net.latitude) && !isnan(net.longitude) && !ctx->strip_gps)
     {
-        buffer = model_format_gps(net.latitude);
+        buffer = model_format_gps(net.latitude, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LATITUDE], strlen(keys[KEY_LATITUDE]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-        buffer = model_format_gps(net.longitude);
+        buffer = model_format_gps(net.longitude, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LONGITUDE], strlen(keys[KEY_LONGITUDE]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
     }
 
     if(!isnan(net.azimuth) && !ctx->strip_azi)
     {
-        buffer = model_format_azimuth(net.azimuth);
+        buffer = model_format_azimuth(net.azimuth, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AZIMUTH], strlen(keys[KEY_AZIMUTH]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
     }
@@ -640,18 +640,18 @@ log_save_foreach(GtkTreeModel *store,
 
             if(!isnan(sample->latitude) && !isnan(sample->longitude) && !ctx->strip_gps)
             {
-                buffer = model_format_gps(sample->latitude);
+                buffer = model_format_gps(sample->latitude, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LATITUDE], strlen(keys_signals[KEY_SIGNALS_LATITUDE]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-                buffer = model_format_gps(sample->longitude);
+                buffer = model_format_gps(sample->longitude, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LONGITUDE], strlen(keys_signals[KEY_SIGNALS_LONGITUDE]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
             }
 
             if(!isnan(sample->azimuth) && !ctx->strip_azi)
             {
-                buffer = model_format_azimuth(sample->azimuth);
+                buffer = model_format_azimuth(sample->azimuth, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_AZIMUTH], strlen(keys_signals[KEY_SIGNALS_AZIMUTH]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
             }

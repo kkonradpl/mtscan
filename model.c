@@ -25,6 +25,8 @@ static void model_free_foreach(gpointer, gpointer, gpointer);
 static gboolean model_clear_active_foreach(gpointer, gpointer, gpointer);
 static gboolean model_update_network(mtscan_model_t*, network_t*);
 
+static void trim_zeros(gchar*);
+
 mtscan_model_t*
 mtscan_model_new()
 {
@@ -777,29 +779,47 @@ model_format_date(gint64 value)
 }
 
 const gchar*
-model_format_gps(gdouble value)
+model_format_gps(gdouble  value,
+                 gboolean trim)
 {
     static gchar output[12];
-    gint i;
-
-    g_ascii_formatd(output, sizeof(output), "%.6f", value);
-    for(i=strlen(output)-1; i>=0 && output[i] == '0'; i--);
-    if(i >= 0 && output[i] == '.')
-        i++;
-    output[i+1] = '\0';
+    if(!isnan(value))
+    {
+        g_ascii_formatd(output, sizeof(output), "%.6f", value);
+        if(trim)
+            trim_zeros(output);
+    }
+    else
+    {
+        *output = '\0';
+    }
     return output;
 }
 
 const gchar*
-model_format_azimuth(gfloat value)
+model_format_azimuth(gfloat   value,
+                     gboolean trim)
 {
     static gchar output[12];
-    gint i;
-
-    g_ascii_formatd(output, sizeof(output), "%.2f", value);
-    for(i=strlen(output)-1; i>=0 && output[i] == '0'; i--);
-    if(i >= 0 && output[i] == '.')
-        i++;
-    output[i+1] = '\0';
+    if(!isnan(value))
+    {
+        g_ascii_formatd(output, sizeof(output), "%.2f", value);
+        if(trim)
+            trim_zeros(output);
+    }
+    else
+    {
+        *output = '\0';
+    }
     return output;
+}
+
+static void
+trim_zeros(gchar *string)
+{
+    gint i;
+    for(i=strlen(string)-1; i>=0 && string[i] == '0'; i--);
+    if(i >= 0 && string[i] == '.')
+        i++;
+    string[i+1] = '\0';
 }

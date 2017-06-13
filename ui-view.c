@@ -41,7 +41,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     gtk_cell_renderer_set_fixed_size(renderer, icon_size, icon_size);
     g_object_set_data(G_OBJECT(treeview), "mtscan-icon-renderer", renderer);
-    column = gtk_tree_view_column_new_with_attributes("", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ICON, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_PRIVACY));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_icon, NULL, NULL);
@@ -52,7 +52,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     g_object_set(renderer, "font", "Dejavu Sans Mono", NULL);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Address", renderer, "text", COL_ADDRESS, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ADDRESS, renderer, "text", COL_ADDRESS, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_ADDRESS));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_ADDRESS), NULL);
@@ -62,7 +62,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Freq", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_FREQUENCY, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_FREQUENCY));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_freq, GINT_TO_POINTER(COL_FREQUENCY), NULL);
@@ -72,7 +72,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("M", renderer, "text", COL_MODE, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_MODE, renderer, "text", COL_MODE, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_MODE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_MODE), NULL);
@@ -82,7 +82,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Channel", renderer, "text", COL_CHANNEL, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_CHANNEL, renderer, "text", COL_CHANNEL, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_CHANNEL));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_CHANNEL), NULL);
@@ -92,7 +92,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("SSID", renderer, "text", COL_SSID, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_SSID, renderer, "text", COL_SSID, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_expand(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_SSID));
@@ -103,7 +103,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Radio name", renderer, "text", COL_RADIONAME, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_RADIONAME, renderer, "text", COL_RADIONAME, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_RADIONAME));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_RADIONAME), NULL);
@@ -114,7 +114,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("S↑", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_MAXRSSI, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_MAXRSSI));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_MAXRSSI), NULL);
@@ -125,7 +125,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("S ", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_RSSI, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_RSSI));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_RSSI), NULL);
@@ -136,7 +136,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("NF", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_NOISE, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_NOISE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_NOISE), NULL);
@@ -145,7 +145,7 @@ ui_view_new(mtscan_model_t *model,
     /* Privacy column */
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    column = gtk_tree_view_column_new_with_attributes("P", renderer, "active", COL_PRIVACY, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_PRIVACY, renderer, "active", COL_PRIVACY, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_PRIVACY));
     gtk_tree_view_column_set_visible(column, FALSE);
@@ -155,7 +155,7 @@ ui_view_new(mtscan_model_t *model,
     /* Mikrotik RouterOS column */
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    column = gtk_tree_view_column_new_with_attributes("R", renderer, "active", COL_ROUTEROS, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ROUTEROS, renderer, "active", COL_ROUTEROS, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_ROUTEROS));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_ROUTEROS), NULL);
@@ -164,7 +164,7 @@ ui_view_new(mtscan_model_t *model,
     /* Nstreme column */
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    column = gtk_tree_view_column_new_with_attributes("N", renderer, "active", COL_NSTREME, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_NSTREME, renderer, "active", COL_NSTREME, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_NSTREME));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_NSTREME), NULL);
@@ -173,7 +173,7 @@ ui_view_new(mtscan_model_t *model,
     /* TDMA column */
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    column = gtk_tree_view_column_new_with_attributes("T", renderer, "active", COL_TDMA, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_TDMA, renderer, "active", COL_TDMA, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_TDMA));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_TDMA), NULL);
@@ -182,7 +182,7 @@ ui_view_new(mtscan_model_t *model,
     /* WDS column */
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    column = gtk_tree_view_column_new_with_attributes("W", renderer, "active", COL_WDS, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_WDS, renderer, "active", COL_WDS, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_WDS));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_WDS), NULL);
@@ -191,7 +191,7 @@ ui_view_new(mtscan_model_t *model,
     /* Bridge column */
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
-    column = gtk_tree_view_column_new_with_attributes("B", renderer, "active", COL_BRIDGE, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_BRIDGE, renderer, "active", COL_BRIDGE, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_BRIDGE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_BRIDGE), NULL);
@@ -201,7 +201,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("ROS", renderer, "text", COL_ROUTEROS_VER, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ROUTEROS_VER, renderer, "text", COL_ROUTEROS_VER, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_ROUTEROS_VER));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
@@ -212,7 +212,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("First seen", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_FIRSTSEEN, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_FIRSTSEEN));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_date, GINT_TO_POINTER(COL_FIRSTSEEN), NULL);
@@ -223,7 +223,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Last seen", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_LASTSEEN, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LASTSEEN));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_date, GINT_TO_POINTER(COL_LASTSEEN), NULL);
@@ -233,7 +233,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Latitude", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_LATITUDE, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LATITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LATITUDE), NULL);
@@ -244,7 +244,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Longitude", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_LONGITUDE, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_LONGITUDE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
@@ -256,7 +256,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes("Azi", renderer, "cell-background-gdk", COL_BG, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_AZIMUTH, renderer, "cell-background-gdk", COL_BG, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AZIMUTH));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_azimuth, GINT_TO_POINTER(COL_AZIMUTH), NULL);
@@ -561,18 +561,9 @@ ui_view_format_azimuth(GtkTreeViewColumn *col,
                        gpointer           data)
 {
     gint col_id = GPOINTER_TO_INT(data);
-    gchar text[16];
     gfloat value;
     gtk_tree_model_get(store, iter, col_id, &value, -1);
-    if(isnan(value))
-    {
-        g_object_set(renderer, "text", "", NULL);
-    }
-    else
-    {
-        snprintf(text, sizeof(text), "%.1f", value);
-        g_object_set(renderer, "text", text, NULL);
-    }
+    g_object_set(renderer, "text", model_format_azimuth(value, TRUE), NULL);
     ui_view_format_background(col, renderer, store, iter, data);
 }
 
