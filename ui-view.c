@@ -688,6 +688,12 @@ ui_view_remove_selection(GtkWidget *treeview)
     if(!list)
         return;
 
+    for(i=list; i; i=i->next)
+    {
+        gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
+        iterlist = g_list_append(iterlist, (gpointer)gtk_tree_iter_copy(&iter));
+    }
+
     if(count == 1)
         string = g_strdup_printf("Are you sure you want to remove the selected network?");
     else
@@ -695,19 +701,12 @@ ui_view_remove_selection(GtkWidget *treeview)
 
     if(ui_dialog_yesno(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(treeview))), string) == UI_DIALOG_YES)
     {
-        for(i=list; i; i=i->next)
-        {
-            gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
-            iterlist = g_list_append(iterlist, (gpointer)gtk_tree_iter_copy(&iter));
-        }
-
         for(i=iterlist; i; i=i->next)
             ui_view_remove_iter(treeview, (GtkTreeIter*)(i->data), FALSE);
-
-        g_list_foreach(iterlist, (GFunc)gtk_tree_iter_free, NULL);
-        g_list_free(iterlist);
     }
 
+    g_list_foreach(iterlist, (GFunc)gtk_tree_iter_free, NULL);
+    g_list_free(iterlist);
     g_free(string);
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
