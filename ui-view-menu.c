@@ -5,13 +5,14 @@
 #include "ui-dialogs.h"
 #include "log.h"
 #include "conn.h"
-#include "model.h"
 #include "scanlist.h"
 #include "conf.h"
+#include "misc.h"
 
 static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const gchar*, gint, gboolean, gboolean);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
+static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
 static void ui_view_menu_oui(GtkWidget*, gpointer);
 static void ui_view_menu_map(GtkWidget*, gpointer);
 static void ui_view_menu_scanlist(GtkWidget*, gpointer);
@@ -189,6 +190,7 @@ ui_view_menu_lock(GtkWidget *menuitem,
     GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
     GtkTreeModel *model;
     GtkTreeIter iter;
+    GTree *tree;
     GList *list;
     GList *i;
     GString *str;
@@ -202,21 +204,23 @@ ui_view_menu_lock(GtkWidget *menuitem,
     if(!list)
         return;
 
-    str = g_string_new("");
-
+    tree = g_tree_new((GCompareFunc)gintcmp);
     for(i=list; i; i=i->next)
     {
         gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
         gtk_tree_model_get(model, &iter, COL_FREQUENCY, &frequency, -1);
         if(frequency)
-            g_string_append_printf(str, "%d,", frequency/1000);
+            g_tree_insert(tree, GINT_TO_POINTER(frequency), NULL);
     }
+
+    str = g_string_new("");
+    g_tree_foreach(tree, ui_view_menu_lock_foreach, str);
 
     output = g_string_free(str, FALSE);
     if(output[0] != '\0')
     {
         /* Remove ending comma */
-        output[strlen(output)-1] = '\0';
+        output[strlen(output) - 1] = '\0';
         g_async_queue_push(conn->queue,
                            conn_command_new(COMMAND_SET_SCANLIST, output));
     }
@@ -228,6 +232,18 @@ ui_view_menu_lock(GtkWidget *menuitem,
 
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
+    g_tree_unref(tree);
+}
+
+static gboolean
+ui_view_menu_lock_foreach(gpointer key,
+                          gpointer value,
+                          gpointer data)
+{
+    GString *str = (GString*)data;
+    gint frequency = GPOINTER_TO_INT(key);
+    g_string_append_printf(str, "%d,", frequency/1000);
+    return FALSE;
 }
 
 static void
