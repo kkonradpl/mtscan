@@ -7,13 +7,15 @@
 #include "conn.h"
 #include "model.h"
 #include "scanlist.h"
+#include "conf.h"
 
-static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const gchar*, gint, gboolean);
+static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const gchar*, gint, gboolean, gboolean);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static void ui_view_menu_oui(GtkWidget*, gpointer);
 static void ui_view_menu_map(GtkWidget*, gpointer);
 static void ui_view_menu_scanlist(GtkWidget*, gpointer);
+static void ui_view_menu_blacklist(GtkWidget*, gpointer);
 static void ui_view_menu_save_as(GtkWidget*, gpointer);
 static void ui_view_menu_remove(GtkWidget*, gpointer);
 
@@ -49,12 +51,13 @@ ui_view_menu(GtkWidget      *treeview,
                                    count,
                                    address,
                                    frequency,
+                                   conf_get_preferences_blacklist(address),
                                    (!isnan(latitude) && !isnan(longitude)));
         g_free(address);
     }
     else
     {
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, NULL, 0, FALSE);
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, NULL, 0, FALSE, FALSE);
     }
 
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
@@ -70,6 +73,7 @@ ui_view_menu_create(GtkTreeView *treeview,
                     gint         count,
                     const gchar *address,
                     gint         frequency,
+                    gboolean     blacklist,
                     gboolean     position)
 {
     GtkWidget *menu = gtk_menu_new();
@@ -79,6 +83,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_show_on_map;
     GtkWidget *item_lock_to_freq;
     GtkWidget *item_scanlist;
+    GtkWidget *item_blacklist;
     GtkWidget *item_save_as;
     GtkWidget *item_remove;
     gchar* string;
@@ -127,6 +132,12 @@ ui_view_menu_create(GtkTreeView *treeview,
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_scanlist), gtk_image_new_from_stock(GTK_STOCK_EDIT, GTK_ICON_SIZE_MENU));
     g_signal_connect(item_scanlist, "activate", (GCallback)ui_view_menu_scanlist, treeview);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_scanlist);
+
+    /* Add or remove from blacklist */
+    item_blacklist = gtk_image_menu_item_new_with_label(blacklist ? "Remove from blacklist" : "Add to blacklist");
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_blacklist), gtk_image_new_from_stock((blacklist ? GTK_STOCK_UNDELETE : GTK_STOCK_STOP), GTK_ICON_SIZE_MENU));
+    g_signal_connect(item_blacklist, "activate", (GCallback)ui_view_menu_blacklist, treeview);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_blacklist);
 
     /* Save selected networks as */
     item_save_as = gtk_image_menu_item_new_with_label("Save as...");
@@ -304,6 +315,46 @@ ui_view_menu_scanlist(GtkWidget *menuitem,
         gtk_tree_model_get(model, &iter, COL_FREQUENCY, &frequency, -1);
         if(frequency)
             scanlist_add(frequency/1000);
+    }
+
+    g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
+    g_list_free(list);
+}
+
+static void
+ui_view_menu_blacklist(GtkWidget *menuitem,
+                       gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
+    GList *i;
+    gchar *address;
+
+    if(!list)
+        return;
+
+    if(g_list_length(list) == 1)
+    {
+        gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
+        gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
+
+        if(!conf_get_preferences_blacklist(address))
+            conf_set_preferences_blacklist(address);
+        else
+            conf_del_preferences_blacklist(address);
+    }
+    else
+    {
+        for(i = list; i; i = i->next)
+        {
+            gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
+            gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
+            if (address)
+                conf_set_preferences_blacklist(address);
+        }
     }
 
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);

@@ -365,6 +365,14 @@ void
 mtscan_model_buffer_add(mtscan_model_t *model,
                         network_t      *net)
 {
+    if(conf_get_preferences_blacklist_enabled() &&
+       conf_get_preferences_blacklist(net->address))
+    {
+        network_free(net);
+        g_free(net);
+        return;
+    }
+
     model->buffer = g_slist_prepend(model->buffer, (gpointer)net);
 }
 

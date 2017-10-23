@@ -99,4 +99,14 @@ void conf_set_preferences_gps_hostname(const gchar*);
 gint conf_get_preferences_gps_tcp_port();
 void conf_set_preferences_gps_tcp_port(gint);
 
+gboolean conf_get_preferences_blacklist_enabled(void);
+void conf_set_preferences_blacklist_enabled(gboolean);
+
+gboolean conf_get_preferences_blacklist(const gchar*);
+void conf_set_preferences_blacklist(const gchar*);
+void conf_del_preferences_blacklist(const gchar*);
+
+GtkListStore* conf_get_preferences_blacklist_as_liststore(void);
+void conf_set_preferences_blacklist_from_liststore(GtkListStore*);
+
 #endif

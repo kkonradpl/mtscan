@@ -4,6 +4,7 @@
 #include "ui.h"
 #include "ui-view.h"
 #include "gps.h"
+#include "ui-dialogs.h"
 
 typedef struct ui_preferences
 {
@@ -28,6 +29,16 @@ typedef struct ui_preferences
     GtkWidget *l_gps_tcp_port;
     GtkWidget *s_gps_tcp_port;
 
+    GtkWidget *page_blacklist;
+    GtkWidget *box_blacklist;
+    GtkWidget *box_blacklist_buttons;
+    GtkWidget *x_blacklist_enabled;
+    GtkWidget *t_blacklist;
+    GtkWidget *s_blacklist;
+    GtkWidget *b_blacklist_add;
+    GtkWidget *b_blacklist_remove;
+    GtkWidget *b_blacklist_clear;
+
     GtkWidget *box_button;
     GtkWidget *b_apply;
     GtkWidget *b_cancel;
@@ -42,8 +53,14 @@ enum
 };
 
 static gboolean ui_preferences_key(GtkWidget*, GdkEventKey*, gpointer);
+static gboolean ui_preferences_key_blacklist(GtkWidget*, GdkEventKey*, gpointer);
+static gboolean ui_preferences_key_blacklist_add(GtkWidget*, GdkEventKey*, gpointer);
+static void ui_preferences_blacklist_add(GtkWidget*, gpointer);
+static void ui_preferences_blacklist_remove(GtkWidget*, gpointer);
+static void ui_preferences_blacklist_clear(GtkWidget*, gpointer);
 static void ui_preferences_load(ui_preferences_t*);
 static void ui_preferences_apply(GtkWidget*, gpointer);
+static void remove_char(gchar*, gchar);
 
 void
 ui_preferences_dialog()
@@ -138,6 +155,42 @@ ui_preferences_dialog()
     p.s_gps_tcp_port = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(2947.0, 1024.0, 65535.0, 1.0, 10.0, 0.0)), 0, 0);
     gtk_table_attach(GTK_TABLE(p.table_gps), p.s_gps_tcp_port, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
+    /* Blacklist */
+    p.page_blacklist = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(p.page_blacklist), 4);
+    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_blacklist, gtk_label_new("Blacklist"));
+    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_blacklist, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
+
+    p.box_blacklist = gtk_vbox_new(FALSE, 4);
+    gtk_container_add(GTK_CONTAINER(p.page_blacklist), p.box_blacklist);
+
+    p.x_blacklist_enabled = gtk_check_button_new_with_label("Enable blacklist");
+    gtk_box_pack_start(GTK_BOX(p.box_blacklist), p.x_blacklist_enabled, FALSE, FALSE, 0);
+
+    p.t_blacklist = gtk_tree_view_new();
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(p.t_blacklist), -1, "Address", gtk_cell_renderer_text_new(), "text", 0, NULL);
+    g_signal_connect(p.t_blacklist, "key-press-event", G_CALLBACK(ui_preferences_key_blacklist), &p);
+
+    p.s_blacklist = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(p.s_blacklist), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(p.s_blacklist), p.t_blacklist);
+    gtk_box_pack_start(GTK_BOX(p.box_blacklist), p.s_blacklist, TRUE, TRUE, 0);
+
+    p.box_blacklist_buttons = gtk_hbox_new(TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(p.box_blacklist), p.box_blacklist_buttons, FALSE, FALSE, 0);
+
+    p.b_blacklist_add = gtk_button_new_from_stock(GTK_STOCK_ADD);
+    g_signal_connect(p.b_blacklist_add, "clicked", G_CALLBACK(ui_preferences_blacklist_add), p.t_blacklist);
+    gtk_box_pack_start(GTK_BOX(p.box_blacklist_buttons), p.b_blacklist_add, TRUE, TRUE, 0);
+
+    p.b_blacklist_remove = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+    g_signal_connect(p.b_blacklist_remove, "clicked", G_CALLBACK(ui_preferences_blacklist_remove), p.t_blacklist);
+    gtk_box_pack_start(GTK_BOX(p.box_blacklist_buttons), p.b_blacklist_remove, TRUE, TRUE, 0);
+
+    p.b_blacklist_clear = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
+    g_signal_connect(p.b_blacklist_clear, "clicked", G_CALLBACK(ui_preferences_blacklist_clear), p.t_blacklist);
+    gtk_box_pack_start(GTK_BOX(p.box_blacklist_buttons), p.b_blacklist_clear, TRUE, TRUE, 0);
+
     /* --- */
     p.box_button = gtk_hbutton_box_new();
     gtk_button_box_set_layout(GTK_BUTTON_BOX(p.box_button), GTK_BUTTONBOX_END);
@@ -171,9 +224,136 @@ ui_preferences_key(GtkWidget   *widget,
     return FALSE;
 }
 
+static gboolean
+ui_preferences_key_blacklist(GtkWidget   *widget,
+                             GdkEventKey *event,
+                             gpointer     data)
+{
+    ui_preferences_t *p = (ui_preferences_t*)data;
+    if(event->keyval == GDK_Delete)
+    {
+        gtk_button_clicked(GTK_BUTTON(p->b_blacklist_remove));
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static gboolean
+ui_preferences_key_blacklist_add(GtkWidget   *widget,
+                                 GdkEventKey *event,
+                                 gpointer     data)
+{
+    GtkDialog *dialog = GTK_DIALOG(data);
+
+    if(event->keyval == GDK_Return)
+    {
+        gtk_dialog_response(dialog, GTK_RESPONSE_OK);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void
+ui_preferences_blacklist_add(GtkWidget *widget,
+                             gpointer   data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(data);
+    GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+    GtkWidget *dialog;
+    GtkWidget *entry;
+    const gchar *value;
+    GError *err = NULL;
+    GMatchInfo *matchInfo;
+    GRegex *regex;
+    gchar *match = NULL;
+
+    dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(toplevel),
+                                                GTK_DIALOG_MODAL,
+                                                GTK_MESSAGE_QUESTION,
+                                                GTK_BUTTONS_OK_CANCEL,
+                                                "<big>Enter network address</big>\neg. 01:23:45:67:89:AB\nor 0123456789AB");
+    gtk_window_set_title(GTK_WINDOW(dialog), "Blacklist");
+    entry = gtk_entry_new();
+    gtk_entry_set_max_length(GTK_ENTRY(entry), 17);
+    gtk_container_add(GTK_CONTAINER(gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog))), entry);
+    g_signal_connect(entry, "key-press-event", G_CALLBACK(ui_preferences_key_blacklist_add), dialog);
+    gtk_widget_show_all(dialog);
+
+    if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK)
+    {
+        value = gtk_entry_get_text(GTK_ENTRY(entry));
+        regex = g_regex_new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})", 0, 0, &err);
+        if(regex)
+        {
+            g_regex_match(regex, value, 0, &matchInfo);
+            if(g_match_info_matches(matchInfo))
+            {
+                match = g_match_info_fetch(matchInfo, 0);
+                if(match)
+                    remove_char(match, ':');
+            }
+            g_match_info_free(matchInfo);
+            g_regex_unref(regex);
+        }
+
+        if(!match)
+        {
+            regex = g_regex_new("^([0-9A-Fa-f]{12})", 0, 0, &err);
+            if(regex)
+            {
+                g_regex_match(regex, value, 0, &matchInfo);
+                if(g_match_info_matches(matchInfo))
+                    match = g_match_info_fetch(matchInfo, 0);
+                g_match_info_free(matchInfo);
+                g_regex_unref(regex);
+            }
+        }
+
+        if(!match)
+        {
+            ui_dialog(GTK_WINDOW(toplevel),
+                      GTK_MESSAGE_ERROR,
+                      "Blacklist",
+                      "<big>Invalid address format:</big>\n%s", value);
+        }
+    }
+
+    gtk_widget_destroy(dialog);
+
+    if(match)
+    {
+        gtk_list_store_insert_with_values(GTK_LIST_STORE(gtk_tree_view_get_model(treeview)), NULL, -1, 0, match, -1);
+        g_free(match);
+    }
+}
+
+static void
+ui_preferences_blacklist_remove(GtkWidget *widget,
+                                gpointer   data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(data);
+    GtkTreeIter iter;
+    GtkTreeSelection *selection;
+    GtkTreeModel *model;
+    selection = gtk_tree_view_get_selection(treeview);
+    if(gtk_tree_selection_get_selected(selection, &model, &iter))
+        gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+}
+
+static void
+ui_preferences_blacklist_clear(GtkWidget *widget,
+                               gpointer   data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(data);
+    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+    gtk_list_store_clear(GTK_LIST_STORE(model));
+}
+
 static void
 ui_preferences_load(ui_preferences_t *p)
 {
+    GtkListStore *model;
+
     /* General */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_general_icon_size), conf_get_preferences_icon_size());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
@@ -184,6 +364,12 @@ ui_preferences_load(ui_preferences_t *p)
     /* GPS */
     gtk_entry_set_text(GTK_ENTRY(p->e_gps_hostname), conf_get_preferences_gps_hostname());
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_gps_tcp_port), conf_get_preferences_gps_tcp_port());
+
+    /* Blacklist */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_blacklist_enabled), conf_get_preferences_blacklist_enabled());
+    model = conf_get_preferences_blacklist_as_liststore();
+    gtk_tree_view_set_model(GTK_TREE_VIEW(p->t_blacklist), GTK_TREE_MODEL(model));
+    g_object_unref(model);
 }
 
 static void
@@ -244,6 +430,24 @@ ui_preferences_apply(GtkWidget *widget,
         }
     }
 
+    /* Blacklist */
+    conf_set_preferences_blacklist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_blacklist_enabled)));
+    conf_set_preferences_blacklist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->t_blacklist))));
+
     /* --- */
     gtk_widget_destroy(p->window);
+}
+
+static void
+remove_char(gchar *str,
+            gchar  c)
+{
+    gchar *pr = str;
+    gchar *pw = str;
+    while(*pr)
+    {
+        *pw = *pr++;
+        pw += (*pw != c);
+    }
+    *pw = 0;
 }

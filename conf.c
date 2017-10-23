@@ -41,6 +41,7 @@
 #define CONF_DEFAULT_PREFERENCES_SIGNALS           TRUE
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME      "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT      2947
+#define CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED FALSE
 
 #define CONF_PROFILE_GROUP "profile_"
 
@@ -77,8 +78,11 @@ typedef struct conf
     gboolean preferences_azimuth_column;
     gboolean preferences_signals;
 
-    gchar *preferences_gps_hostname;
-    gint   preferences_gps_tcp_port;
+    gchar    *preferences_gps_hostname;
+    gint      preferences_gps_tcp_port;
+    gboolean  preferences_blacklist_enabled;
+    GTree    *blacklist;
+
 } conf_t;
 
 static conf_t conf;
@@ -88,9 +92,14 @@ static gboolean conf_read_boolean(const gchar*, const gchar*, gboolean);
 static gint     conf_read_integer(const gchar*, const gchar*, gint);
 static gchar*   conf_read_string(const gchar*, const gchar*, const gchar*);
 static void     conf_change_string(gchar**, const gchar*);
-static void     conf_read_profiles();
+static void     conf_read_strings_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static void     conf_save_strings_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static gboolean conf_save_strings_tree_foreach(gpointer, gpointer, gpointer);
+static void     conf_read_profiles(GKeyFile*, const gchar*);
 static void     conf_set_profiles();
 static gboolean conf_set_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static gboolean conf_get_preferences_blacklist_as_liststore_foreach(gpointer, gpointer, gpointer);
+static gboolean conf_set_preferences_blacklist_from_liststore_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 
 void
 conf_init(const gchar *custom_path)
@@ -118,6 +127,7 @@ conf_init(const gchar *custom_path)
                                        G_TYPE_BOOLEAN,   /* PROFILE_COL_DURATION */
                                        G_TYPE_BOOLEAN,   /* PROFILE_COL_REMOTE */
                                        G_TYPE_BOOLEAN);  /* PROFILE_COL_BACKGROUND */
+    conf.blacklist = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL, g_free, NULL);
     conf_read();
 }
 
@@ -146,7 +156,7 @@ conf_read()
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
 
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
-    conf_read_profiles(conf.keyfile, conf.profiles);
+    conf_read_profiles(conf.keyfile, CONF_PROFILE_GROUP);
 
     conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
     conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
@@ -159,6 +169,8 @@ conf_read()
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
+    conf.preferences_blacklist_enabled = conf_read_boolean("preferences", "blacklist_enabled", CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED);
+    conf_read_strings_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
 
     if(!file_exists)
         conf_save();
@@ -224,15 +236,62 @@ conf_change_string(gchar      **ptr,
 }
 
 static void
-conf_read_profiles()
+conf_read_strings_tree(GKeyFile    *keyfile,
+                       const gchar *group_name,
+                       const gchar *key,
+                       GTree       *tree)
 {
-    gchar **groups = g_key_file_get_groups(conf.keyfile, NULL);
+    gchar **values;
+    gchar **it;
+    gsize length;
+
+    values = g_key_file_get_string_list(keyfile, group_name, key, &length, NULL);
+    if(values)
+    {
+        for(it = values; *it; it++)
+            g_tree_insert(tree, *it, GINT_TO_POINTER(TRUE));
+        g_free(values);
+    }
+}
+
+static void
+conf_save_strings_tree(GKeyFile    *keyfile,
+                       const gchar *group_name,
+                       const gchar *key,
+                       GTree       *tree)
+{
+    gchar **values;
+    gint length;
+
+    length = g_tree_nnodes(tree);
+    values = g_new(gchar*, length);
+
+    g_tree_foreach(tree, conf_save_strings_tree_foreach, values);
+    g_key_file_set_string_list(keyfile, group_name, key, (const gchar**)values, (gsize)length);
+    g_free(values);
+}
+
+static gboolean
+conf_save_strings_tree_foreach(gpointer key,
+                               gpointer value,
+                               gpointer data)
+{
+    gchar **v = (gchar**)data;
+    *(v++) = key;
+    return FALSE;
+}
+
+static void
+conf_read_profiles(GKeyFile    *keyfile,
+                   const gchar *group_name)
+{
+    gchar **groups = g_key_file_get_groups(keyfile, NULL);
     gchar **group;
     mtscan_profile_t profile;
 
     for(group=groups; *group; ++group)
     {
-        if(!strncmp(*group, CONF_PROFILE_GROUP, strlen(CONF_PROFILE_GROUP)))
+        if(!strncmp(*group, group_name, strlen(group_name)))
         {
             profile.name = conf_read_string(*group, "name", CONF_DEFAULT_PROFILE_NAME);
             profile.host = conf_read_string(*group, "host", CONF_DEFAULT_PROFILE_HOST);
@@ -246,7 +305,7 @@ conf_read_profiles()
             profile.background = conf_read_boolean(*group, "background", CONF_DEFAULT_PROFILE_BACKGROUND);
             conf_profile_add(&profile);
             conf_profile_free(&profile);
-            g_key_file_remove_group(conf.keyfile, *group, NULL);
+            g_key_file_remove_group(keyfile, *group, NULL);
         }
     }
     g_strfreev(groups);
@@ -304,7 +363,7 @@ conf_save()
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
-    conf_set_profiles(conf.keyfile, conf.profiles);
+    conf_set_profiles();
 
     g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
     g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
@@ -317,6 +376,8 @@ conf_save()
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_enabled", conf.preferences_blacklist_enabled);
+    conf_save_strings_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -627,4 +688,76 @@ void
 conf_set_preferences_gps_tcp_port(gint value)
 {
     conf.preferences_gps_tcp_port = value;
+}
+
+gboolean
+conf_get_preferences_blacklist_enabled(void)
+{
+    return conf.preferences_blacklist_enabled;
+}
+
+void
+conf_set_preferences_blacklist_enabled(gboolean value)
+{
+    conf.preferences_blacklist_enabled = value;
+}
+
+gboolean
+conf_get_preferences_blacklist(const gchar *value)
+{
+    gpointer data = g_tree_lookup(conf.blacklist, value);
+    return GPOINTER_TO_INT(data);
+}
+
+void
+conf_set_preferences_blacklist(const gchar *value)
+{
+    g_tree_insert(conf.blacklist, g_strdup(value), GINT_TO_POINTER(TRUE));
+}
+
+void
+conf_del_preferences_blacklist(const gchar *value)
+{
+    g_tree_remove(conf.blacklist, value);
+}
+
+GtkListStore*
+conf_get_preferences_blacklist_as_liststore(void)
+{
+    GtkListStore *model = gtk_list_store_new(1, G_TYPE_STRING);
+    g_tree_foreach(conf.blacklist, conf_get_preferences_blacklist_as_liststore_foreach, model);
+    return model;
+}
+
+static gboolean
+conf_get_preferences_blacklist_as_liststore_foreach(gpointer key,
+                                                    gpointer value,
+                                                    gpointer data)
+{
+    gchar *string = (gchar*)key;
+    GtkListStore *model = (GtkListStore*)data;
+    gtk_list_store_insert_with_values(model, NULL, -1, 0, string, -1);
+    return FALSE;
+}
+
+void
+conf_set_preferences_blacklist_from_liststore(GtkListStore *model)
+{
+    g_tree_ref(conf.blacklist);
+    g_tree_destroy(conf.blacklist);
+    gtk_tree_model_foreach(GTK_TREE_MODEL(model), conf_set_preferences_blacklist_from_liststore_foreach, conf.blacklist);
+}
+
+static gboolean
+conf_set_preferences_blacklist_from_liststore_foreach(GtkTreeModel *model,
+                                                      GtkTreePath  *path,
+                                                      GtkTreeIter  *iter,
+                                                      gpointer      data)
+{
+    GTree *tree = (GTree*)data;
+    gchar *string;
+
+    gtk_tree_model_get(model, iter, 0, &string, -1);
+    g_tree_insert(tree, string, GINT_TO_POINTER(TRUE));
+    return FALSE;
 }
