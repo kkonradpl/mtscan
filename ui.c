@@ -27,7 +27,7 @@ static const char rc_string[] = "style \"minimal-toolbar-style\"\n"
                                  "widget \"*.minimal-toolbar\" style\n\"minimal-toolbar-style\"\n";
 
 
-static void ui_restore();
+static void ui_restore(void);
 static gboolean ui_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean ui_delete_event(GtkWidget*, GdkEvent*, gpointer);
 static void ui_drag_data_received(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, guint);
@@ -35,7 +35,7 @@ static gboolean ui_status_gps_timeout(gpointer);
 static gchar* ui_get_name(const gchar*);
 
 void
-ui_init()
+ui_init(void)
 {
     gint icon_size = conf_get_preferences_icon_size();
 
@@ -116,7 +116,7 @@ ui_init()
 }
 
 static void
-ui_restore()
+ui_restore(void)
 {
     gint x = conf_get_window_x();
     gint y = conf_get_window_y();
@@ -298,7 +298,7 @@ ui_connected(const gchar *login,
 }
 
 void
-ui_disconnected()
+ui_disconnected(void)
 {
     ui.connected = FALSE;
     ui.scanning = FALSE;
@@ -316,7 +316,7 @@ ui_disconnected()
 }
 
 void
-ui_changed()
+ui_changed(void)
 {
     if(!ui.changed)
     {
@@ -326,7 +326,7 @@ ui_changed()
 }
 
 gboolean
-ui_can_discard_unsaved()
+ui_can_discard_unsaved(void)
 {
     if(!ui.changed)
         return TRUE;
@@ -344,7 +344,7 @@ ui_can_discard_unsaved()
 }
 
 void
-ui_status_update_networks()
+ui_status_update_networks(void)
 {
     static gint last_networks = -1;
     static gint last_active = -1;
@@ -408,7 +408,7 @@ ui_get_name(const gchar *filename)
 }
 
 void
-ui_clear()
+ui_clear(void)
 {
     mtscan_model_clear(ui.model);
     ui.changed = FALSE;
@@ -450,7 +450,7 @@ ui_play_sound(gchar *filename)
 }
 
 void
-ui_screenshot()
+ui_screenshot(void)
 {
     gint width, height;
     time_t tt = time(NULL);

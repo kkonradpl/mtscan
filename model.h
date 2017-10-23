@@ -90,7 +90,7 @@ enum
 #define MODEL_TEXT_LONGITUDE    "Longitude"
 #define MODEL_TEXT_AZIMUTH      "Az"
 
-mtscan_model_t* mtscan_model_new();
+mtscan_model_t* mtscan_model_new(void);
 void mtscan_model_free(mtscan_model_t*);
 void mtscan_model_clear(mtscan_model_t*);
 void mtscan_model_clear_active(mtscan_model_t*);

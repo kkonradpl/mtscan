@@ -2,13 +2,13 @@
 #include "signals.h"
 
 signals_t*
-signals_new()
+signals_new(void)
 {
     return g_malloc0(sizeof(signals_t));
 }
 
 signals_node_t*
-signals_node_new0()
+signals_node_new0(void)
 {
     signals_node_t *sample = g_malloc(sizeof(signals_node_t));
     sample->timestamp = 0;

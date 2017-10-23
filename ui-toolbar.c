@@ -41,7 +41,7 @@ static void ui_toolbar_about(GtkWidget*, gpointer);
    work with gtk_widget_add_accelerator. */
 
 GtkWidget*
-ui_toolbar_create()
+ui_toolbar_create(void)
 {
     GtkAccelGroup *accel_group;
     GtkWidget *toolbar;

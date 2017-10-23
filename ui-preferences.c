@@ -63,7 +63,7 @@ static void ui_preferences_apply(GtkWidget*, gpointer);
 static void remove_char(gchar*, gchar);
 
 void
-ui_preferences_dialog()
+ui_preferences_dialog(void)
 {
     static ui_preferences_t p;
     gint row;

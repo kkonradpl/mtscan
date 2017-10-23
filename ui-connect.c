@@ -38,10 +38,10 @@ static void connection_dialog_profile_remove(GtkWidget*, gpointer);
 static void connection_dialog_profile_clear(GtkWidget*, gpointer);
 static void connection_dialog_connect(GtkWidget*, gpointer);
 static void connection_dialog_cancel(GtkWidget*, gpointer);
-static void connection_cancel();
+static void connection_cancel(void);
 
 void
-connection_dialog()
+connection_dialog(void)
 {
     gint row;
 
@@ -495,7 +495,7 @@ connection_dialog_cancel(GtkWidget *widget,
 }
 
 static void
-connection_cancel()
+connection_cancel(void)
 {
     if(conn && !ui.connected)
     {

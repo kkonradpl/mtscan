@@ -30,7 +30,7 @@ typedef struct mtscan_gps_data
 } mtscan_gps_data_t;
 
 void gps_start(const gchar*, gint);
-void gps_stop();
+void gps_stop(void);
 gint gps_get_data(const mtscan_gps_data_t**);
 
 #endif

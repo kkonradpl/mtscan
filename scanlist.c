@@ -51,7 +51,7 @@ static gboolean freq_in_list(gint, const gint*);
 static gint gintcmp(gconstpointer, gconstpointer);
 
 void
-scanlist_dialog()
+scanlist_dialog(void)
 {
     GtkWidget *content, *notebook;
     GtkWidget *page_5G, *frequencies5;

@@ -17,7 +17,7 @@ static mtscan_gps_data_t *gps = NULL;
 static gpointer gps_thread(gpointer);
 static gboolean gps_closed(gpointer);
 static gboolean gps_update(gpointer);
-static void gps_null();
+static void gps_null(void);
 
 void
 gps_start(const gchar *host,
@@ -33,7 +33,7 @@ gps_start(const gchar *host,
 }
 
 void
-gps_stop()
+gps_stop(void)
 {
     if(gps_conn)
         gps_conn->canceled = TRUE;
@@ -153,7 +153,7 @@ gps_update(gpointer data)
 }
 
 static void
-gps_null()
+gps_null(void)
 {
     g_free(gps);
     gps = NULL;

@@ -18,8 +18,8 @@ typedef struct signals
     signals_node_t *tail;
 } signals_t;
 
-signals_t* signals_new();
-signals_node_t* signals_node_new0();
+signals_t* signals_new(void);
+signals_node_t* signals_node_new0(void);
 signals_node_t* signals_node_new(gint64, gint8, gdouble, gdouble, gfloat);
 void signals_append(signals_t*, signals_node_t*);
 void signals_merge(signals_t*, signals_t*);

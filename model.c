@@ -28,7 +28,7 @@ static gboolean model_update_network(mtscan_model_t*, network_t*);
 static void trim_zeros(gchar*);
 
 mtscan_model_t*
-mtscan_model_new()
+mtscan_model_new(void)
 {
     mtscan_model_t *model = g_malloc(sizeof(mtscan_model_t));
     model->store = gtk_list_store_new(COL_COUNT,

@@ -34,7 +34,7 @@ static const gchar svg_priv[] =
 static const gchar svg_footer[] = "</svg>";
 
 static GdkPixbuf* ui_icon_draw(gint, guint, gboolean);
-static void ui_icon_flush();
+static void ui_icon_flush(void);
 
 void
 ui_icon_size(gint new_icon_size)
@@ -125,7 +125,7 @@ ui_icon_draw(gint     size,
 }
 
 static void
-ui_icon_flush()
+ui_icon_flush(void)
 {
     int i;
     for(i=ICONS_OPEN; i<ICONS_COUNT; i++)

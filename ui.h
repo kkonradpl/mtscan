@@ -55,18 +55,18 @@ typedef struct mtscan_gtk
 
 mtscan_gtk_t ui;
 
-void ui_init();
+void ui_init(void);
 
 void ui_connected(const gchar*, const gchar*, const gchar*);
-void ui_disconnected();
-void ui_changed();
-gboolean ui_can_discard_unsaved();
-void ui_status_update_networks();
+void ui_disconnected(void);
+void ui_changed(void);
+gboolean ui_can_discard_unsaved(void);
+void ui_status_update_networks(void);
 
 void ui_set_title(gchar*);
-void ui_clear();
+void ui_clear(void);
 void ui_show_uri(const gchar*);
 void ui_play_sound(gchar*);
-void ui_screenshot();
+void ui_screenshot(void);
 
 #endif

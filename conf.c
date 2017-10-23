@@ -87,7 +87,7 @@ typedef struct conf
 
 static conf_t conf;
 
-static void     conf_read();
+static void     conf_read(void);
 static gboolean conf_read_boolean(const gchar*, const gchar*, gboolean);
 static gint     conf_read_integer(const gchar*, const gchar*, gint);
 static gchar*   conf_read_string(const gchar*, const gchar*, const gchar*);
@@ -96,7 +96,7 @@ static void     conf_read_strings_tree(GKeyFile*, const gchar*, const gchar*, GT
 static void     conf_save_strings_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
 static gboolean conf_save_strings_tree_foreach(gpointer, gpointer, gpointer);
 static void     conf_read_profiles(GKeyFile*, const gchar*);
-static void     conf_set_profiles();
+static void     conf_set_profiles(void);
 static gboolean conf_set_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 static gboolean conf_get_preferences_blacklist_as_liststore_foreach(gpointer, gpointer, gpointer);
 static gboolean conf_set_preferences_blacklist_from_liststore_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
@@ -132,7 +132,7 @@ conf_init(const gchar *custom_path)
 }
 
 static void
-conf_read()
+conf_read(void)
 {
     gboolean file_exists = TRUE;
 
@@ -312,7 +312,7 @@ conf_read_profiles(GKeyFile    *keyfile,
 }
 
 static void
-conf_set_profiles()
+conf_set_profiles(void)
 {
     gint i = 0;
     gtk_tree_model_foreach(GTK_TREE_MODEL(conf.profiles), conf_set_profiles_foreach, &i);
@@ -345,7 +345,7 @@ conf_set_profiles_foreach(GtkTreeModel *store,
 }
 
 void
-conf_save()
+conf_save(void)
 {
     GError *err = NULL;
     gchar *configuration;
@@ -415,13 +415,13 @@ conf_save()
 }
 
 gint
-conf_get_window_x()
+conf_get_window_x(void)
 {
     return conf.window_x;
 }
 
 gint
-conf_get_window_y()
+conf_get_window_y(void)
 {
     return conf.window_y;
 }
@@ -435,13 +435,13 @@ conf_set_window_xy(gint x,
 }
 
 gint
-conf_get_window_width()
+conf_get_window_width(void)
 {
     return conf.window_width;
 }
 
 gint
-conf_get_window_height()
+conf_get_window_height(void)
 {
     return conf.window_height;
 }
@@ -455,7 +455,7 @@ conf_set_window_position(gint width,
 }
 
 gboolean
-conf_get_window_maximized()
+conf_get_window_maximized(void)
 {
     return conf.window_maximized;
 }
@@ -467,7 +467,7 @@ conf_set_window_maximized(gboolean value)
 }
 
 gboolean
-conf_get_interface_sound()
+conf_get_interface_sound(void)
 {
     return conf.interface_sound;
 }
@@ -479,7 +479,7 @@ conf_set_interface_sound(gboolean sound)
 }
 
 gboolean
-conf_get_interface_dark_mode()
+conf_get_interface_dark_mode(void)
 {
     return conf.interface_dark_mode;
 }
@@ -491,7 +491,7 @@ conf_set_interface_dark_mode(gboolean dark_mode)
 }
 
 gboolean
-conf_get_interface_gps()
+conf_get_interface_gps(void)
 {
     return conf.interface_gps;
 }
@@ -503,7 +503,7 @@ conf_set_interface_gps(gboolean gps)
 }
 
 gint
-conf_get_interface_last_profile()
+conf_get_interface_last_profile(void)
 {
     return conf.interface_last_profile;
 }
@@ -515,7 +515,7 @@ conf_set_interface_last_profile(gint profile)
 }
 
 GtkListStore*
-conf_get_profiles()
+conf_get_profiles(void)
 {
     return conf.profiles;
 }
@@ -571,7 +571,7 @@ conf_profile_free(mtscan_profile_t *profile)
 
 
 const gchar*
-conf_get_path_log_open()
+conf_get_path_log_open(void)
 {
     return conf.path_log_open;
 }
@@ -583,7 +583,7 @@ conf_set_path_log_open(const gchar *path)
 }
 
 const gchar*
-conf_get_path_log_save()
+conf_get_path_log_save(void)
 {
     return conf.path_log_save;
 }
@@ -595,7 +595,7 @@ conf_set_path_log_save(const gchar *path)
 }
 
 const gchar*
-conf_get_path_log_export()
+conf_get_path_log_export(void)
 {
     return conf.path_log_export;
 }
@@ -607,7 +607,7 @@ conf_set_path_log_export(const gchar *path)
 }
 
 gint
-conf_get_preferences_icon_size()
+conf_get_preferences_icon_size(void)
 {
     return conf.preferences_icon_size;
 }
@@ -619,7 +619,7 @@ conf_set_preferences_icon_size(gint value)
 }
 
 gint
-conf_get_preferences_search_column()
+conf_get_preferences_search_column(void)
 {
     return conf.preferences_search_column;
 }
@@ -631,7 +631,7 @@ conf_set_preferences_search_column(gint value)
 }
 
 gboolean
-conf_get_preferences_latlon_column()
+conf_get_preferences_latlon_column(void)
 {
     return conf.preferences_latlon_column;
 }
@@ -643,7 +643,7 @@ conf_set_preferences_latlon_column(gboolean value)
 }
 
 gboolean
-conf_get_preferences_azimuth_column()
+conf_get_preferences_azimuth_column(void)
 {
     return conf.preferences_azimuth_column;
 }
@@ -655,7 +655,7 @@ conf_set_preferences_azimuth_column(gboolean value)
 }
 
 gboolean
-conf_get_preferences_signals()
+conf_get_preferences_signals(void)
 {
     return conf.preferences_signals;
 }
@@ -667,7 +667,7 @@ conf_set_preferences_signals(gboolean value)
 }
 
 const gchar*
-conf_get_preferences_gps_hostname()
+conf_get_preferences_gps_hostname(void)
 {
     return conf.preferences_gps_hostname;
 }
@@ -679,7 +679,7 @@ conf_set_preferences_gps_hostname(const gchar *value)
 }
 
 gint
-conf_get_preferences_gps_tcp_port()
+conf_get_preferences_gps_tcp_port(void)
 {
     return conf.preferences_gps_tcp_port;
 }

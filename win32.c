@@ -12,7 +12,7 @@
 static gint win32_font;
 
 void
-win32_init()
+win32_init(void)
 {
     WSADATA wsaData;
     if(WSAStartup(MAKEWORD(2,2), &wsaData))
@@ -22,7 +22,7 @@ win32_init()
 }
 
 void
-win32_cleanup()
+win32_cleanup(void)
 {
     WSACleanup();
     if(win32_font)
