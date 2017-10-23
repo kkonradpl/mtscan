@@ -5,6 +5,7 @@
 #include "ui-view.h"
 #include "gps.h"
 #include "ui-dialogs.h"
+#include "misc.h"
 
 typedef struct ui_preferences
 {
@@ -60,7 +61,6 @@ static void ui_preferences_blacklist_remove(GtkWidget*, gpointer);
 static void ui_preferences_blacklist_clear(GtkWidget*, gpointer);
 static void ui_preferences_load(ui_preferences_t*);
 static void ui_preferences_apply(GtkWidget*, gpointer);
-static void remove_char(gchar*, gchar);
 
 void
 ui_preferences_dialog(void)
@@ -436,18 +436,4 @@ ui_preferences_apply(GtkWidget *widget,
 
     /* --- */
     gtk_widget_destroy(p->window);
-}
-
-static void
-remove_char(gchar *str,
-            gchar  c)
-{
-    gchar *pr = str;
-    gchar *pw = str;
-    while(*pr)
-    {
-        *pw = *pr++;
-        pw += (*pw != c);
-    }
-    *pw = 0;
 }

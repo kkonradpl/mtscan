@@ -37,6 +37,8 @@ set(SOURCE_FILES
         log.c
         log.h
         main.c
+        misc.c
+        misc.h
         model.c
         model.h
         mt-ssh.c

@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "conn.h"
 #include "scanlist.h"
+#include "misc.h"
 
 #define FREQ_2GHZ_START 2192
 #define FREQ_2GHZ_END   2732
@@ -48,7 +49,6 @@ static void scanlist_clear(GtkWidget*, gpointer);
 static gboolean scanlist_foreach_set(gpointer, gpointer, gpointer);
 static gboolean scanlist_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean freq_in_list(gint, const gint*);
-static gint gintcmp(gconstpointer, gconstpointer);
 
 void
 scanlist_dialog(void)
@@ -283,11 +283,4 @@ scanlist_add(gint frequency)
 
     if((ptr = g_tree_lookup(freqtree, GINT_TO_POINTER(frequency))))
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ptr), TRUE);
-}
-
-static gint
-gintcmp(gconstpointer a,
-        gconstpointer b)
-{
-    return a - b;
 }
