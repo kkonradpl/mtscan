@@ -446,6 +446,9 @@ ui_view_format_background(GtkTreeViewColumn *col,
     }
 
     g_object_set(renderer, "cell-background-gdk", color, NULL);
+
+    if(color)
+        gdk_color_free(color);
 }
 
 static void
