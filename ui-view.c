@@ -561,9 +561,20 @@ ui_view_format_azimuth(GtkTreeViewColumn *col,
                        gpointer           data)
 {
     gint col_id = GPOINTER_TO_INT(data);
+    gchar text[16];
     gfloat value;
     gtk_tree_model_get(store, iter, col_id, &value, -1);
-    g_object_set(renderer, "text", model_format_azimuth(value, TRUE), NULL);
+
+    if(isnan(value))
+    {
+        g_object_set(renderer, "text", "", NULL);
+    }
+    else
+    {
+        snprintf(text, sizeof(text), "%.1f", value);
+        g_object_set(renderer, "text", text, NULL);
+    }
+
     ui_view_format_background(col, renderer, store, iter, data);
 }
 
