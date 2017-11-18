@@ -456,6 +456,12 @@ connection_dialog_connect(GtkWidget *widget,
     gboolean duration_enabled = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_duration));
     gint duration = (duration_enabled ? gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_duration)) : 0);
 
+    if(conn)
+    {
+        /* Another connection is in progress */
+        return;
+    }
+
     if(!strlen(hostname))
     {
         connection_dialog_status("No hostname specified.");
