@@ -5,6 +5,7 @@
 gboolean ui_update_scanning_state(gpointer);
 gboolean ui_update_network(gpointer);
 gboolean ui_update_finish(gpointer);
+gboolean ui_update_scanlist(gpointer);
 
 #endif
 

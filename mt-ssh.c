@@ -59,7 +59,9 @@ typedef struct mtscan_priv
     gint           state;
     gboolean       sent_command;
     gchar         *dispatch_scanlist_set;
+    gboolean       dispatch_scanlist_get;
     gboolean       dispatch_scan;
+    GString       *scanlist;
     scan_header_t  scan_head;
     gint           scan_line;
     gboolean       scan_too_long;
@@ -71,6 +73,7 @@ enum
     STATE_WAITING_FOR_PROMPT_DIRTY,
     STATE_PROMPT_DIRTY,
     STATE_PROMPT,
+    STATE_SCANLIST,
     STATE_WAITING_FOR_SCAN,
     STATE_SCANNING,
     N_STATES
@@ -82,6 +85,7 @@ static const gchar *str_states[] =
     "STATE_WAITING_FOR_PROMPT_DIRTY",
     "STATE_PROMPT_DIRTY",
     "STATE_PROMPT",
+    "STATE_SCANLIST",
     "STATE_WAITING_FOR_SCAN",
     "STATE_SCANNING"
 };
@@ -103,7 +107,9 @@ static void mt_ssh_dispatch(mtscan_priv_t*);
 
 static void mt_ssh_scan_start(mtscan_priv_t*);
 static void mt_ssh_scan_stop(mtscan_priv_t*, gboolean);
+static void mt_ssh_scanlist_get(mtscan_priv_t*);
 static void mt_ssh_scanlist_set(mtscan_priv_t*, const gchar*);
+static void mt_ssh_scanlist_finish(mtscan_priv_t*);
 
 static gint str_count_lines(const gchar*);
 static void str_remove_char(gchar*, gchar);
@@ -114,6 +120,7 @@ static gchar* parse_scan_address(const gchar*, guint);
 static gint parse_scan_channel(const gchar*, guint, gchar**, gchar**);
 static gint parse_scan_int(const gchar*, guint, guint);
 static gchar* parse_scan_string(const gchar*, guint, gint);
+static gchar* parse_scanlist(const gchar*);
 
 static mtscan_priv_t*
 mt_ssh_priv_new(mtscan_conn_t* conn,
@@ -124,6 +131,7 @@ mt_ssh_priv_new(mtscan_conn_t* conn,
     priv->channel = channel;
     priv->str_prompt = g_strdup_printf("%s%s@", str_prompt_start, priv->conn->login);
     priv->state = STATE_WAITING_FOR_PROMPT;
+    priv->dispatch_scanlist_get = TRUE;
     priv->dispatch_scan = TRUE;
     priv->scan_line = -1;
     return priv;
@@ -132,6 +140,8 @@ mt_ssh_priv_new(mtscan_conn_t* conn,
 static void
 mt_ssh_priv_free(mtscan_priv_t* priv)
 {
+    if(priv->scanlist)
+        g_string_free(priv->scanlist, TRUE);
     g_free(priv->dispatch_scanlist_set);
     g_free(priv->str_prompt);
     g_free(priv->identity);
@@ -475,8 +485,13 @@ mt_ssh(mtscan_priv_t *priv)
             printf("[%d] %s\n", i, line);
 #endif
 
-            if(priv->state == STATE_WAITING_FOR_SCAN ||
-               priv->state == STATE_SCANNING)
+            if(priv->state == STATE_SCANLIST)
+            {
+                /* Buffer the scan-list */
+                g_string_append(priv->scanlist, line);
+            }
+            else if(priv->state == STATE_WAITING_FOR_SCAN ||
+                    priv->state == STATE_SCANNING)
             {
                 mt_ssh_scanning(priv, line);
             }
@@ -523,6 +538,10 @@ mt_ssh_set_state(mtscan_priv_t *priv,
             !priv->conn->remote_mode)
     {
         g_idle_add(ui_update_scanning_state, GINT_TO_POINTER(FALSE));
+    }
+    else if(priv->state == STATE_SCANLIST)
+    {
+        mt_ssh_scanlist_finish(priv);
     }
 
     priv->state = state;
@@ -699,10 +718,18 @@ mt_ssh_commands(mtscan_priv_t *priv)
                 priv->conn->canceled = TRUE;
                 break;
 
+            case COMMAND_GET_SCANLIST:
+                priv->dispatch_scanlist_get = TRUE;
+                if(priv->state >= STATE_WAITING_FOR_SCAN)
+                    mt_ssh_scan_stop(priv, TRUE);
+                break;
+
             case COMMAND_SET_SCANLIST:
                 /* Clear existing request */
                 g_free(priv->dispatch_scanlist_set);
                 priv->dispatch_scanlist_set = g_strdup(msg->data);
+                /* Always check new scanlist */
+                priv->dispatch_scanlist_get = TRUE;
                 if(priv->state >= STATE_WAITING_FOR_SCAN)
                     mt_ssh_scan_stop(priv, TRUE);
                 break;
@@ -722,6 +749,11 @@ mt_ssh_dispatch(mtscan_priv_t *priv)
         mt_ssh_scanlist_set(priv, priv->dispatch_scanlist_set);
         g_free(priv->dispatch_scanlist_set);
         priv->dispatch_scanlist_set = NULL;
+    }
+    else if(priv->dispatch_scanlist_get)
+    {
+        mt_ssh_scanlist_get(priv);
+        priv->dispatch_scanlist_get = FALSE;
     }
     else if(priv->dispatch_scan || priv->conn->remote_mode)
     {
@@ -767,6 +799,18 @@ mt_ssh_scan_stop(mtscan_priv_t *priv,
 }
 
 static void
+mt_ssh_scanlist_get(mtscan_priv_t *priv)
+{
+    gchar *str_scanlist_get;
+
+    str_scanlist_get = g_strdup_printf("/interface wireless info scan-list %s\r", priv->conn->iface);
+    mt_ssh_request(priv, str_scanlist_get);
+    g_free(str_scanlist_get);
+    priv->scanlist = g_string_new(NULL);
+    mt_ssh_set_state(priv, STATE_SCANLIST);
+}
+
+static void
 mt_ssh_scanlist_set(mtscan_priv_t *priv,
                     const gchar  *scanlist)
 {
@@ -776,6 +820,15 @@ mt_ssh_scanlist_set(mtscan_priv_t *priv,
     mt_ssh_request(priv, str_scanlist_set);
     g_free(str_scanlist_set);
     mt_ssh_set_state(priv, STATE_WAITING_FOR_PROMPT);
+}
+
+static void
+mt_ssh_scanlist_finish(mtscan_priv_t *priv)
+{
+    gchar *str = g_string_free(priv->scanlist, FALSE);
+    priv->scanlist = NULL;
+    g_idle_add(ui_update_scanlist, parse_scanlist(str));
+    g_free(str);
 }
 
 static gint
@@ -994,4 +1047,38 @@ parse_scan_string(const gchar *buff,
     }
 
     return output;
+}
+
+static gchar*
+parse_scanlist(const gchar *buff)
+{
+    static const gchar str_channels[] = "channels: ";
+    GString *output = NULL;
+    gint frequency;
+    gchar *ptr;
+
+    ptr = strstr(buff, str_channels);
+    ptr = (ptr ? ptr + strlen(str_channels) : 0);
+
+    while(ptr)
+    {
+        frequency = 0;
+        sscanf(ptr, "%d", &frequency);
+        if(frequency)
+        {
+            if(!output)
+            {
+                output = g_string_new(NULL);
+                g_string_append_printf(output, "%d", frequency);
+            }
+            else
+            {
+                g_string_append_printf(output, ",%d", frequency);
+            }
+        }
+        ptr = strstr(ptr, ",");
+        ptr = (ptr ? ptr + 1 : NULL);
+    }
+
+    return (output ? g_string_free(output, FALSE) : NULL);
 }

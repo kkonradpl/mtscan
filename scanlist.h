@@ -3,6 +3,7 @@
 
 void scanlist_dialog(void);
 void scanlist_add(gint);
+void scanlist_current(const gchar*);
 
 #endif
 

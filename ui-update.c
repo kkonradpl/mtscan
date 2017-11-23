@@ -1,3 +1,4 @@
+#include <string.h>
 #include <math.h>
 #include "model.h"
 #include "ui-update.h"
@@ -5,6 +6,7 @@
 #include "ui-view.h"
 #include "mt-ssh.h"
 #include "gps.h"
+#include "scanlist.h"
 
 static gboolean ui_update_heartbeat(gpointer);
 static gboolean ui_update_timeout(gpointer);
@@ -68,6 +70,15 @@ ui_update_finish(gpointer data)
         g_source_remove(timeout_id);
     timeout_id = g_timeout_add(ui.model->active_timeout*1000, ui_update_timeout, &timeout_id);
 
+    return FALSE;
+}
+
+gboolean
+ui_update_scanlist(gpointer data)
+{
+    gchar *string = (gchar*)data;
+    scanlist_current(string);
+    g_free(data);
     return FALSE;
 }
 
