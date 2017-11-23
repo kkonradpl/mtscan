@@ -21,9 +21,6 @@ conn_new(const gchar *hostname,
     ptr->remote_mode = remote;
     ptr->background = background;
 
-    ptr->state = STATE_WAITING_FOR_PROMPT;
-    ptr->scan_line = -1;
-
     ptr->return_state = CONN_STATE_UNKNOWN;
     ptr->err = NULL;
 
@@ -47,8 +44,8 @@ conn_free(mtscan_conn_t *ptr)
 }
 
 mtscan_conn_msg_t*
-conn_msg_new(gint     type,
-             gpointer data,
+conn_msg_new(gint            type,
+             gpointer        data,
              mtscan_conn_t  *conn)
 {
     mtscan_conn_msg_t *ptr = g_new(mtscan_conn_msg_t, 1);
@@ -66,7 +63,7 @@ conn_msg_free(mtscan_conn_msg_t *ptr)
 }
 
 mtscan_conn_cmd_t*
-conn_command_new(gint type,
+conn_command_new(gint     type,
                  gpointer data)
 {
     mtscan_conn_cmd_t *ptr = g_new(mtscan_conn_cmd_t, 1);

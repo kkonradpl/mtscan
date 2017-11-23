@@ -2,37 +2,42 @@
 #define MTSCAN_CONN_H_
 #include <gtk/gtk.h>
 
-#define STATE_WAITING_FOR_PROMPT 0
-#define STATE_PROMPT             1
-#define STATE_WAITING_FOR_SCAN   2
-#define STATE_SCANNING           3
+enum
+{
+    COMMAND_AUTH,
+    COMMAND_DISCONNECT,
+    COMMAND_SCAN_START,
+    COMMAND_SCAN_STOP,
+    COMMAND_SCAN_RESTART,
+    COMMAND_GET_SCANLIST,
+    COMMAND_SET_SCANLIST
+};
 
-#define COMMAND_AUTH         0
-#define COMMAND_DISCONNECT   1
-#define COMMAND_SCAN_START   2
-#define COMMAND_SCAN_STOP    3
-#define COMMAND_SCAN_RESTART 4
-#define COMMAND_SET_SCANLIST 5
+enum
+{
+    CONN_MSG_CONNECTING,
+    CONN_MSG_AUTHENTICATING,
+    CONN_MSG_AUTH_VERIFY,
+    CONN_MSG_AUTH_ERROR,
+    CONN_MSG_CONNECTED,
+    CONN_MSG_SCANNING,
+    CONN_MSG_SCANNING_ERROR
+};
 
-#define CONN_MSG_CONNECTING                0
-#define CONN_MSG_AUTHENTICATING            1
-#define CONN_MSG_AUTH_VERIFY               2
-#define CONN_MSG_AUTH_ERROR                3
-#define CONN_MSG_CONNECTED                 4
-#define CONN_MSG_SCANNING                  5
-#define CONN_MSG_SCANNING_ERROR            6
-
-#define CONN_STATE_UNKNOWN           G_MAXINT
-#define CONN_CLOSED                         0
-#define CONN_ERR_SSH_NEW                    1
-#define CONN_ERR_SSH_SET_OPTIONS            2
-#define CONN_ERR_SSH_CONNECT                3
-#define CONN_ERR_SSH_VERIFY                 4
-#define CONN_ERR_SSH_AUTH                   5
-#define CONN_ERR_SSH_CHANNEL_NEW            6
-#define CONN_ERR_SSH_CHANNEL_OPEN           7
-#define CONN_ERR_SSH_CHANNEL_REQ_PTY_SIZE   8
-#define CONN_ERR_SSH_CHANNEL_REQ_SHELL      9
+enum
+{
+    CONN_CLOSED,
+    CONN_ERR_SSH_NEW,
+    CONN_ERR_SSH_SET_OPTIONS,
+    CONN_ERR_SSH_CONNECT,
+    CONN_ERR_SSH_VERIFY,
+    CONN_ERR_SSH_AUTH,
+    CONN_ERR_SSH_CHANNEL_NEW,
+    CONN_ERR_SSH_CHANNEL_OPEN,
+    CONN_ERR_SSH_CHANNEL_REQ_PTY_SIZE,
+    CONN_ERR_SSH_CHANNEL_REQ_SHELL,
+    CONN_STATE_UNKNOWN = G_MAXINT
+};
 
 typedef struct mtscan_conn
 {
@@ -44,9 +49,6 @@ typedef struct mtscan_conn
     gint duration;
     gboolean remote_mode;
     gboolean background;
-
-    gint state;
-    gint scan_line;
 
     gint return_state;
     gchar *err;
@@ -65,7 +67,7 @@ typedef struct mtscan_conn_msg
 typedef struct mtscan_conn_cmd
 {
     gint type;
-    gpointer data;
+    gchar *data;
 } mtscan_conn_cmd_t;
 
 mtscan_conn_t* conn;
