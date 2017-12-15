@@ -554,6 +554,7 @@ mt_ssh_scanning(mtscan_priv_t *priv,
     static const gchar str_badcommand[]     = "expected end of command";
     static const gchar str_nosuchitem[]     = "no such item";
     static const gchar str_failure[]        = "failure:";
+    static const gchar str_scanlistempty[]  = "scanlist empty";
     static const gchar str_scannotrunning[] = "scan not running";
     static const gchar str_scanstart[]      = "Flags: ";
     static const gchar str_scanend[]        = "-- ";
@@ -569,15 +570,27 @@ mt_ssh_scanning(mtscan_priv_t *priv,
         !strncmp(line, str_nosuchitem, strlen(str_nosuchitem))))
     {
         /* Handle possible failures */
-        mt_ssh_set_state(priv, STATE_WAITING_FOR_PROMPT);
+        mt_ssh_set_state(priv, STATE_WAITING_FOR_PROMPT_DIRTY);
         g_idle_add(connection_callback_info, conn_msg_new(CONN_MSG_SCANNING_ERROR, g_strdup(line), priv->conn));
+        return;
+    }
+
+    if(!strncmp(line, str_scanlistempty, strlen(str_failure)))
+    {
+        g_free(priv->dispatch_scanlist_set);
+        priv->dispatch_scanlist_set = g_strdup("default");
+        mt_ssh_set_state(priv, STATE_WAITING_FOR_PROMPT_DIRTY);
+        g_idle_add(connection_callback_info, conn_msg_new(CONN_MSG_SCANNING_ERROR,
+                                                          g_strdup("Scan-list is empty, reverting to default.\n" \
+                                                          "You may need to reboot your device before starting the scan again (bug in RouterOS)."),
+                                                          priv->conn));
         return;
     }
 
     if(!strncmp(line, str_scannotrunning, strlen(str_scannotrunning)))
     {
         /* Scanning stops when SSH connection is interrupted for a while */
-        mt_ssh_set_state(priv, STATE_WAITING_FOR_PROMPT);
+        mt_ssh_set_state(priv, STATE_WAITING_FOR_PROMPT_DIRTY);
         priv->dispatch_scan = TRUE;
         return;
     }
