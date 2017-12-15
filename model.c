@@ -13,9 +13,6 @@
 #define MIKROTIK_LOW_SIGNAL_BUGFIX  1
 #define MIKROTIK_HIGH_SIGNAL_BUGFIX 1
 
-static const GdkColor new_network_color      = { 0, 0x9000, 0xEE00, 0x9000 };
-static const GdkColor new_network_color_dark = { 0, 0x2F00, 0x4F00, 0x2F00 };
-
 static gint model_sort_ascii_string(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_rssi(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_double(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
@@ -33,7 +30,6 @@ mtscan_model_new(void)
     mtscan_model_t *model = g_malloc(sizeof(mtscan_model_t));
     model->store = gtk_list_store_new(COL_COUNT,
                                       G_TYPE_INT,      /* COL_STATE     */
-                                      GDK_TYPE_COLOR,  /* COL_BG        */
                                       G_TYPE_STRING,   /* COL_ADDRESS   */
                                       G_TYPE_INT,      /* COL_FREQUENCY */
                                       G_TYPE_STRING,   /* COL_CHANNEL   */
@@ -323,7 +319,6 @@ model_clear_active_foreach(gpointer key,
     {
         gtk_list_store_set(GTK_LIST_STORE(store), iter,
                            COL_STATE, MODEL_STATE_INACTIVE,
-                           COL_BG, NULL,
                            -1);
         model->clear_active_changed = TRUE;
         return TRUE;
@@ -334,7 +329,6 @@ model_clear_active_foreach(gpointer key,
     {
         gtk_list_store_set(GTK_LIST_STORE(store), iter,
                            COL_STATE, MODEL_STATE_ACTIVE,
-                           COL_BG, NULL,
                            -1);
         model->clear_active_changed = TRUE;
     }
@@ -536,7 +530,6 @@ model_update_network(mtscan_model_t *model,
 
         gtk_list_store_insert_with_values(model->store, &iter, -1,
                                           COL_STATE, MODEL_STATE_NEW,
-                                          COL_BG, (!conf_get_interface_dark_mode() ? &new_network_color : &new_network_color_dark),
                                           COL_ADDRESS, net->address,
                                           COL_FREQUENCY, net->frequency,
                                           COL_CHANNEL, (net->channel ? net->channel : ""),

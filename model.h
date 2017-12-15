@@ -41,7 +41,6 @@ typedef struct mtscan_model
 enum
 {
     COL_STATE,
-    COL_BG,
     COL_ADDRESS,
     COL_FREQUENCY,
     COL_CHANNEL,
