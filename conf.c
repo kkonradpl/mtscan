@@ -758,13 +758,19 @@ conf_get_preferences_blacklist(gint64 value)
 void
 conf_set_preferences_blacklist(gint64 value)
 {
-    g_tree_insert(conf.blacklist, gint64dup(&value), GINT_TO_POINTER(TRUE));
+    if(!conf.preferences_blacklist_inverted)
+        g_tree_insert(conf.blacklist, gint64dup(&value), GINT_TO_POINTER(TRUE));
+    else
+        g_tree_remove(conf.blacklist, &value);
 }
 
 void
 conf_del_preferences_blacklist(gint64 value)
 {
-    g_tree_remove(conf.blacklist, &value);
+    if(!conf.preferences_blacklist_inverted)
+        g_tree_remove(conf.blacklist, &value);
+    else
+        g_tree_insert(conf.blacklist, gint64dup(&value), GINT_TO_POINTER(TRUE));
 }
 
 GtkListStore*
@@ -813,13 +819,19 @@ conf_get_preferences_highlightlist(gint64 value)
 void
 conf_set_preferences_highlightlist(gint64 value)
 {
-    g_tree_insert(conf.highlightlist, gint64dup(&value), GINT_TO_POINTER(TRUE));
+    if(!conf.preferences_highlightlist_inverted)
+        g_tree_insert(conf.highlightlist, gint64dup(&value), GINT_TO_POINTER(TRUE));
+    else
+        g_tree_remove(conf.highlightlist, &value);
 }
 
 void
 conf_del_preferences_highlightlist(gint64 value)
 {
-    g_tree_remove(conf.highlightlist, &value);
+    if(!conf.preferences_highlightlist_inverted)
+        g_tree_remove(conf.highlightlist, &value);
+    else
+        g_tree_insert(conf.highlightlist, gint64dup(&value), GINT_TO_POINTER(TRUE));
 }
 
 GtkListStore*

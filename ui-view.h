@@ -16,5 +16,7 @@ void ui_view_dark_mode(GtkWidget*, gboolean);
 void ui_view_latlon_column(GtkWidget*, gboolean);
 void ui_view_azimuth_column(GtkWidget*, gboolean);
 
+gboolean ui_view_compare_address(GtkTreeModel*, gint, const gchar*, GtkTreeIter*, gpointer);
+
 #endif
 

@@ -218,6 +218,9 @@ ui_preferences_list_create(ui_preferences_list_t *l,
     column = gtk_tree_view_column_new_with_attributes("Address", renderer, NULL);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_preferences_list_format, NULL, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(l->view), column);
+    gtk_tree_view_set_enable_search(GTK_TREE_VIEW(l->view), TRUE);
+    gtk_tree_view_set_search_column(GTK_TREE_VIEW(l->view), 0);
+    gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(l->view), ui_view_compare_address, NULL, NULL);
 
     l->scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(l->scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);

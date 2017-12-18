@@ -9,7 +9,7 @@
 #include "conf.h"
 #include "misc.h"
 
-static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, gint64, gint, gint, gint, gboolean);
+static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, gint64, gint, gint);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
@@ -26,10 +26,11 @@ static void ui_view_menu_remove(GtkWidget*, gpointer);
 
 enum
 {
-    LIST_MODE_BLACKLIST,
-    LIST_MODE_UNBLACKLIST,
-    LIST_MODE_HIGHLIGHT,
-    LIST_MODE_DEHIGHLIGHT
+    FLAG_BLACKLIST   = (1 << 0),
+    FLAG_UNBLACKLIST = (1 << 1),
+    FLAG_HIGHLIGHT   = (1 << 2),
+    FLAG_DEHIGHLIGHT = (1 << 3),
+    FLAG_POSITION    = (1 << 4)
 };
 
 void
@@ -46,6 +47,7 @@ ui_view_menu(GtkWidget      *treeview,
     gint frequency;
     gdouble latitude, longitude;
     GtkWidget *menu;
+    gint flags = 0;
 
     if(!list)
         return;
@@ -59,18 +61,26 @@ ui_view_menu(GtkWidget      *treeview,
                                          COL_LATITUDE, &latitude,
                                          COL_LONGITUDE, &longitude,
                                          -1);
+        if(conf_get_preferences_blacklist_enabled())
+            flags |= conf_get_preferences_blacklist(address) ? FLAG_UNBLACKLIST : FLAG_BLACKLIST;
 
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview),
-                                   count,
-                                   address,
-                                   frequency,
-                                   conf_get_preferences_blacklist(address),
-                                   conf_get_preferences_highlightlist(address),
-                                   (!isnan(latitude) && !isnan(longitude)));
+        if(conf_get_preferences_highlightlist_enabled())
+            flags |= conf_get_preferences_highlightlist(address) ? FLAG_DEHIGHLIGHT : FLAG_HIGHLIGHT;
+
+        if(!isnan(latitude) && !isnan(longitude))
+            flags |= FLAG_POSITION;
+
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, address, frequency, flags);
     }
     else
     {
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, -1, 0, -1, -1, FALSE);
+        if(conf_get_preferences_blacklist_enabled())
+            flags |= FLAG_BLACKLIST | FLAG_UNBLACKLIST;
+
+        if(conf_get_preferences_highlightlist_enabled())
+            flags |= FLAG_HIGHLIGHT | FLAG_DEHIGHLIGHT;
+
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, -1, 0, flags);
     }
 
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
@@ -86,9 +96,7 @@ ui_view_menu_create(GtkTreeView *treeview,
                     gint         count,
                     gint64       address,
                     gint         frequency,
-                    gint         blacklist,
-                    gint         highlight,
-                    gboolean     position)
+                    gint         flags)
 {
     GtkWidget *menu = gtk_menu_new();
     GtkWidget *item_header;
@@ -134,7 +142,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     }
 
     /* Show network on a map */
-    if(position)
+    if(flags & FLAG_POSITION)
     {
         item_show_on_map = gtk_image_menu_item_new_with_label("Show on a map");
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_show_on_map), gtk_image_new_from_icon_name("mtscan-gps", GTK_ICON_SIZE_MENU));
@@ -149,14 +157,15 @@ ui_view_menu_create(GtkTreeView *treeview,
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_scanlist);
 
     /* Add or remove from blacklist */
-    if(blacklist == -1 || blacklist == 0)
+    if(flags & FLAG_BLACKLIST)
     {
         item_blacklist = gtk_image_menu_item_new_with_label("Blacklist");
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_blacklist), gtk_image_new_from_stock(GTK_STOCK_DELETE, GTK_ICON_SIZE_MENU));
         g_signal_connect(item_blacklist, "activate", (GCallback)ui_view_menu_blacklist, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_blacklist);
     }
-    if(blacklist == -1 || blacklist == 1)
+
+    if(flags & FLAG_UNBLACKLIST)
     {
         item_unblacklist = gtk_image_menu_item_new_with_label("Unblacklist");
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_unblacklist), gtk_image_new_from_stock(GTK_STOCK_UNDELETE, GTK_ICON_SIZE_MENU));
@@ -165,14 +174,15 @@ ui_view_menu_create(GtkTreeView *treeview,
     }
 
     /* Add or remove from highlight list */
-    if(highlight == -1 || highlight == 0)
+    if(flags & FLAG_HIGHLIGHT)
     {
         item_highlight = gtk_image_menu_item_new_with_label("Highlight");
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_highlight), gtk_image_new_from_stock(GTK_STOCK_YES, GTK_ICON_SIZE_MENU));
         g_signal_connect(item_highlight, "activate", (GCallback)ui_view_menu_highlight, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_highlight);
     }
-    if(highlight == -1 || highlight == 1)
+
+    if(flags & FLAG_DEHIGHLIGHT)
     {
         item_dehighlight = gtk_image_menu_item_new_with_label("Dehighlight");
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_dehighlight), gtk_image_new_from_stock(GTK_STOCK_NO, GTK_ICON_SIZE_MENU));
@@ -382,7 +392,7 @@ ui_view_menu_blacklist(GtkWidget *menuitem,
                        gpointer   user_data)
 {
     GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
-    ui_view_menu_list(treeview, LIST_MODE_BLACKLIST);
+    ui_view_menu_list(treeview, FLAG_BLACKLIST);
 }
 
 static void
@@ -390,7 +400,7 @@ ui_view_menu_unblacklist(GtkWidget *menuitem,
                          gpointer   user_data)
 {
     GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
-    ui_view_menu_list(treeview, LIST_MODE_UNBLACKLIST);
+    ui_view_menu_list(treeview, FLAG_UNBLACKLIST);
 }
 
 static void
@@ -398,7 +408,7 @@ ui_view_menu_highlight(GtkWidget *menuitem,
                        gpointer   user_data)
 {
     GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
-    ui_view_menu_list(treeview, LIST_MODE_HIGHLIGHT);
+    ui_view_menu_list(treeview, FLAG_HIGHLIGHT);
 }
 
 static void
@@ -406,7 +416,7 @@ ui_view_menu_dehighlight(GtkWidget *menuitem,
                          gpointer   user_data)
 {
     GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
-    ui_view_menu_list(treeview, LIST_MODE_DEHIGHLIGHT);
+    ui_view_menu_list(treeview, FLAG_DEHIGHLIGHT);
 }
 
 static void
@@ -428,13 +438,13 @@ ui_view_menu_list(GtkTreeView *treeview,
         gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
         gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
 
-        if(mode == LIST_MODE_BLACKLIST)
+        if(mode == FLAG_BLACKLIST)
             conf_set_preferences_blacklist(address);
-        else if(mode == LIST_MODE_UNBLACKLIST)
+        else if(mode == FLAG_UNBLACKLIST)
             conf_del_preferences_blacklist(address);
-        else if(mode == LIST_MODE_HIGHLIGHT)
-           conf_set_preferences_highlightlist(address);
-        else if(mode == LIST_MODE_DEHIGHLIGHT)
+        else if(mode == FLAG_HIGHLIGHT)
+            conf_set_preferences_highlightlist(address);
+        else if(mode == FLAG_DEHIGHLIGHT)
             conf_del_preferences_highlightlist(address);
     }
     else
@@ -444,13 +454,13 @@ ui_view_menu_list(GtkTreeView *treeview,
             gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
             gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
 
-            if(mode == LIST_MODE_BLACKLIST)
+            if(mode == FLAG_BLACKLIST)
                 conf_set_preferences_blacklist(address);
-            else if(mode == LIST_MODE_UNBLACKLIST)
+            else if(mode == FLAG_UNBLACKLIST)
                 conf_del_preferences_blacklist(address);
-            else if(mode == LIST_MODE_HIGHLIGHT)
+            else if(mode == FLAG_HIGHLIGHT)
                 conf_set_preferences_highlightlist(address);
-            else if(mode == LIST_MODE_DEHIGHLIGHT)
+            else if(mode == FLAG_DEHIGHLIGHT)
                 conf_del_preferences_highlightlist(address);
         }
     }

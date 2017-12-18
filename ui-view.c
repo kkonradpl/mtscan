@@ -23,7 +23,6 @@ static void ui_view_format_date(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeMod
 static void ui_view_format_level(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_gps(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_azimuth(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
-static gboolean ui_view_compare_address(GtkTreeModel*, gint, const gchar*, GtkTreeIter*, gpointer);
 static gboolean ui_view_compare_string(GtkTreeModel*, gint, const gchar*, GtkTreeIter*, gpointer);
 static void ui_view_column_clicked(GtkTreeViewColumn*, gpointer);
 
@@ -424,7 +423,6 @@ ui_view_disable_motion_redraw(GtkWidget *widget,
     return TRUE;
 }
 
-
 static void
 ui_view_format_background(GtkTreeViewColumn *col,
                           GtkCellRenderer   *renderer,
@@ -621,7 +619,7 @@ ui_view_compare_address(GtkTreeModel *model,
     gchar partial[13];
     const gchar *hex;
 
-    gtk_tree_model_get(model, iter, COL_ADDRESS, &addr, -1);
+    gtk_tree_model_get(model, iter, column, &addr, -1);
     hex = model_format_address(addr, FALSE);
     len = strlen(string);
 
@@ -644,13 +642,14 @@ ui_view_compare_address(GtkTreeModel *model,
     return strncmp(hex, partial, offset);
 }
 
-gboolean
+static gboolean
 ui_view_compare_string(GtkTreeModel *model,
                        gint          column,
                        const gchar  *string,
                        GtkTreeIter  *iter,
-                       gpointer      data)
+                       gpointer      user_data)
 {
+
     gchar *value;
     gboolean ret;
 
