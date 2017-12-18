@@ -253,7 +253,7 @@ export_foreach(GtkTreeModel *store,
 
     }
 
-    cstr = g_markup_printf_escaped("<td class=\"mono\">%s</td>" /* COL_ADDRESS */
+    cstr = g_markup_printf_escaped("<td class=\"mono\">%s</td>" /* COL_ADDRESS (formatted) */
                                    "<td>%s</td>" /* COL_FREQ (formatted) */
                                    "<td>%s</td>" /* COL_MODE */
                                    "<td>%s</td>" /* COL_CHANNEL */
@@ -268,7 +268,7 @@ export_foreach(GtkTreeModel *store,
                                    "<td>%s</td>" /* COL_ROUTEROS_VER */
                                    "<td>%s</td>" /* COL_FIRSTSEEN */
                                    "<td>%s</td>", /* COL_LASTSEEN */
-                                   net.address,
+                                   model_format_address(net.address, FALSE),
                                    model_format_frequency(net.frequency),
                                    net.mode,
                                    net.channel,

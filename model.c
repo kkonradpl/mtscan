@@ -5,6 +5,7 @@
 #include "signals.h"
 #include "ui-icons.h"
 #include "conf.h"
+#include "misc.h"
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 #define GPS_DOUBLE_PREC (1e-6)
@@ -30,7 +31,7 @@ mtscan_model_new(void)
     mtscan_model_t *model = g_malloc(sizeof(mtscan_model_t));
     model->store = gtk_list_store_new(COL_COUNT,
                                       G_TYPE_INT,      /* COL_STATE     */
-                                      G_TYPE_STRING,   /* COL_ADDRESS   */
+                                      G_TYPE_INT64,    /* COL_ADDRESS   */
                                       G_TYPE_INT,      /* COL_FREQUENCY */
                                       G_TYPE_STRING,   /* COL_CHANNEL   */
                                       G_TYPE_STRING,   /* COL_MODE      */
@@ -61,8 +62,8 @@ mtscan_model_new(void)
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_AZIMUTH, model_sort_float, GINT_TO_POINTER(COL_AZIMUTH), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ROUTEROS_VER, model_sort_version, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
 
-    model->map = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify)gtk_tree_iter_free);
-    model->active = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, NULL);
+    model->map = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, (GDestroyNotify)gtk_tree_iter_free);
+    model->active = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, NULL);
     model->active_timeout = MODEL_DEFAULT_ACTIVE_TIMEOUT;
     model->new_timeout = MODEL_DEFAULT_NEW_TIMEOUT;
     model->disabled_sorting = FALSE;
@@ -340,7 +341,7 @@ void
 mtscan_model_remove(mtscan_model_t *model,
                     GtkTreeIter    *iter)
 {
-    gchar *address;
+    gint64 address;
     signals_t *signals;
 
     gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter,
@@ -348,9 +349,8 @@ mtscan_model_remove(mtscan_model_t *model,
                        COL_SIGNALS, &signals,
                        -1);
 
-    g_hash_table_remove(model->active, address);
-    g_hash_table_remove(model->map, address);
-    g_free(address);
+    g_hash_table_remove(model->active, &address);
+    g_hash_table_remove(model->map, &address);
     signals_free(signals);
     gtk_list_store_remove(model->store, iter);
 }
@@ -425,13 +425,13 @@ model_update_network(mtscan_model_t *model,
 {
     GtkTreeIter *iter_ptr;
     GtkTreeIter iter;
-    gchar *address;
+    gint64 *address;
     gchar *current_ssid;
     gint current_maxrssi;
     gint current_state;
     gboolean new_network_found;
 
-    if(g_hash_table_lookup_extended(model->map, net->address, (gpointer*)&address, (gpointer*)&iter_ptr))
+    if(g_hash_table_lookup_extended(model->map, &net->address, (gpointer*)&address, (gpointer*)&iter_ptr))
     {
         /* Update a network, check current values first */
         gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter_ptr,
@@ -555,12 +555,11 @@ model_update_network(mtscan_model_t *model,
                                           -1);
 
         iter_ptr = gtk_tree_iter_copy(&iter);
-        g_hash_table_insert(model->map, net->address, iter_ptr);
-        g_hash_table_insert(model->active, net->address, iter_ptr);
-        new_network_found = TRUE;
+        address = gint64dup(&net->address);
 
-        /* Address is used now in the hash table */
-        net->address = NULL;
+        g_hash_table_insert(model->map, address, iter_ptr);
+        g_hash_table_insert(model->active, address, iter_ptr);
+        new_network_found = TRUE;
     }
 
     /* Signals are stored in GtkListStore just as pointer,
@@ -580,8 +579,9 @@ mtscan_model_add(mtscan_model_t *model,
     gint64 current_firstseen;
     gint64 current_lastseen;
     signals_t *current_signals;
+    gint64 *address;
 
-    if(merge && (iter_merge = g_hash_table_lookup(model->map, net->address)))
+    if(merge && (iter_merge = g_hash_table_lookup(model->map, &net->address)))
     {
         /* Merge a network, check current values first */
         gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter_merge,
@@ -662,10 +662,9 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_SIGNALS, net->signals,
                                           -1);
 
-        g_hash_table_insert(model->map, net->address, gtk_tree_iter_copy(&iter));
 
-        /* Address is now used in the hash table */
-        net->address = NULL;
+        address = gint64dup(&net->address);
+        g_hash_table_insert(model->map, address, gtk_tree_iter_copy(&iter));
 
         /* Signals are stored in GtkListStore just as pointer,
            so set it to NULL before freeing the struct */
@@ -706,20 +705,27 @@ mtscan_model_enable_sorting(mtscan_model_t *model)
 }
 
 const gchar*
-model_format_address(const gchar *address)
+model_format_address(gint64   address,
+                     gboolean separated)
 {
-    static gchar addr_separated[18];
-    static gchar addr_unknown[] = "";
+    static gchar str[18];
 
-    if(address && strlen(address) == 12)
+    if(!separated)
     {
-        snprintf(addr_separated, sizeof(addr_separated),
-                 "%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
-                 address[0], address[1], address[2], address[3], address[4], address[5],
-                 address[6], address[7], address[8], address[9], address[10], address[11]);
-        return addr_separated;
+        g_snprintf(str, sizeof(str), "%012lX", address);
     }
-    return addr_unknown;
+    else
+    {
+        g_snprintf(str, sizeof(str),
+                   "%02X:%02X:%02X:%02X:%02X:%02X",
+                   (gint)((address >> 40) & 0xFF),
+                   (gint)((address >> 32) & 0xFF),
+                   (gint)((address >> 24) & 0xFF),
+                   (gint)((address >> 16) & 0xFF),
+                   (gint)((address >>  8) & 0xFF),
+                   (gint)((address      ) & 0xFF));
+    }
+    return str;
 }
 
 const gchar*
@@ -744,24 +750,37 @@ const gchar*
 model_format_date(gint64 value)
 {
     static gchar output[20];
-    gint day_now, month_now, year_now;
+    struct tm *tm;
+    static gint day_now, month_now, year_now;
 #ifdef G_OS_WIN32
-    __time64_t ts_val = (__time64_t)value;
-    __time64_t ts_now = _time64(NULL);
-    struct tm *tm = _localtime64(&ts_now);
-#else
-    time_t ts_val = (time_t)value;
-    time_t ts_now = time(NULL);
-    struct tm *tm = localtime(&ts_now);
-#endif
+    static __time64_t cached = 0;
+    __time64_t ts_val, ts_now;
 
-    day_now = tm->tm_mday;
-    month_now = tm->tm_mon;
-    year_now = tm->tm_year;
-
-#ifdef G_OS_WIN32
+    ts_val = (__time64_t)value;
+    ts_now = _time64(NULL);
+    if(ts_now != cached)
+    {
+        tm = _localtime64(&ts_now);
+        day_now = tm->tm_mday;
+        month_now = tm->tm_mon;
+        year_now = tm->tm_year;
+        cached = ts_now;
+    }
     tm = _localtime64(&ts_val);
 #else
+    static time_t cached = 0;
+    time_t ts_val, ts_now;
+
+    ts_val = (time_t)value;
+    ts_now = time(NULL);
+    if(ts_now != cached)
+    {
+        tm = localtime(&ts_now);
+        day_now = tm->tm_mday;
+        month_now = tm->tm_mon;
+        year_now = tm->tm_year;
+        cached = ts_now;
+    }
     tm = localtime(&ts_val);
 #endif
 

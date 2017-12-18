@@ -17,11 +17,14 @@ static void ui_view_size_alloc(GtkWidget *widget, GtkAllocation *allocation, gpo
 static gboolean ui_view_disable_motion_redraw(GtkWidget*, GdkEvent*, gpointer);
 static void ui_view_format_background(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter* , gpointer);
 static void ui_view_format_icon(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
+static void ui_view_format_address(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_freq(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_date(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_level(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_gps(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_azimuth(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
+static gboolean ui_view_compare_address(GtkTreeModel*, gint, const gchar*, GtkTreeIter*, gpointer);
+static gboolean ui_view_compare_string(GtkTreeModel*, gint, const gchar*, GtkTreeIter*, gpointer);
 static void ui_view_column_clicked(GtkTreeViewColumn*, gpointer);
 
 GtkWidget*
@@ -53,10 +56,10 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     g_object_set(renderer, "font", "Dejavu Sans Mono", NULL);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
-    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ADDRESS, renderer, "text", COL_ADDRESS, NULL);
+    column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ADDRESS, renderer, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_ADDRESS));
-    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_ADDRESS), NULL);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_address, GINT_TO_POINTER(COL_ADDRESS), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* Frequency column */
@@ -285,12 +288,15 @@ ui_view_configure(GtkWidget *view)
     {
     case 0:
         gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_ADDRESS);
+        gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(view), ui_view_compare_address, NULL, NULL);
         break;
     case 1:
         gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_SSID);
+        gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(view), ui_view_compare_string, NULL, NULL);
         break;
     case 2:
         gtk_tree_view_set_search_column(GTK_TREE_VIEW(view), COL_RADIONAME);
+        gtk_tree_view_set_search_equal_func(GTK_TREE_VIEW(view), ui_view_compare_string, NULL, NULL);
         break;
     }
 
@@ -418,6 +424,7 @@ ui_view_disable_motion_redraw(GtkWidget *widget,
     return TRUE;
 }
 
+
 static void
 ui_view_format_background(GtkTreeViewColumn *col,
                           GtkCellRenderer   *renderer,
@@ -433,7 +440,7 @@ ui_view_format_background(GtkTreeViewColumn *col,
     gint col_id, col_sorted, id;
     const GdkColor *ptr = NULL;
     gint state;
-    gchar *address;
+    gint64 address;
 
     col_id = GPOINTER_TO_INT(data);
     col_sorted = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(gtk_tree_view_column_get_tree_view(col)), "mtscan-sort"));
@@ -455,7 +462,6 @@ ui_view_format_background(GtkTreeViewColumn *col,
     }
 
     g_object_set(renderer, "cell-background-gdk", ptr, NULL);
-    g_free(address);
 }
 
 static void
@@ -478,6 +484,20 @@ ui_view_format_icon(GtkTreeViewColumn *col,
         rssi = MODEL_NO_SIGNAL;
 
     g_object_set(renderer, "pixbuf", ui_icon(rssi, privacy), NULL);
+    ui_view_format_background(col, renderer, store, iter, data);
+}
+
+static void
+ui_view_format_address(GtkTreeViewColumn *col,
+                       GtkCellRenderer   *renderer,
+                       GtkTreeModel      *store,
+                       GtkTreeIter       *iter,
+                       gpointer           data)
+{
+    gint col_id = GPOINTER_TO_INT(data);
+    gint64 address;
+    gtk_tree_model_get(store, iter, col_id, &address, -1);
+    g_object_set(renderer, "text", model_format_address(address, FALSE), NULL);
     ui_view_format_background(col, renderer, store, iter, data);
 }
 
@@ -586,6 +606,57 @@ ui_view_format_azimuth(GtkTreeViewColumn *col,
     }
 
     ui_view_format_background(col, renderer, store, iter, data);
+}
+
+gboolean
+ui_view_compare_address(GtkTreeModel *model,
+                        gint          column,
+                        const gchar  *string,
+                        GtkTreeIter  *iter,
+                        gpointer      user_data)
+{
+    gint64 addr;
+    guint i, offset;
+    size_t len;
+    gchar partial[13];
+    const gchar *hex;
+
+    gtk_tree_model_get(model, iter, COL_ADDRESS, &addr, -1);
+    hex = model_format_address(addr, FALSE);
+    len = strlen(string);
+
+    for(i=0, offset=0; i<len && offset<12; i++)
+    {
+        if(string[i] == ':')
+            continue;
+
+        if((string[i] >= '0' && string[i] <= '9') ||
+           (string[i] >= 'A' && string[i] <= 'F'))
+        {
+            partial[offset++] = string[i];
+        }
+        else if(string[i] >= 'a' && string[i] <= 'f')
+        {
+            partial[offset++] = (gchar)(string[i] - ('a' - 'A'));
+        }
+    }
+    partial[offset] = '\0';
+    return strncmp(hex, partial, offset);
+}
+
+gboolean
+ui_view_compare_string(GtkTreeModel *model,
+                       gint          column,
+                       const gchar  *string,
+                       GtkTreeIter  *iter,
+                       gpointer      data)
+{
+    gchar *value;
+    gboolean ret;
+
+    gtk_tree_model_get(model, iter, column, &value, -1);
+    ret = g_ascii_strncasecmp(value, string, strlen(string));
+    return ret;
 }
 
 static void

@@ -105,9 +105,9 @@ void conf_set_preferences_blacklist_enabled(gboolean);
 gboolean conf_get_preferences_blacklist_inverted(void);
 void conf_set_preferences_blacklist_inverted(gboolean);
 
-gboolean conf_get_preferences_blacklist(const gchar*);
-void conf_set_preferences_blacklist(const gchar*);
-void conf_del_preferences_blacklist(const gchar*);
+gboolean conf_get_preferences_blacklist(gint64);
+void conf_set_preferences_blacklist(gint64);
+void conf_del_preferences_blacklist(gint64);
 
 GtkListStore* conf_get_preferences_blacklist_as_liststore(void);
 void conf_set_preferences_blacklist_from_liststore(GtkListStore*);
@@ -118,9 +118,9 @@ void conf_set_preferences_highlightlist_enabled(gboolean);
 gboolean conf_get_preferences_highlightlist_inverted(void);
 void conf_set_preferences_highlightlist_inverted(gboolean);
 
-gboolean conf_get_preferences_highlightlist(const gchar*);
-void conf_set_preferences_highlightlist(const gchar*);
-void conf_del_preferences_highlightlist(const gchar*);
+gboolean conf_get_preferences_highlightlist(gint64);
+void conf_set_preferences_highlightlist(gint64);
+void conf_del_preferences_highlightlist(gint64);
 
 GtkListStore* conf_get_preferences_highlightlist_as_liststore(void);
 void conf_set_preferences_highlightlist_from_liststore(GtkListStore*);

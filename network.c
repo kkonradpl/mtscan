@@ -5,7 +5,7 @@
 void
 network_init(network_t *net)
 {
-    net->address = NULL;
+    net->address = -1;
     net->frequency = 0;
     net->channel = NULL;
     net->mode = NULL;
@@ -32,7 +32,6 @@ network_init(network_t *net)
 void
 network_free(network_t *net)
 {
-    g_free(net->address);
     g_free(net->channel);
     g_free(net->mode);
     g_free(net->ssid);
@@ -46,7 +45,6 @@ void
 network_free_null(network_t *net)
 {
     network_free(net);
-    net->address = NULL;
     net->channel = NULL;
     net->mode = NULL;
     net->ssid = NULL;

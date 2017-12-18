@@ -11,6 +11,7 @@
 #include "ui-update.h"
 #include "ui-connect.h"
 #include "network.h"
+
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif // G_OS_WIN32
@@ -35,6 +36,8 @@
 #define SSID_LEN        32
 #define RADIO_NAME_LEN  16
 #define ROS_VERSION_LEN 16
+
+#define MAC_ADDR_HEX_LEN 12
 
 typedef struct scan_header
 {
@@ -116,7 +119,7 @@ static void str_remove_char(gchar*, gchar);
 
 static scan_header_t parse_scan_header(const gchar*);
 static network_flags_t parse_scan_flags(const gchar*, guint);
-static gchar* parse_scan_address(const gchar*, guint);
+static gint64 parse_scan_address(const gchar*, guint);
 static gint parse_scan_channel(const gchar*, guint, gchar**, gchar**);
 static gint parse_scan_int(const gchar*, guint, guint);
 static gchar* parse_scan_string(const gchar*, guint, gint);
@@ -561,7 +564,7 @@ mt_ssh_scanning(mtscan_priv_t *priv,
 
     network_t *net;
     network_flags_t flags;
-    gchar *address;
+    gint64 address;
     gchar *ptr;
 
     if(priv->state == STATE_WAITING_FOR_SCAN &&
@@ -664,7 +667,7 @@ mt_ssh_scanning(mtscan_priv_t *priv,
         return;
     }
 
-    if(!(address = parse_scan_address(line, priv->scan_head.address)))
+    if((address = parse_scan_address(line, priv->scan_head.address)) < 0)
     {
         /* This line doesn't contain a valid MAC address */
 #if DEBUG
@@ -965,22 +968,39 @@ parse_scan_flags(const gchar *buff,
     return flags;
 }
 
-static gchar*
+static gint64
 parse_scan_address(const gchar *buff,
                    guint        position)
 {
-    gchar *addr = g_malloc(sizeof(gchar)*13);
+    gchar addr[MAC_ADDR_HEX_LEN+1];
+    gchar *ptr;
+    gint64 value;
+    gint i;
 
-    if(strlen(buff) > position &&
-       sscanf(buff + position, "%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
-              &addr[0], &addr[1], &addr[2], &addr[3], &addr[4], &addr[5],
-              &addr[6], &addr[7], &addr[8], &addr[9], &addr[10], &addr[11]) == 12)
+    if(strlen(buff) < position+MAC_ADDR_HEX_LEN+5)
+        return -1;
+
+    for(i=0; i<MAC_ADDR_HEX_LEN; i+=2)
     {
-        addr[12] = 0;
-        return addr;
+        addr[i] = buff[position+i+(i/2)];
+        addr[i+1] = buff[position+i+1+(i/2)];
     }
-    g_free(addr);
-    return NULL;
+
+    addr[MAC_ADDR_HEX_LEN] = '\0';
+
+    for(i=0; i<MAC_ADDR_HEX_LEN; i++)
+    {
+        if(!((addr[i] >= '0' && addr[i] <= '9') ||
+             (addr[i] >= 'A' && addr[i] <= 'F') ||
+             (addr[i] >= 'a' && addr[i] <= 'f')))
+            return -1;
+    }
+
+    value = g_ascii_strtoll(addr, &ptr, 16);
+    if(ptr != addr)
+        return value;
+
+    return -1;
 }
 
 static gint

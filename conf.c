@@ -100,9 +100,9 @@ static gboolean conf_read_boolean(const gchar*, const gchar*, gboolean);
 static gint     conf_read_integer(const gchar*, const gchar*, gint);
 static gchar*   conf_read_string(const gchar*, const gchar*, const gchar*);
 static void     conf_change_string(gchar**, const gchar*);
-static void     conf_read_strings_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
-static void     conf_save_strings_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
-static gboolean conf_save_strings_tree_foreach(gpointer, gpointer, gpointer);
+static void     conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static void     conf_save_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static gboolean conf_save_gint64_tree_foreach(gpointer, gpointer, gpointer);
 static void     conf_read_profiles(GKeyFile*, const gchar*);
 static void     conf_set_profiles(void);
 static gboolean conf_set_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
@@ -133,8 +133,8 @@ conf_init(const gchar *custom_path)
                                        G_TYPE_BOOLEAN,   /* PROFILE_COL_DURATION */
                                        G_TYPE_BOOLEAN,   /* PROFILE_COL_REMOTE */
                                        G_TYPE_BOOLEAN);  /* PROFILE_COL_BACKGROUND */
-    conf.blacklist = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL, g_free, NULL);
-    conf.highlightlist = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL, g_free, NULL);
+    conf.blacklist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
+    conf.highlightlist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf_read();
 }
 
@@ -178,10 +178,10 @@ conf_read(void)
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
     conf.preferences_blacklist_enabled = conf_read_boolean("preferences", "blacklist_enabled", CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED);
     conf.preferences_blacklist_inverted = conf_read_boolean("preferences", "blacklist_inverted", CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED);
-    conf_read_strings_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
+    conf_read_gint64_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
     conf.preferences_highlightlist_enabled = conf_read_boolean("preferences", "highlightlist_enabled", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED);
     conf.preferences_highlightlist_inverted = conf_read_boolean("preferences", "highlightlist_inverted", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED);
-    conf_read_strings_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
+    conf_read_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
 
     if(!file_exists)
         conf_save();
@@ -247,54 +247,67 @@ conf_change_string(gchar      **ptr,
 }
 
 static void
-conf_read_strings_tree(GKeyFile    *keyfile,
-                       const gchar *group_name,
-                       const gchar *key,
-                       GTree       *tree)
+conf_read_gint64_tree(GKeyFile    *keyfile,
+                      const gchar *group_name,
+                      const gchar *key,
+                      GTree       *tree)
 {
     gchar **values;
     gchar **it;
     gsize length;
+    gint64 addr;
 
     values = g_key_file_get_string_list(keyfile, group_name, key, &length, NULL);
     if(values)
     {
         for(it = values; *it; it++)
-            g_tree_insert(tree, *it, GINT_TO_POINTER(TRUE));
-        g_free(values);
+        {
+            if(((addr = str_addr_to_gint64(*it, strlen(*it))) >= 0))
+                g_tree_insert(tree, gint64dup(&addr), GINT_TO_POINTER(TRUE));
+        }
+        g_strfreev(values);
     }
+
 }
 
 static void
-conf_save_strings_tree(GKeyFile    *keyfile,
-                       const gchar *group_name,
-                       const gchar *key,
-                       GTree       *tree)
+conf_save_gint64_tree(GKeyFile    *keyfile,
+                      const gchar *group_name,
+                      const gchar *key,
+                      GTree       *tree)
 {
     gchar **values = NULL;
     gchar **ptr;
     gint length;
+    gint i;
 
     length = g_tree_nnodes(tree);
     if(length)
     {
         values = g_new(gchar*, length);
         ptr = values;
-        g_tree_foreach(tree, conf_save_strings_tree_foreach, &ptr);
+        g_tree_foreach(tree, conf_save_gint64_tree_foreach, &ptr);
+
     }
 
     g_key_file_set_string_list(keyfile, group_name, key, (const gchar**)values, (gsize)length);
-    g_free(values);
+
+    if(values)
+    {
+        for(i=0; i<length; i++)
+            g_free(values[i]);
+        g_free(values);
+    }
 }
 
 static gboolean
-conf_save_strings_tree_foreach(gpointer key,
-                               gpointer value,
-                               gpointer data)
+conf_save_gint64_tree_foreach(gpointer key,
+                              gpointer value,
+                              gpointer data)
 {
 
     gchar ***ptr = (gchar***)data;
-    *((*ptr)++) = (gchar*)key;
+    *((*ptr)++) = g_strdup(model_format_address(*(gint64*)key, FALSE));
     return FALSE;
 }
 
@@ -395,10 +408,10 @@ conf_save(void)
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_enabled", conf.preferences_blacklist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_inverted", conf.preferences_blacklist_inverted);
-    conf_save_strings_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
+    conf_save_gint64_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_enabled", conf.preferences_highlightlist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_inverted", conf.preferences_highlightlist_inverted);
-    conf_save_strings_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
+    conf_save_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -736,22 +749,22 @@ conf_set_preferences_blacklist_inverted(gboolean value)
 }
 
 gboolean
-conf_get_preferences_blacklist(const gchar *value)
+conf_get_preferences_blacklist(gint64 value)
 {
-    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.blacklist, value));
+    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.blacklist, &value));
     return (conf.preferences_blacklist_inverted ? !found : found);
 }
 
 void
-conf_set_preferences_blacklist(const gchar *value)
+conf_set_preferences_blacklist(gint64 value)
 {
-    g_tree_insert(conf.blacklist, g_strdup(value), GINT_TO_POINTER(TRUE));
+    g_tree_insert(conf.blacklist, gint64dup(&value), GINT_TO_POINTER(TRUE));
 }
 
 void
-conf_del_preferences_blacklist(const gchar *value)
+conf_del_preferences_blacklist(gint64 value)
 {
-    g_tree_remove(conf.blacklist, value);
+    g_tree_remove(conf.blacklist, &value);
 }
 
 GtkListStore*
@@ -791,22 +804,22 @@ conf_set_preferences_highlightlist_inverted(gboolean value)
 }
 
 gboolean
-conf_get_preferences_highlightlist(const gchar *value)
+conf_get_preferences_highlightlist(gint64 value)
 {
-    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.highlightlist, value));
+    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.highlightlist, &value));
     return (conf.preferences_highlightlist_inverted ? !found : found);
 }
 
 void
-conf_set_preferences_highlightlist(const gchar *value)
+conf_set_preferences_highlightlist(gint64 value)
 {
-    g_tree_insert(conf.highlightlist, g_strdup(value), GINT_TO_POINTER(TRUE));
+    g_tree_insert(conf.highlightlist, gint64dup(&value), GINT_TO_POINTER(TRUE));
 }
 
 void
-conf_del_preferences_highlightlist(const gchar *value)
+conf_del_preferences_highlightlist(gint64 value)
 {
-    g_tree_remove(conf.highlightlist, value);
+    g_tree_remove(conf.highlightlist, &value);
 }
 
 GtkListStore*

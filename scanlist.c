@@ -71,7 +71,7 @@ scanlist_dialog(void)
         return;
     }
 
-    freqtree = g_tree_new((GCompareFunc)gintcmp);
+    freqtree = g_tree_new((GCompareFunc)gptrcmp);
 
     scanlist_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_modal(GTK_WINDOW(scanlist_window), FALSE);

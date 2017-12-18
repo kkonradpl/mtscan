@@ -16,7 +16,7 @@ typedef struct network_flags
 
 typedef struct network
 {
-    gchar *address;
+    gint64 address;
     gint frequency;
     gchar *channel;
     gchar *mode;

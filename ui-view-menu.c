@@ -9,7 +9,7 @@
 #include "conf.h"
 #include "misc.h"
 
-static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const gchar*, gint, gint, gint, gboolean);
+static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, gint64, gint, gint, gint, gboolean);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
@@ -42,7 +42,7 @@ ui_view_menu(GtkWidget      *treeview,
     GtkTreeIter iter;
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
     gint count;
-    gchar *address;
+    gint64 address;
     gint frequency;
     gdouble latitude, longitude;
     GtkWidget *menu;
@@ -67,11 +67,10 @@ ui_view_menu(GtkWidget      *treeview,
                                    conf_get_preferences_blacklist(address),
                                    conf_get_preferences_highlightlist(address),
                                    (!isnan(latitude) && !isnan(longitude)));
-        g_free(address);
     }
     else
     {
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, NULL, 0, -1, -1, FALSE);
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, -1, 0, -1, -1, FALSE);
     }
 
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
@@ -85,7 +84,7 @@ ui_view_menu(GtkWidget      *treeview,
 static GtkWidget*
 ui_view_menu_create(GtkTreeView *treeview,
                     gint         count,
-                    const gchar *address,
+                    gint64       address,
                     gint         frequency,
                     gint         blacklist,
                     gint         highlight,
@@ -105,8 +104,8 @@ ui_view_menu_create(GtkTreeView *treeview,
     gchar* string;
 
     /* Header */
-    string = (!address ? g_strdup_printf("%d networks", count) : NULL);
-    item_header = gtk_image_menu_item_new_with_label(string ? string : model_format_address(address));
+    string = (address < 0 ? g_strdup_printf("%d networks", count) : NULL);
+    item_header = gtk_image_menu_item_new_with_label(string ? string : model_format_address(address, TRUE));
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_header), gtk_image_new_from_stock(GTK_STOCK_NETWORK, GTK_ICON_SIZE_MENU));
     g_signal_connect(item_header, "activate", (GCallback)ui_view_menu_addr, treeview);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_header);
@@ -207,7 +206,7 @@ ui_view_menu_addr(GtkWidget *menuitem,
     GtkTreeIter iter;
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
     GtkClipboard *clipboard;
-    gchar *address;
+    gint64 address;
 
     if(!list)
         return;
@@ -216,9 +215,8 @@ ui_view_menu_addr(GtkWidget *menuitem,
     gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
 
     clipboard = gtk_widget_get_clipboard(GTK_WIDGET(treeview), GDK_SELECTION_CLIPBOARD);
-    gtk_clipboard_set_text(clipboard, model_format_address(address), -1);
+    gtk_clipboard_set_text(clipboard, model_format_address(address, TRUE), -1);
 
-    g_free(address);
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
 }
@@ -245,7 +243,7 @@ ui_view_menu_lock(GtkWidget *menuitem,
     if(!list)
         return;
 
-    tree = g_tree_new((GCompareFunc)gintcmp);
+    tree = g_tree_new((GCompareFunc)gptrcmp);
     for(i=list; i; i=i->next)
     {
         gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
@@ -296,24 +294,25 @@ ui_view_menu_oui(GtkWidget *menuitem,
     GtkTreeModel *model;
     GtkTreeIter iter;
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
-    gchar *address;
+    gint64 address;
+    const gchar* str;
 
     if(!list)
         return;
 
     gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
     gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
+    str = model_format_address(address, FALSE);
 
-    if(address && strlen(address) == 12)
+    if(str && strlen(str) == 12)
     {
         gchar *uri = g_strdup_printf("https://standards.ieee.org/cgi-bin/ouisearch?%c%c%c%c%c%c",
-                                     address[0], address[1],
-                                     address[2], address[3],
-                                     address[4], address[5]);
+                                     str[0], str[1],
+                                     str[2], str[3],
+                                     str[4], str[5]);
         ui_show_uri(uri);
         g_free(uri);
     }
-    g_free(address);
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
 }
@@ -419,7 +418,7 @@ ui_view_menu_list(GtkTreeView *treeview,
     GtkTreeIter iter;
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
     GList *i;
-    gchar *address;
+    gint64 address;
 
     if(!list)
         return;
@@ -437,7 +436,6 @@ ui_view_menu_list(GtkTreeView *treeview,
            conf_set_preferences_highlightlist(address);
         else if(mode == LIST_MODE_DEHIGHLIGHT)
             conf_del_preferences_highlightlist(address);
-        g_free(address);
     }
     else
     {
@@ -454,8 +452,6 @@ ui_view_menu_list(GtkTreeView *treeview,
                 conf_set_preferences_highlightlist(address);
             else if(mode == LIST_MODE_DEHIGHLIGHT)
                 conf_del_preferences_highlightlist(address);
-
-            g_free(address);
         }
     }
 

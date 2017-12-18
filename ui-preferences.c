@@ -62,6 +62,8 @@ enum
 
 
 static void ui_preferences_list_create(ui_preferences_list_t*, GtkWidget*, const gchar*, const gchar*, const gchar*);
+static void ui_preferences_list_format(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
+
 static gboolean ui_preferences_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean ui_preferences_key_list(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean ui_preferences_key_list_add(GtkWidget*, GdkEventKey*, gpointer);
@@ -193,6 +195,9 @@ ui_preferences_list_create(ui_preferences_list_t *l,
                            const gchar           *enable_title,
                            const gchar           *invert_title)
 {
+    GtkTreeViewColumn *column;
+    GtkCellRenderer *renderer;
+
     l->page = gtk_vbox_new(FALSE, 5);
     gtk_container_set_border_width(GTK_CONTAINER(l->page), 4);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), l->page, gtk_label_new(title));
@@ -208,9 +213,11 @@ ui_preferences_list_create(ui_preferences_list_t *l,
     gtk_box_pack_start(GTK_BOX(l->box), l->x_inverted, FALSE, FALSE, 0);
 
     l->view = gtk_tree_view_new();
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(l->view), -1,
-                                                "Address", gtk_cell_renderer_text_new(), "text", 0,
-                                                NULL);
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    column = gtk_tree_view_column_new_with_attributes("Address", renderer, NULL);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_preferences_list_format, NULL, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(l->view), column);
 
     l->scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(l->scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
@@ -233,6 +240,18 @@ ui_preferences_list_create(ui_preferences_list_t *l,
     l->b_clear = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
     g_signal_connect(l->b_clear, "clicked", G_CALLBACK(ui_preferences_list_clear), l->view);
     gtk_box_pack_start(GTK_BOX(l->box_buttons), l->b_clear, TRUE, TRUE, 0);
+}
+
+static void
+ui_preferences_list_format(GtkTreeViewColumn *col,
+                           GtkCellRenderer   *renderer,
+                           GtkTreeModel      *store,
+                           GtkTreeIter       *iter,
+                           gpointer           data)
+{
+    gint64 address;
+    gtk_tree_model_get(store, iter, 0, &address, -1);
+    g_object_set(renderer, "text", model_format_address(address, FALSE), NULL);
 }
 
 static gboolean
@@ -291,6 +310,7 @@ ui_preferences_list_add(GtkWidget *widget,
     GMatchInfo *matchInfo;
     GRegex *regex;
     gchar *match = NULL;
+    gint64 addr = -1;
 
     dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(toplevel),
                                                 GTK_DIALOG_MODAL,
@@ -337,22 +357,21 @@ ui_preferences_list_add(GtkWidget *widget,
             }
         }
 
-        if(!match)
+        if(!match ||
+           ((addr = str_addr_to_gint64(match, strlen(match))) < 0))
         {
             ui_dialog(GTK_WINDOW(toplevel),
                       GTK_MESSAGE_ERROR,
                       "New network entry",
                       "<big>Invalid address format:</big>\n%s", value);
         }
+        g_free(match);
     }
 
     gtk_widget_destroy(dialog);
 
-    if(match)
-    {
-        gtk_list_store_insert_with_values(GTK_LIST_STORE(gtk_tree_view_get_model(treeview)), NULL, -1, 0, match, -1);
-        g_free(match);
-    }
+    if(addr >= 0)
+        gtk_list_store_insert_with_values(GTK_LIST_STORE(gtk_tree_view_get_model(treeview)), NULL, -1, 0, addr, -1);
 }
 
 static void

@@ -10,6 +10,7 @@
 #include "ui-icons.h"
 #include "log.h"
 #include "signals.h"
+#include "misc.h"
 
 #define READ_BUFFER_LEN 100*1024
 
@@ -339,7 +340,7 @@ parse_key_start(gpointer ptr)
     ctx->level++;
     if(ctx->level == LEVEL_NETWORK+1 &&
        ctx->level_signals == TRUE &&
-       ctx->network.address)
+       ctx->network.address >= 0)
     {
         ctx->signal = signals_node_new0();
     }
@@ -384,8 +385,9 @@ parse_key(gpointer      ptr,
         network_init(&ctx->network);
         if(length == 12)
         {
-            ctx->network.address = g_strndup((gchar*)string, length);
-            ctx->network.signals = signals_new();
+            ctx->network.address = str_addr_to_gint64((gchar*)string, length);
+            if(ctx->network.address >= 0)
+                ctx->network.signals = signals_new();
         }
     }
 
@@ -413,7 +415,7 @@ parse_key_end(gpointer ptr)
     }
     else if(ctx->level == LEVEL_NETWORK)
     {
-        if(ctx->network.address)
+        if(ctx->network.address >= 0)
         {
             mtscan_model_add(ui.model, &ctx->network, ctx->merge);
             ctx->changed = TRUE;
@@ -531,6 +533,7 @@ log_save_foreach(GtkTreeModel *store,
     network_t net;
     signals_node_t *sample;
     const gchar *buffer;
+    const gchar *address;
 
     gtk_tree_model_get(GTK_TREE_MODEL(ui.model->store), iter,
                        COL_ADDRESS, &net.address,
@@ -555,7 +558,8 @@ log_save_foreach(GtkTreeModel *store,
                        COL_SIGNALS, &net.signals,
                        -1);
 
-    yajl_gen_string(ctx->gen, (guchar*)net.address, strlen(net.address));
+    address = model_format_address(net.address, FALSE);
+    yajl_gen_string(ctx->gen, (guchar*)address, strlen(address));
     yajl_gen_map_open(ctx->gen);
 
     buffer = model_format_frequency(net.frequency);
