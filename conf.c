@@ -4,6 +4,7 @@
 #include "ui-dialogs.h"
 #include "conf.h"
 #include "ui-view.h"
+#include "misc.h"
 
 #define CONF_DIR  "mtscan"
 #define CONF_FILE "mtscan.conf"
@@ -34,14 +35,17 @@
 #define CONF_DEFAULT_PATH_LOG_SAVE   ""
 #define CONF_DEFAULT_PATH_LOG_EXPORT ""
 
-#define CONF_DEFAULT_PREFERENCES_ICON_SIZE         18
-#define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN     1
-#define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN     FALSE
-#define CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN    FALSE
-#define CONF_DEFAULT_PREFERENCES_SIGNALS           TRUE
-#define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME      "localhost"
-#define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT      2947
-#define CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED FALSE
+#define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
+#define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
+#define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN          FALSE
+#define CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN         FALSE
+#define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
+#define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
+#define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
+#define CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED      FALSE
+#define CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED     FALSE
+#define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED  FALSE
+#define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED FALSE
 
 #define CONF_PROFILE_GROUP "profile_"
 
@@ -81,7 +85,11 @@ typedef struct conf
     gchar    *preferences_gps_hostname;
     gint      preferences_gps_tcp_port;
     gboolean  preferences_blacklist_enabled;
+    gboolean  preferences_blacklist_inverted;
     GTree    *blacklist;
+    gboolean  preferences_highlightlist_enabled;
+    gboolean  preferences_highlightlist_inverted;
+    GTree    *highlightlist;
 
 } conf_t;
 
@@ -98,8 +106,6 @@ static gboolean conf_save_strings_tree_foreach(gpointer, gpointer, gpointer);
 static void     conf_read_profiles(GKeyFile*, const gchar*);
 static void     conf_set_profiles(void);
 static gboolean conf_set_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
-static gboolean conf_get_preferences_blacklist_as_liststore_foreach(gpointer, gpointer, gpointer);
-static gboolean conf_set_preferences_blacklist_from_liststore_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 
 void
 conf_init(const gchar *custom_path)
@@ -128,6 +134,7 @@ conf_init(const gchar *custom_path)
                                        G_TYPE_BOOLEAN,   /* PROFILE_COL_REMOTE */
                                        G_TYPE_BOOLEAN);  /* PROFILE_COL_BACKGROUND */
     conf.blacklist = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL, g_free, NULL);
+    conf.highlightlist = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL, g_free, NULL);
     conf_read();
 }
 
@@ -170,7 +177,11 @@ conf_read(void)
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
     conf.preferences_blacklist_enabled = conf_read_boolean("preferences", "blacklist_enabled", CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED);
+    conf.preferences_blacklist_inverted = conf_read_boolean("preferences", "blacklist_inverted", CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED);
     conf_read_strings_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
+    conf.preferences_highlightlist_enabled = conf_read_boolean("preferences", "highlightlist_enabled", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED);
+    conf.preferences_highlightlist_inverted = conf_read_boolean("preferences", "highlightlist_inverted", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED);
+    conf_read_strings_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
 
     if(!file_exists)
         conf_save();
@@ -260,13 +271,18 @@ conf_save_strings_tree(GKeyFile    *keyfile,
                        const gchar *key,
                        GTree       *tree)
 {
-    gchar **values;
+    gchar **values = NULL;
+    gchar **ptr;
     gint length;
 
     length = g_tree_nnodes(tree);
-    values = g_new(gchar*, length);
+    if(length)
+    {
+        values = g_new(gchar*, length);
+        ptr = values;
+        g_tree_foreach(tree, conf_save_strings_tree_foreach, &ptr);
+    }
 
-    g_tree_foreach(tree, conf_save_strings_tree_foreach, values);
     g_key_file_set_string_list(keyfile, group_name, key, (const gchar**)values, (gsize)length);
     g_free(values);
 }
@@ -276,8 +292,9 @@ conf_save_strings_tree_foreach(gpointer key,
                                gpointer value,
                                gpointer data)
 {
-    gchar **v = (gchar**)data;
-    *(v++) = key;
+
+    gchar ***ptr = (gchar***)data;
+    *((*ptr)++) = (gchar*)key;
     return FALSE;
 }
 
@@ -377,7 +394,11 @@ conf_save(void)
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_enabled", conf.preferences_blacklist_enabled);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_inverted", conf.preferences_blacklist_inverted);
     conf_save_strings_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_enabled", conf.preferences_highlightlist_enabled);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_inverted", conf.preferences_highlightlist_inverted);
+    conf_save_strings_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -703,10 +724,22 @@ conf_set_preferences_blacklist_enabled(gboolean value)
 }
 
 gboolean
+conf_get_preferences_blacklist_inverted(void)
+{
+    return conf.preferences_blacklist_inverted;
+}
+
+void
+conf_set_preferences_blacklist_inverted(gboolean value)
+{
+    conf.preferences_blacklist_inverted = value;
+}
+
+gboolean
 conf_get_preferences_blacklist(const gchar *value)
 {
-    gpointer data = g_tree_lookup(conf.blacklist, value);
-    return GPOINTER_TO_INT(data);
+    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.blacklist, value));
+    return (conf.preferences_blacklist_inverted ? !found : found);
 }
 
 void
@@ -724,40 +757,66 @@ conf_del_preferences_blacklist(const gchar *value)
 GtkListStore*
 conf_get_preferences_blacklist_as_liststore(void)
 {
-    GtkListStore *model = gtk_list_store_new(1, G_TYPE_STRING);
-    g_tree_foreach(conf.blacklist, conf_get_preferences_blacklist_as_liststore_foreach, model);
-    return model;
-}
-
-static gboolean
-conf_get_preferences_blacklist_as_liststore_foreach(gpointer key,
-                                                    gpointer value,
-                                                    gpointer data)
-{
-    gchar *string = (gchar*)key;
-    GtkListStore *model = (GtkListStore*)data;
-    gtk_list_store_insert_with_values(model, NULL, -1, 0, string, -1);
-    return FALSE;
+    return create_liststore_from_tree(conf.blacklist);
 }
 
 void
 conf_set_preferences_blacklist_from_liststore(GtkListStore *model)
 {
-    g_tree_ref(conf.blacklist);
-    g_tree_destroy(conf.blacklist);
-    gtk_tree_model_foreach(GTK_TREE_MODEL(model), conf_set_preferences_blacklist_from_liststore_foreach, conf.blacklist);
+    fill_tree_from_liststore(conf.blacklist, model);
 }
 
-static gboolean
-conf_set_preferences_blacklist_from_liststore_foreach(GtkTreeModel *model,
-                                                      GtkTreePath  *path,
-                                                      GtkTreeIter  *iter,
-                                                      gpointer      data)
+gboolean
+conf_get_preferences_highlightlist_enabled(void)
 {
-    GTree *tree = (GTree*)data;
-    gchar *string;
+    return conf.preferences_highlightlist_enabled;
+}
 
-    gtk_tree_model_get(model, iter, 0, &string, -1);
-    g_tree_insert(tree, string, GINT_TO_POINTER(TRUE));
-    return FALSE;
+void
+conf_set_preferences_highlightlist_enabled(gboolean value)
+{
+    conf.preferences_highlightlist_enabled = value;
+}
+
+gboolean
+conf_get_preferences_highlightlist_inverted(void)
+{
+    return conf.preferences_highlightlist_inverted;
+}
+
+void
+conf_set_preferences_highlightlist_inverted(gboolean value)
+{
+    conf.preferences_highlightlist_inverted = value;
+}
+
+gboolean
+conf_get_preferences_highlightlist(const gchar *value)
+{
+    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.highlightlist, value));
+    return (conf.preferences_highlightlist_inverted ? !found : found);
+}
+
+void
+conf_set_preferences_highlightlist(const gchar *value)
+{
+    g_tree_insert(conf.highlightlist, g_strdup(value), GINT_TO_POINTER(TRUE));
+}
+
+void
+conf_del_preferences_highlightlist(const gchar *value)
+{
+    g_tree_remove(conf.highlightlist, value);
+}
+
+GtkListStore*
+conf_get_preferences_highlightlist_as_liststore(void)
+{
+    return create_liststore_from_tree(conf.highlightlist);
+}
+
+void
+conf_set_preferences_highlightlist_from_liststore(GtkListStore *model)
+{
+    fill_tree_from_liststore(conf.highlightlist, model);
 }

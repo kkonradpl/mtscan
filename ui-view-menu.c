@@ -9,7 +9,7 @@
 #include "conf.h"
 #include "misc.h"
 
-static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const gchar*, gint, gboolean, gboolean);
+static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const gchar*, gint, gint, gint, gboolean);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
@@ -17,8 +17,20 @@ static void ui_view_menu_oui(GtkWidget*, gpointer);
 static void ui_view_menu_map(GtkWidget*, gpointer);
 static void ui_view_menu_scanlist(GtkWidget*, gpointer);
 static void ui_view_menu_blacklist(GtkWidget*, gpointer);
+static void ui_view_menu_unblacklist(GtkWidget*, gpointer);
+static void ui_view_menu_highlight(GtkWidget*, gpointer);
+static void ui_view_menu_dehighlight(GtkWidget*, gpointer);
+static void ui_view_menu_list(GtkTreeView*, gint);
 static void ui_view_menu_save_as(GtkWidget*, gpointer);
 static void ui_view_menu_remove(GtkWidget*, gpointer);
+
+enum
+{
+    LIST_MODE_BLACKLIST,
+    LIST_MODE_UNBLACKLIST,
+    LIST_MODE_HIGHLIGHT,
+    LIST_MODE_DEHIGHLIGHT
+};
 
 void
 ui_view_menu(GtkWidget      *treeview,
@@ -53,12 +65,13 @@ ui_view_menu(GtkWidget      *treeview,
                                    address,
                                    frequency,
                                    conf_get_preferences_blacklist(address),
+                                   conf_get_preferences_highlightlist(address),
                                    (!isnan(latitude) && !isnan(longitude)));
         g_free(address);
     }
     else
     {
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, NULL, 0, FALSE, FALSE);
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, NULL, 0, -1, -1, FALSE);
     }
 
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
@@ -74,7 +87,8 @@ ui_view_menu_create(GtkTreeView *treeview,
                     gint         count,
                     const gchar *address,
                     gint         frequency,
-                    gboolean     blacklist,
+                    gint         blacklist,
+                    gint         highlight,
                     gboolean     position)
 {
     GtkWidget *menu = gtk_menu_new();
@@ -84,7 +98,8 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_show_on_map;
     GtkWidget *item_lock_to_freq;
     GtkWidget *item_scanlist;
-    GtkWidget *item_blacklist;
+    GtkWidget *item_blacklist, *item_unblacklist;
+    GtkWidget *item_highlight, *item_dehighlight;
     GtkWidget *item_save_as;
     GtkWidget *item_remove;
     gchar* string;
@@ -135,10 +150,36 @@ ui_view_menu_create(GtkTreeView *treeview,
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_scanlist);
 
     /* Add or remove from blacklist */
-    item_blacklist = gtk_image_menu_item_new_with_label(blacklist ? "Remove from blacklist" : "Add to blacklist");
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_blacklist), gtk_image_new_from_stock((blacklist ? GTK_STOCK_UNDELETE : GTK_STOCK_STOP), GTK_ICON_SIZE_MENU));
-    g_signal_connect(item_blacklist, "activate", (GCallback)ui_view_menu_blacklist, treeview);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_blacklist);
+    if(blacklist == -1 || blacklist == 0)
+    {
+        item_blacklist = gtk_image_menu_item_new_with_label("Blacklist");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_blacklist), gtk_image_new_from_stock(GTK_STOCK_DELETE, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_blacklist, "activate", (GCallback)ui_view_menu_blacklist, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_blacklist);
+    }
+    if(blacklist == -1 || blacklist == 1)
+    {
+        item_unblacklist = gtk_image_menu_item_new_with_label("Unblacklist");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_unblacklist), gtk_image_new_from_stock(GTK_STOCK_UNDELETE, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_unblacklist, "activate", (GCallback)ui_view_menu_unblacklist, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_unblacklist);
+    }
+
+    /* Add or remove from highlight list */
+    if(highlight == -1 || highlight == 0)
+    {
+        item_highlight = gtk_image_menu_item_new_with_label("Highlight");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_highlight), gtk_image_new_from_stock(GTK_STOCK_YES, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_highlight, "activate", (GCallback)ui_view_menu_highlight, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_highlight);
+    }
+    if(highlight == -1 || highlight == 1)
+    {
+        item_dehighlight = gtk_image_menu_item_new_with_label("Dehighlight");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_dehighlight), gtk_image_new_from_stock(GTK_STOCK_NO, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_dehighlight, "activate", (GCallback)ui_view_menu_dehighlight, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_dehighlight);
+    }
 
     /* Save selected networks as */
     item_save_as = gtk_image_menu_item_new_with_label("Save as...");
@@ -342,6 +383,37 @@ ui_view_menu_blacklist(GtkWidget *menuitem,
                        gpointer   user_data)
 {
     GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, LIST_MODE_BLACKLIST);
+}
+
+static void
+ui_view_menu_unblacklist(GtkWidget *menuitem,
+                         gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, LIST_MODE_UNBLACKLIST);
+}
+
+static void
+ui_view_menu_highlight(GtkWidget *menuitem,
+                       gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, LIST_MODE_HIGHLIGHT);
+}
+
+static void
+ui_view_menu_dehighlight(GtkWidget *menuitem,
+                         gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, LIST_MODE_DEHIGHLIGHT);
+}
+
+static void
+ui_view_menu_list(GtkTreeView *treeview,
+                  gint         mode)
+{
     GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
     GtkTreeModel *model;
     GtkTreeIter iter;
@@ -357,10 +429,15 @@ ui_view_menu_blacklist(GtkWidget *menuitem,
         gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
         gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
 
-        if(!conf_get_preferences_blacklist(address))
+        if(mode == LIST_MODE_BLACKLIST)
             conf_set_preferences_blacklist(address);
-        else
+        else if(mode == LIST_MODE_UNBLACKLIST)
             conf_del_preferences_blacklist(address);
+        else if(mode == LIST_MODE_HIGHLIGHT)
+           conf_set_preferences_highlightlist(address);
+        else if(mode == LIST_MODE_DEHIGHLIGHT)
+            conf_del_preferences_highlightlist(address);
+        g_free(address);
     }
     else
     {
@@ -368,8 +445,17 @@ ui_view_menu_blacklist(GtkWidget *menuitem,
         {
             gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
             gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
-            if (address)
+
+            if(mode == LIST_MODE_BLACKLIST)
                 conf_set_preferences_blacklist(address);
+            else if(mode == LIST_MODE_UNBLACKLIST)
+                conf_del_preferences_blacklist(address);
+            else if(mode == LIST_MODE_HIGHLIGHT)
+                conf_set_preferences_highlightlist(address);
+            else if(mode == LIST_MODE_DEHIGHLIGHT)
+                conf_del_preferences_highlightlist(address);
+
+            g_free(address);
         }
     }
 

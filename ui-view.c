@@ -35,6 +35,7 @@ ui_view_new(mtscan_model_t *model,
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model->store));
     gtk_tree_selection_set_mode(gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview)), GTK_SELECTION_MULTIPLE);
     g_object_set_data(G_OBJECT(treeview), "mtscan-model", model);
+    g_object_set_data(G_OBJECT(treeview), "mtscan-sort", GINT_TO_POINTER(-1));
 
     /* Activity column */
     renderer = gtk_cell_renderer_pixbuf_new();
@@ -424,29 +425,37 @@ ui_view_format_background(GtkTreeViewColumn *col,
                           GtkTreeIter       *iter,
                           gpointer           data)
 {
-    static const GdkColor c_new            = { 0, 0x9700, 0xfa00, 0x9700 };
-    static const GdkColor c_new_dark       = { 0, 0x2a00, 0x4500, 0x2a00 };
-    static const GdkColor c_sort           = { 0, 0xf300, 0xf300, 0xf300 };
-    static const GdkColor c_sort_dark      = { 0, 0x3000, 0x3000, 0x3000 };
-    gint col_id = GPOINTER_TO_INT(data);
-    gint sorted_column;
-    GtkSortType sort_type;
+    static const GdkColor c_sort[2]      = {{ 0, 0xf300, 0xf300, 0xf300 }, { 0, 0x3000, 0x3000, 0x3000 }};
+    static const GdkColor c_new[4]       = {{ 0, 0x9700, 0xfa00, 0x9700 }, { 0, 0x2200, 0x4d00, 0x2200 },
+                                            { 0, 0x8800, 0xeb00, 0x8800 }, { 0, 0x3100, 0x5e00, 0x3100 }};
+    static const GdkColor c_highlight[4] = {{ 0, 0xff00, 0xff00, 0xd400 }, { 0, 0x3300, 0x3300, 0x1900 },
+                                            { 0, 0xf000, 0xf000, 0xc500 }, { 0, 0x4700, 0x4700, 0x2b00 }};
+    gint col_id, col_sorted, id;
+    const GdkColor *ptr = NULL;
     gint state;
-    const GdkColor *color = NULL;
+    gchar *address;
 
-    gtk_tree_model_get(store, iter, COL_STATE, &state, -1);
+    col_id = GPOINTER_TO_INT(data);
+    col_sorted = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(gtk_tree_view_column_get_tree_view(col)), "mtscan-sort"));
+    id = conf_get_interface_dark_mode();
+    gtk_tree_model_get(store, iter, COL_ADDRESS, &address, COL_STATE, &state, -1);
 
     if(state == MODEL_STATE_NEW)
     {
-        color = conf_get_interface_dark_mode() ? &c_new_dark : &c_new;
+        ptr = (col_id == col_sorted ? &c_new[id+2] : &c_new[id]);
     }
-    else if(gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(store), &sorted_column, &sort_type))
+    else if(conf_get_preferences_highlightlist_enabled() &&
+            conf_get_preferences_highlightlist(address))
     {
-        if(sorted_column == col_id)
-            color = conf_get_interface_dark_mode() ? &c_sort_dark : &c_sort;
+        ptr = (col_id == col_sorted ? &c_highlight[id+2] : &c_highlight[id]);
+    }
+    else if(col_id == col_sorted)
+    {
+        ptr = &c_sort[id];
     }
 
-    g_object_set(renderer, "cell-background-gdk", color, NULL);
+    g_object_set(renderer, "cell-background-gdk", ptr, NULL);
+    g_free(address);
 }
 
 static void
@@ -583,7 +592,8 @@ static void
 ui_view_column_clicked(GtkTreeViewColumn *column,
                        gpointer           data)
 {
-    GtkTreeModel *store = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_tree_view_column_get_tree_view(column)));
+    GtkTreeView *treeview = GTK_TREE_VIEW(gtk_tree_view_column_get_tree_view(column));
+    GtkTreeModel *store = gtk_tree_view_get_model(treeview);
     gint to_sort = GPOINTER_TO_INT(data);
     gint current_sort;
     GtkSortType order;
@@ -624,6 +634,7 @@ ui_view_column_clicked(GtkTreeViewColumn *column,
             order = GTK_SORT_ASCENDING;
     }
 
+    g_object_set_data(G_OBJECT(treeview), "mtscan-sort", GINT_TO_POINTER(to_sort));
     gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store), to_sort, order);
 }
 
