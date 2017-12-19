@@ -3,7 +3,7 @@
 #include <gtk/gtk.h>
 #include "network.h"
 
-#define MODEL_NO_SIGNAL G_MININT
+#define MODEL_NO_SIGNAL G_MININT8
 
 #define MODEL_DEFAULT_ACTIVE_TIMEOUT 2
 #define MODEL_DEFAULT_NEW_TIMEOUT    2

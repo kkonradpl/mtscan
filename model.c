@@ -30,16 +30,16 @@ mtscan_model_new(void)
 {
     mtscan_model_t *model = g_malloc(sizeof(mtscan_model_t));
     model->store = gtk_list_store_new(COL_COUNT,
-                                      G_TYPE_INT,      /* COL_STATE     */
+                                      G_TYPE_UCHAR,    /* COL_STATE     */
                                       G_TYPE_INT64,    /* COL_ADDRESS   */
                                       G_TYPE_INT,      /* COL_FREQUENCY */
                                       G_TYPE_STRING,   /* COL_CHANNEL   */
                                       G_TYPE_STRING,   /* COL_MODE      */
                                       G_TYPE_STRING,   /* COL_SSID      */
                                       G_TYPE_STRING,   /* COL_RADIONAME */
-                                      G_TYPE_INT,      /* COL_MAXRSSI   */
-                                      G_TYPE_INT,      /* COL_RSSI      */
-                                      G_TYPE_INT,      /* COL_NOISE     */
+                                      G_TYPE_CHAR,     /* COL_MAXRSSI   */
+                                      G_TYPE_CHAR,     /* COL_RSSI      */
+                                      G_TYPE_CHAR,     /* COL_NOISE     */
                                       G_TYPE_BOOLEAN,  /* COL_PRIVACY   */
                                       G_TYPE_BOOLEAN,  /* COL_ROUTEROS  */
                                       G_TYPE_BOOLEAN,  /* COL_NSTREME   */
@@ -106,8 +106,8 @@ model_sort_rssi(GtkTreeModel *model,
                 GtkTreeIter  *b,
                 gpointer      data)
 {
-    gint state, state2;
-    gint rssi, rssi2;
+    guint8 state, state2;
+    gint8 rssi, rssi2;
     gint64 lastseen, lastseen2;
 
     gtk_tree_model_get(model, a,
@@ -304,8 +304,8 @@ model_clear_active_foreach(gpointer key,
     GtkTreeIter *iter = (GtkTreeIter*)value;
     gint64 firstseen, lastseen;
     gboolean privacy;
-    gint rssi;
-    gint state;
+    gint8 rssi;
+    guint8 state;
 
     gtk_tree_model_get(store, iter,
                        COL_STATE, &state,
@@ -428,8 +428,8 @@ model_update_network(mtscan_model_t *model,
     gint64 *address;
     gchar *current_ssid;
     gchar *current_radioname;
-    gint current_maxrssi;
-    gint current_state;
+    gint8 current_maxrssi;
+    guint8 current_state;
     gboolean new_network_found;
 
     if(g_hash_table_lookup_extended(model->map, &net->address, (gpointer*)&address, (gpointer*)&iter_ptr))
@@ -589,7 +589,7 @@ mtscan_model_add(mtscan_model_t *model,
 {
     GtkTreeIter *iter_merge;
     GtkTreeIter iter;
-    gint current_maxrssi;
+    gint8 current_maxrssi;
     gint64 current_firstseen;
     gint64 current_lastseen;
     signals_t *current_signals;

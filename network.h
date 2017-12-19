@@ -22,8 +22,8 @@ typedef struct network
     gchar *mode;
     gchar *ssid;
     gchar *radioname;
-    gint rssi;
-    gint noise;
+    gint8 rssi;
+    gint8 noise;
     network_flags_t flags;
     gchar *routeros_ver;
     gint64 firstseen;

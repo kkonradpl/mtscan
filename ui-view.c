@@ -437,7 +437,7 @@ ui_view_format_background(GtkTreeViewColumn *col,
                                             { 0, 0xf000, 0xf000, 0xc500 }, { 0, 0x4700, 0x4700, 0x2b00 }};
     gint col_id, col_sorted, id;
     const GdkColor *ptr = NULL;
-    gint state;
+    guint8 state;
     gint64 address;
 
     col_id = GPOINTER_TO_INT(data);
@@ -469,8 +469,8 @@ ui_view_format_icon(GtkTreeViewColumn *col,
                     GtkTreeIter       *iter,
                     gpointer           data)
 {
-    gint state;
-    gint rssi;
+    guint8 state;
+    gint8 rssi;
     gboolean privacy;
 
     gtk_tree_model_get(store, iter,
@@ -536,8 +536,8 @@ ui_view_format_level(GtkTreeViewColumn *col,
                      gpointer           data)
 {
     gint col_id = GPOINTER_TO_INT(data);
-    gint state;
-    gint value;
+    guint8 state;
+    gint8 value;
     gchar text[10];
 
     gtk_tree_model_get(store, iter,
