@@ -427,6 +427,7 @@ model_update_network(mtscan_model_t *model,
     GtkTreeIter iter;
     gint64 *address;
     gchar *current_ssid;
+    gchar *current_radioname;
     gint current_maxrssi;
     gint current_state;
     gboolean new_network_found;
@@ -437,6 +438,7 @@ model_update_network(mtscan_model_t *model,
         gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter_ptr,
                            COL_STATE, &current_state,
                            COL_SSID, &current_ssid,
+                           COL_RADIONAME, &current_radioname,
                            COL_MAXRSSI, &current_maxrssi,
                            COL_SIGNALS, &net->signals,
                            -1);
@@ -446,8 +448,8 @@ model_update_network(mtscan_model_t *model,
             current_state = MODEL_STATE_ACTIVE;
 
         /* Preserve hidden SSIDs */
-        if(current_ssid && current_ssid[0] &&
-           net->ssid && !net->ssid[0])
+        if((net->ssid && !net->ssid[0]) ||
+           !net->ssid)
         {
             g_free(net->ssid);
             net->ssid = current_ssid;
@@ -455,6 +457,18 @@ model_update_network(mtscan_model_t *model,
         else
         {
             g_free(current_ssid);
+        }
+
+        /* ... and Radio Names */
+        if((net->radioname && !net->radioname[0]) ||
+           !net->radioname)
+        {
+            g_free(net->radioname);
+            net->radioname = current_radioname;
+        }
+        else
+        {
+            g_free(current_radioname);
         }
 
 #if MIKROTIK_LOW_SIGNAL_BUGFIX
