@@ -20,6 +20,7 @@
 #define CONF_DEFAULT_INTERFACE_SOUND         FALSE
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
 #define CONF_DEFAULT_INTERFACE_GPS           FALSE
+#define CONF_DEFAULT_INTERFACE_ROTATOR       FALSE
 
 #define CONF_DEFAULT_PROFILE_NAME           "unnamed"
 #define CONF_DEFAULT_PROFILE_HOST           ""
@@ -43,6 +44,13 @@
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_HOSTNAME       "localhost"
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_TCP_PORT       7399
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_PASSWORD       ""
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_MIN_SPEED      25
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_DEF_SPEED      100
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_LATITUDE       NAN
+#define CONF_DEFAULT_PREFERENCES_ROTATOR_LONGITUDE      NAN
 #define CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED      FALSE
 #define CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED     FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED  FALSE
@@ -68,6 +76,7 @@ typedef struct conf
     gboolean interface_dark_mode;
     gboolean interface_gps;
     gint     interface_last_profile;
+    gboolean interface_rotator;
 
     /* [profile] */
     conf_profile_t *profile_default;
@@ -81,21 +90,30 @@ typedef struct conf
     gchar *path_log_export;
 
     /* [preferences] */
-    gint     preferences_icon_size;
-    gint     preferences_search_column;
-    gboolean preferences_latlon_column;
-    gboolean preferences_azimuth_column;
-    gboolean preferences_signals;
+    gint      preferences_icon_size;
+    gint      preferences_search_column;
+    gboolean  preferences_latlon_column;
+    gboolean  preferences_azimuth_column;
+    gboolean  preferences_signals;
 
     gchar    *preferences_gps_hostname;
     gint      preferences_gps_tcp_port;
+
+    gchar    *preferences_rotator_hostname;
+    gint      preferences_rotator_tcp_port;
+    gchar    *preferences_rotator_password;
+    gint      preferences_rotator_min_speed;
+    gint      preferences_rotator_def_speed;
+    gdouble   preferences_rotator_latitude;
+    gdouble   preferences_rotator_longitude;
+
     gboolean  preferences_blacklist_enabled;
     gboolean  preferences_blacklist_inverted;
     GTree    *blacklist;
+
     gboolean  preferences_highlightlist_enabled;
     gboolean  preferences_highlightlist_inverted;
     GTree    *highlightlist;
-
 } conf_t;
 
 static conf_t conf;
@@ -103,6 +121,7 @@ static conf_t conf;
 static void            conf_read(void);
 static gboolean        conf_read_boolean(const gchar*, const gchar*, gboolean);
 static gint            conf_read_integer(const gchar*, const gchar*, gint);
+static gdouble         conf_read_double(const gchar*, const gchar*, gdouble);
 static gchar*          conf_read_string(const gchar*, const gchar*, const gchar*);
 static void            conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
 static GtkListStore*   conf_read_profiles(void);
@@ -160,6 +179,7 @@ conf_read(void)
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
+    conf.interface_rotator = conf_read_boolean("interface", "rotator", CONF_DEFAULT_INTERFACE_ROTATOR);
 
     conf.profile_default = conf_read_profile(CONF_PROFILE_GROUP_DEFAULT);
     conf.profiles = conf_read_profiles();
@@ -173,11 +193,22 @@ conf_read(void)
     conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
     conf.preferences_azimuth_column = conf_read_boolean("preferences", "azimuth_column", CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
+
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
+
+    conf.preferences_rotator_hostname = conf_read_string("preferences", "rotator_hostname", CONF_DEFAULT_PREFERENCES_ROTATOR_HOSTNAME);
+    conf.preferences_rotator_tcp_port = conf_read_integer("preferences", "rotator_tcp_port", CONF_DEFAULT_PREFERENCES_ROTATOR_TCP_PORT);
+    conf.preferences_rotator_password = conf_read_string("preferences", "rotator_password", CONF_DEFAULT_PREFERENCES_ROTATOR_PASSWORD);
+    conf.preferences_rotator_min_speed = conf_read_integer("preferences", "rotator_min_speed", CONF_DEFAULT_PREFERENCES_ROTATOR_MIN_SPEED);
+    conf.preferences_rotator_def_speed = conf_read_integer("preferences", "rotator_def_speed", CONF_DEFAULT_PREFERENCES_ROTATOR_DEF_SPEED);
+    conf.preferences_rotator_latitude = conf_read_double("preferences", "rotator_latitude", CONF_DEFAULT_PREFERENCES_ROTATOR_LATITUDE);
+    conf.preferences_rotator_longitude = conf_read_double("preferences", "rotator_longitude", CONF_DEFAULT_PREFERENCES_ROTATOR_LONGITUDE);
+
     conf.preferences_blacklist_enabled = conf_read_boolean("preferences", "blacklist_enabled", CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED);
     conf.preferences_blacklist_inverted = conf_read_boolean("preferences", "blacklist_inverted", CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED);
     conf_read_gint64_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
+
     conf.preferences_highlightlist_enabled = conf_read_boolean("preferences", "highlightlist_enabled", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED);
     conf.preferences_highlightlist_inverted = conf_read_boolean("preferences", "highlightlist_inverted", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED);
     conf_read_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
@@ -212,6 +243,23 @@ conf_read_integer(const gchar *group_name,
     GError *err = NULL;
 
     value = g_key_file_get_integer(conf.keyfile, group_name, key, &err);
+    if(err)
+    {
+        value = default_value;
+        g_error_free(err);
+    }
+    return value;
+}
+
+static gdouble
+conf_read_double(const gchar *group_name,
+                 const gchar *key,
+                 gdouble      default_value)
+{
+    gdouble value;
+    GError *err = NULL;
+
+    value = g_key_file_get_double(conf.keyfile, group_name, key, &err);
     if(err)
     {
         value = default_value;
@@ -320,6 +368,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "interface", "sound", conf.interface_sound);
     g_key_file_set_boolean(conf.keyfile, "interface", "dark_mode", conf.interface_dark_mode);
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
+    g_key_file_set_boolean(conf.keyfile, "interface", "rotator", conf.interface_rotator);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
     conf_save_profile(conf.keyfile, CONF_PROFILE_GROUP_DEFAULT, conf.profile_default);
@@ -334,11 +383,22 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "azimuth_column", conf.preferences_azimuth_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
+
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
+
+    g_key_file_set_string(conf.keyfile, "preferences", "rotator_hostname", conf.preferences_rotator_hostname);
+    g_key_file_set_integer(conf.keyfile, "preferences", "rotator_tcp_port", conf.preferences_rotator_tcp_port);
+    g_key_file_set_string(conf.keyfile, "preferences", "rotator_password", conf.preferences_rotator_password);
+    g_key_file_set_double(conf.keyfile, "preferences", "rotator_latitude", conf.preferences_rotator_latitude);
+    g_key_file_set_integer(conf.keyfile, "preferences", "rotator_min_speed", conf.preferences_rotator_min_speed);
+    g_key_file_set_integer(conf.keyfile, "preferences", "rotator_def_speed", conf.preferences_rotator_def_speed);
+    g_key_file_set_double(conf.keyfile, "preferences", "rotator_longitude", conf.preferences_rotator_longitude);
+
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_enabled", conf.preferences_blacklist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_inverted", conf.preferences_blacklist_inverted);
     conf_save_gint64_tree(conf.keyfile, "preferences", "blacklist", conf.blacklist);
+
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_enabled", conf.preferences_highlightlist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_inverted", conf.preferences_highlightlist_inverted);
     conf_save_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
@@ -557,6 +617,18 @@ conf_set_interface_gps(gboolean gps)
     conf.interface_gps = gps;
 }
 
+gboolean
+conf_get_interface_rotator(void)
+{
+    return conf.interface_rotator;
+}
+
+void
+conf_set_interface_rotator(gboolean rotator)
+{
+    conf.interface_rotator = rotator;
+}
+
 gint
 conf_get_interface_last_profile(void)
 {
@@ -718,6 +790,90 @@ void
 conf_set_preferences_gps_tcp_port(gint value)
 {
     conf.preferences_gps_tcp_port = value;
+}
+
+const gchar*
+conf_get_preferences_rotator_hostname(void)
+{
+    return conf.preferences_rotator_hostname;
+}
+
+void
+conf_set_preferences_rotator_hostname(const gchar *value)
+{
+    conf_change_string(&conf.preferences_rotator_hostname, value);
+}
+
+gint
+conf_get_preferences_rotator_tcp_port(void)
+{
+    return conf.preferences_rotator_tcp_port;
+}
+
+void
+conf_set_preferences_rotator_tcp_port(gint value)
+{
+    conf.preferences_rotator_tcp_port = value;
+}
+
+const gchar*
+conf_get_preferences_rotator_password(void)
+{
+    return conf.preferences_rotator_password;
+}
+
+void
+conf_set_preferences_rotator_password(const gchar *value)
+{
+    conf_change_string(&conf.preferences_rotator_password, value);
+}
+
+gint
+conf_get_preferences_rotator_min_speed(void)
+{
+    return conf.preferences_rotator_min_speed;
+}
+
+void
+conf_set_preferences_rotator_min_speed(gint value)
+{
+    conf.preferences_rotator_min_speed = value;
+}
+
+gint
+conf_get_preferences_rotator_def_speed(void)
+{
+    return conf.preferences_rotator_def_speed;
+}
+
+void
+conf_set_preferences_rotator_def_speed(gint value)
+{
+    conf.preferences_rotator_def_speed = value;
+}
+
+gdouble
+conf_get_preferences_rotator_latitude(void)
+{
+    return conf.preferences_rotator_latitude;
+}
+
+void
+conf_set_preferences_rotator_latitude(gdouble value)
+{
+    conf.preferences_rotator_latitude = value;
+}
+
+gdouble
+conf_get_preferences_rotator_longitude(void)
+{
+    return conf.preferences_rotator_longitude;
+}
+
+void
+conf_set_preferences_rotator_longitude(gdouble value)
+{
+    conf.preferences_rotator_longitude = value;
 }
 
 gboolean

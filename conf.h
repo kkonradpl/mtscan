@@ -29,6 +29,9 @@ void conf_set_interface_dark_mode(gboolean);
 gboolean conf_get_interface_gps(void);
 void conf_set_interface_gps(gboolean);
 
+gboolean conf_get_interface_rotator(void);
+void conf_set_interface_rotator(gboolean);
+
 gint conf_get_interface_last_profile(void);
 void conf_set_interface_last_profile(gint);
 
@@ -71,6 +74,27 @@ void conf_set_preferences_gps_hostname(const gchar*);
 
 gint conf_get_preferences_gps_tcp_port(void);
 void conf_set_preferences_gps_tcp_port(gint);
+
+const gchar* conf_get_preferences_rotator_hostname(void);
+void conf_set_preferences_rotator_hostname(const gchar*);
+
+gint conf_get_preferences_rotator_tcp_port(void);
+void conf_set_preferences_rotator_tcp_port(gint);
+
+const gchar* conf_get_preferences_rotator_password(void);
+void conf_set_preferences_rotator_password(const gchar*);
+
+gint conf_get_preferences_rotator_min_speed(void);
+void conf_set_preferences_rotator_min_speed(gint);
+
+gint conf_get_preferences_rotator_def_speed(void);
+void conf_set_preferences_rotator_def_speed(gint);
+
+gdouble conf_get_preferences_rotator_latitude(void);
+void conf_set_preferences_rotator_latitude(gdouble);
+
+gdouble conf_get_preferences_rotator_longitude(void);
+void conf_set_preferences_rotator_longitude(gdouble);
 
 gboolean conf_get_preferences_blacklist_enabled(void);
 void conf_set_preferences_blacklist_enabled(gboolean);
