@@ -26,6 +26,8 @@ add_definitions(${ZLIB_CFLAGS_OTHER})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
 
 set(SOURCE_FILES
+        conf-profile.c
+        conf-profile.h
         conf.c
         conf.h
         conn.c

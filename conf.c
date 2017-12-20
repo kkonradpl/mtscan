@@ -5,6 +5,7 @@
 #include "conf.h"
 #include "ui-view.h"
 #include "misc.h"
+#include "conf-profile.h"
 
 #define CONF_DIR  "mtscan"
 #define CONF_FILE "mtscan.conf"
@@ -47,7 +48,8 @@
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED  FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED FALSE
 
-#define CONF_PROFILE_GROUP "profile_"
+#define CONF_PROFILE_GROUP_PREFIX  "profile_"
+#define CONF_PROFILE_GROUP_DEFAULT "profile"
 
 typedef struct conf
 {
@@ -66,6 +68,9 @@ typedef struct conf
     gboolean interface_dark_mode;
     gboolean interface_gps;
     gint     interface_last_profile;
+
+    /* [profile] */
+    conf_profile_t *profile_default;
 
     /* [profile_x] */
     GtkListStore *profiles;
@@ -95,17 +100,21 @@ typedef struct conf
 
 static conf_t conf;
 
-static void     conf_read(void);
-static gboolean conf_read_boolean(const gchar*, const gchar*, gboolean);
-static gint     conf_read_integer(const gchar*, const gchar*, gint);
-static gchar*   conf_read_string(const gchar*, const gchar*, const gchar*);
-static void     conf_change_string(gchar**, const gchar*);
-static void     conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
-static void     conf_save_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
-static gboolean conf_save_gint64_tree_foreach(gpointer, gpointer, gpointer);
-static void     conf_read_profiles(GKeyFile*, const gchar*);
-static void     conf_set_profiles(void);
-static gboolean conf_set_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static void            conf_read(void);
+static gboolean        conf_read_boolean(const gchar*, const gchar*, gboolean);
+static gint            conf_read_integer(const gchar*, const gchar*, gint);
+static gchar*          conf_read_string(const gchar*, const gchar*, const gchar*);
+static void            conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static GtkListStore*   conf_read_profiles(void);
+static conf_profile_t* conf_read_profile(const gchar*);
+
+static void            conf_save_profiles(GtkListStore*);
+static gboolean        conf_save_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static void            conf_save_profile(GKeyFile*, const gchar*, conf_profile_t*);
+static void            conf_save_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static gboolean        conf_save_gint64_tree_foreach(gpointer, gpointer, gpointer);
+
+static void            conf_change_string(gchar**, const gchar*);
 
 void
 conf_init(const gchar *custom_path)
@@ -122,17 +131,6 @@ conf_init(const gchar *custom_path)
     }
 
     conf.keyfile = g_key_file_new();
-    conf.profiles = gtk_list_store_new(PROFILE_COLS,
-                                       G_TYPE_STRING,    /* PROFILE_COL_NAME */
-                                       G_TYPE_STRING,    /* PROFILE_COL_HOST */
-                                       G_TYPE_INT,       /* PROFILE_COL_PORT */
-                                       G_TYPE_STRING,    /* PROFILE_COL_LOGIN */
-                                       G_TYPE_STRING,    /* PROFILE_COL_PASSWORD */
-                                       G_TYPE_STRING,    /* PROFILE_COL_INTERFACE */
-                                       G_TYPE_INT,       /* PROFILE_COL_DURATION_TIME */
-                                       G_TYPE_BOOLEAN,   /* PROFILE_COL_DURATION */
-                                       G_TYPE_BOOLEAN,   /* PROFILE_COL_REMOTE */
-                                       G_TYPE_BOOLEAN);  /* PROFILE_COL_BACKGROUND */
     conf.blacklist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf.highlightlist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf_read();
@@ -161,9 +159,10 @@ conf_read(void)
     conf.interface_sound = conf_read_boolean("interface", "sound", CONF_DEFAULT_INTERFACE_SOUND);
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
-
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
-    conf_read_profiles(conf.keyfile, CONF_PROFILE_GROUP);
+
+    conf.profile_default = conf_read_profile(CONF_PROFILE_GROUP_DEFAULT);
+    conf.profiles = conf_read_profiles();
 
     conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
     conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
@@ -238,12 +237,46 @@ conf_read_string(const gchar *group_name,
     return value;
 }
 
-static void
-conf_change_string(gchar      **ptr,
-                   const gchar *value)
+
+static GtkListStore*
+conf_read_profiles(void)
 {
-    g_free(*ptr);
-    *ptr = g_strdup(value);
+    gchar **groups = g_key_file_get_groups(conf.keyfile, NULL);
+    gchar **group;
+    GtkListStore *model;
+    conf_profile_t *p;
+
+    model = conf_profile_list_new();
+    for(group=groups; *group; ++group)
+    {
+        if(!strncmp(*group, CONF_PROFILE_GROUP_PREFIX, strlen(CONF_PROFILE_GROUP_PREFIX)))
+        {
+            p = conf_read_profile(*group);
+            conf_profile_list_add(model, p);
+            conf_profile_free(p);
+            g_key_file_remove_group(conf.keyfile, *group, NULL);
+        }
+    }
+
+    g_strfreev(groups);
+    return model;
+}
+
+static conf_profile_t*
+conf_read_profile(const gchar *group_name)
+{
+    conf_profile_t *p;
+    p = conf_profile_new(conf_read_string(group_name, "name", CONF_DEFAULT_PROFILE_NAME),
+                         conf_read_string(group_name, "host", CONF_DEFAULT_PROFILE_HOST),
+                         conf_read_integer(group_name, "port", CONF_DEFAULT_PROFILE_PORT),
+                         conf_read_string(group_name, "login", CONF_DEFAULT_PROFILE_LOGIN),
+                         conf_read_string(group_name, "password", CONF_DEFAULT_PROFILE_PASSWORD),
+                         conf_read_string(group_name, "interface", CONF_DEFAULT_PROFILE_INTERFACE),
+                         conf_read_integer(group_name, "duration_time", CONF_DEFAULT_PROFILE_DURATION_TIME),
+                         conf_read_boolean(group_name, "duration", CONF_DEFAULT_PROFILE_DURATION),
+                         conf_read_boolean(group_name, "remote", CONF_DEFAULT_PROFILE_REMOTE),
+                         conf_read_boolean(group_name, "background", CONF_DEFAULT_PROFILE_BACKGROUND));
+    return p;
 }
 
 static void
@@ -270,110 +303,6 @@ conf_read_gint64_tree(GKeyFile    *keyfile,
 
 }
 
-static void
-conf_save_gint64_tree(GKeyFile    *keyfile,
-                      const gchar *group_name,
-                      const gchar *key,
-                      GTree       *tree)
-{
-    gchar **values = NULL;
-    gchar **ptr;
-    gint length;
-    gint i;
-
-    length = g_tree_nnodes(tree);
-    if(length)
-    {
-        values = g_new(gchar*, length);
-        ptr = values;
-        g_tree_foreach(tree, conf_save_gint64_tree_foreach, &ptr);
-
-    }
-
-    g_key_file_set_string_list(keyfile, group_name, key, (const gchar**)values, (gsize)length);
-
-    if(values)
-    {
-        for(i=0; i<length; i++)
-            g_free(values[i]);
-        g_free(values);
-    }
-}
-
-static gboolean
-conf_save_gint64_tree_foreach(gpointer key,
-                              gpointer value,
-                              gpointer data)
-{
-
-    gchar ***ptr = (gchar***)data;
-    *((*ptr)++) = g_strdup(model_format_address(*(gint64*)key, FALSE));
-    return FALSE;
-}
-
-static void
-conf_read_profiles(GKeyFile    *keyfile,
-                   const gchar *group_name)
-{
-    gchar **groups = g_key_file_get_groups(keyfile, NULL);
-    gchar **group;
-    mtscan_profile_t profile;
-
-    for(group=groups; *group; ++group)
-    {
-        if(!strncmp(*group, group_name, strlen(group_name)))
-        {
-            profile.name = conf_read_string(*group, "name", CONF_DEFAULT_PROFILE_NAME);
-            profile.host = conf_read_string(*group, "host", CONF_DEFAULT_PROFILE_HOST);
-            profile.port = conf_read_integer(*group, "port", CONF_DEFAULT_PROFILE_PORT);
-            profile.login = conf_read_string(*group, "login", CONF_DEFAULT_PROFILE_LOGIN);
-            profile.password = conf_read_string(*group, "password", CONF_DEFAULT_PROFILE_PASSWORD);
-            profile.iface = conf_read_string(*group, "interface", CONF_DEFAULT_PROFILE_INTERFACE);
-            profile.duration_time = conf_read_integer(*group, "duration_time", CONF_DEFAULT_PROFILE_DURATION_TIME);
-            profile.duration = conf_read_boolean(*group, "duration", CONF_DEFAULT_PROFILE_DURATION);
-            profile.remote = conf_read_boolean(*group, "remote", CONF_DEFAULT_PROFILE_REMOTE);
-            profile.background = conf_read_boolean(*group, "background", CONF_DEFAULT_PROFILE_BACKGROUND);
-            conf_profile_add(&profile);
-            conf_profile_free(&profile);
-            g_key_file_remove_group(keyfile, *group, NULL);
-        }
-    }
-    g_strfreev(groups);
-}
-
-static void
-conf_set_profiles(void)
-{
-    gint i = 0;
-    gtk_tree_model_foreach(GTK_TREE_MODEL(conf.profiles), conf_set_profiles_foreach, &i);
-}
-
-static gboolean
-conf_set_profiles_foreach(GtkTreeModel *store,
-                          GtkTreePath  *path,
-                          GtkTreeIter  *iter,
-                          gpointer     data)
-{
-    gint *i = (gint*)data;
-    gchar *id = g_strdup_printf("%s%d", CONF_PROFILE_GROUP, *i);
-    mtscan_profile_t profile = conf_profile_get(iter);
-
-    g_key_file_set_string(conf.keyfile, id, "name", profile.name);
-    g_key_file_set_string(conf.keyfile, id, "host", profile.host);
-    g_key_file_set_integer(conf.keyfile, id, "port", profile.port);
-    g_key_file_set_string(conf.keyfile, id, "login", profile.login);
-    g_key_file_set_string(conf.keyfile, id, "password", profile.password);
-    g_key_file_set_string(conf.keyfile, id, "interface", profile.iface);
-    g_key_file_set_integer(conf.keyfile, id, "duration_time", profile.duration_time);
-    g_key_file_set_boolean(conf.keyfile, id, "duration", profile.duration);
-    g_key_file_set_boolean(conf.keyfile, id, "remote", profile.remote);
-    g_key_file_set_boolean(conf.keyfile, id, "background", profile.background);
-    conf_profile_free(&profile);
-    g_free(id);
-    (*i)++;
-    return FALSE;
-}
-
 void
 conf_save(void)
 {
@@ -393,7 +322,8 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
-    conf_set_profiles();
+    conf_save_profile(conf.keyfile, CONF_PROFILE_GROUP_DEFAULT, conf.profile_default);
+    conf_save_profiles(conf.profiles);
 
     g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
     g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
@@ -446,6 +376,97 @@ conf_save(void)
         fclose(fp);
     }
     g_free(configuration);
+}
+
+static void
+conf_save_profiles(GtkListStore *model)
+{
+    gint number = 0;
+    gtk_tree_model_foreach(GTK_TREE_MODEL(model), conf_save_profiles_foreach, &number);
+}
+
+static gboolean
+conf_save_profiles_foreach(GtkTreeModel *store,
+                           GtkTreePath  *path,
+                           GtkTreeIter  *iter,
+                           gpointer     data)
+{
+    gint *number = (gint*)data;
+    conf_profile_t *p;
+    gchar *group_name;
+
+    p = conf_profile_get(iter);
+    group_name = g_strdup_printf("%s%d", CONF_PROFILE_GROUP_PREFIX, (*number)++);
+    conf_save_profile(conf.keyfile, group_name, p);
+    g_free(group_name);
+    conf_profile_free(p);
+    return FALSE;
+}
+
+static void
+conf_save_profile(GKeyFile       *keyfile,
+                  const gchar    *group_name,
+                  conf_profile_t *p)
+{
+    g_key_file_set_string(keyfile, group_name, "name", conf_profile_get_name(p));
+    g_key_file_set_string(keyfile, group_name, "host", conf_profile_get_host(p));
+    g_key_file_set_integer(keyfile, group_name, "port", conf_profile_get_port(p));
+    g_key_file_set_string(keyfile, group_name, "login", conf_profile_get_login(p));
+    g_key_file_set_string(keyfile, group_name, "password", conf_profile_get_password(p));
+    g_key_file_set_string(keyfile, group_name, "interface", conf_profile_get_interface(p));
+    g_key_file_set_integer(keyfile, group_name, "duration_time", conf_profile_get_duration_time(p));
+    g_key_file_set_boolean(keyfile, group_name, "duration", conf_profile_get_duration(p));
+    g_key_file_set_boolean(keyfile, group_name, "remote", conf_profile_get_remote(p));
+    g_key_file_set_boolean(keyfile, group_name, "background", conf_profile_get_background(p));
+}
+
+static void
+conf_save_gint64_tree(GKeyFile    *keyfile,
+                      const gchar *group_name,
+                      const gchar *key,
+                      GTree       *tree)
+{
+    gchar **values = NULL;
+    gchar **ptr;
+    gint length;
+    gint i;
+
+    length = g_tree_nnodes(tree);
+    if(length)
+    {
+        values = g_new(gchar*, length);
+        ptr = values;
+        g_tree_foreach(tree, conf_save_gint64_tree_foreach, &ptr);
+
+    }
+
+    g_key_file_set_string_list(keyfile, group_name, key, (const gchar**)values, (gsize)length);
+
+    if(values)
+    {
+        for(i=0; i<length; i++)
+            g_free(values[i]);
+        g_free(values);
+    }
+}
+
+static gboolean
+conf_save_gint64_tree_foreach(gpointer key,
+                              gpointer value,
+                              gpointer data)
+{
+
+    gchar ***ptr = (gchar***)data;
+    *((*ptr)++) = g_strdup(model_format_address(*(gint64*)key, FALSE));
+    return FALSE;
+}
+
+static void
+conf_change_string(gchar      **ptr,
+                   const gchar *value)
+{
+    g_free(*ptr);
+    *ptr = g_strdup(value);
 }
 
 gint
@@ -548,6 +569,19 @@ conf_set_interface_last_profile(gint profile)
     conf.interface_last_profile = profile;
 }
 
+const conf_profile_t*
+conf_get_profile_default(void)
+{
+    return conf.profile_default;
+}
+
+void
+conf_set_profile_default(conf_profile_t *p)
+{
+    conf_profile_free(conf.profile_default);
+    conf.profile_default = p;
+}
+
 GtkListStore*
 conf_get_profiles(void)
 {
@@ -555,54 +589,16 @@ conf_get_profiles(void)
 }
 
 GtkTreeIter
-conf_profile_add(mtscan_profile_t *profile)
+conf_profile_add(const conf_profile_t *p)
 {
-    GtkTreeIter iter;
-    gtk_list_store_append(conf.profiles, &iter);
-    gtk_list_store_set(conf.profiles, &iter,
-                       PROFILE_COL_NAME, profile->name,
-                       PROFILE_COL_HOST, profile->host,
-                       PROFILE_COL_PORT, profile->port,
-                       PROFILE_COL_LOGIN, profile->login,
-                       PROFILE_COL_PASSWORD, profile->password,
-                       PROFILE_COL_INTERFACE, profile->iface,
-                       PROFILE_COL_DURATION_TIME, profile->duration_time,
-                       PROFILE_COL_DURATION, profile->duration,
-                       PROFILE_COL_REMOTE, profile->remote,
-                       PROFILE_COL_BACKGROUND, profile->background,
-                       -1);
-    return iter;
+    return conf_profile_list_add(conf.profiles, p);
 }
 
-mtscan_profile_t
+conf_profile_t*
 conf_profile_get(GtkTreeIter *iter)
 {
-    mtscan_profile_t profile;
-    gtk_tree_model_get(GTK_TREE_MODEL(conf.profiles), iter,
-                       PROFILE_COL_NAME, &profile.name,
-                       PROFILE_COL_HOST, &profile.host,
-                       PROFILE_COL_PORT, &profile.port,
-                       PROFILE_COL_LOGIN, &profile.login,
-                       PROFILE_COL_PASSWORD, &profile.password,
-                       PROFILE_COL_INTERFACE, &profile.iface,
-                       PROFILE_COL_DURATION_TIME, &profile.duration_time,
-                       PROFILE_COL_DURATION, &profile.duration,
-                       PROFILE_COL_REMOTE, &profile.remote,
-                       PROFILE_COL_BACKGROUND, &profile.background,
-                       -1);
-    return profile;
+    return conf_profile_list_get(conf.profiles, iter);
 }
-
-void
-conf_profile_free(mtscan_profile_t *profile)
-{
-    g_free(profile->name);
-    g_free(profile->host);
-    g_free(profile->login);
-    g_free(profile->password);
-    g_free(profile->iface);
-}
-
 
 const gchar*
 conf_get_path_log_open(void)

@@ -1,35 +1,7 @@
 #ifndef MTSCAN_CONF_H_
 #define MTSCAN_CONF_H_
 #include <gtk/gtk.h>
-
-enum
-{
-    PROFILE_COL_NAME,
-    PROFILE_COL_HOST,
-    PROFILE_COL_PORT,
-    PROFILE_COL_LOGIN,
-    PROFILE_COL_PASSWORD,
-    PROFILE_COL_INTERFACE,
-    PROFILE_COL_DURATION_TIME,
-    PROFILE_COL_DURATION,
-    PROFILE_COL_REMOTE,
-    PROFILE_COL_BACKGROUND,
-    PROFILE_COLS
-};
-
-typedef struct mtscan_conf_profile
-{
-    gchar *name;
-    gchar *host;
-    gint port;
-    gchar *login;
-    gchar *password;
-    gchar *iface;
-    gint duration_time;
-    gboolean duration;
-    gboolean remote;
-    gboolean background;
-} mtscan_profile_t;
+#include "conf-profile.h"
 
 /* Configuration reading & writing */
 void conf_init(const gchar*);
@@ -61,11 +33,12 @@ gint conf_get_interface_last_profile(void);
 void conf_set_interface_last_profile(gint);
 
 /* Connection profiles */
-GtkListStore* conf_get_profiles(void);
+const conf_profile_t* conf_get_profile_default();
+void conf_set_profile_default(conf_profile_t*);
 
-GtkTreeIter conf_profile_add(mtscan_profile_t*);
-mtscan_profile_t conf_profile_get(GtkTreeIter*);
-void conf_profile_free(mtscan_profile_t*);
+GtkListStore* conf_get_profiles(void);
+GtkTreeIter conf_profile_add(const conf_profile_t*);
+conf_profile_t* conf_profile_get(GtkTreeIter*);
 
 /* Configuration [path] */
 const gchar* conf_get_path_log_open(void);

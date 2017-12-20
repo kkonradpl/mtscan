@@ -399,7 +399,10 @@ ui_dialog_yesno(GtkWindow   *window,
                                     GTK_DIALOG_MODAL,
                                     GTK_MESSAGE_QUESTION,
                                     GTK_BUTTONS_NONE,
-                                    message);
+                                    NULL);
+
+    gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), message);
+
     gtk_dialog_add_buttons(GTK_DIALOG(dialog),
                            GTK_STOCK_NO, GTK_RESPONSE_NO,
                            GTK_STOCK_YES, GTK_RESPONSE_YES,

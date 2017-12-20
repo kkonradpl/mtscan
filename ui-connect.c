@@ -1,10 +1,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <string.h>
-#include <stdlib.h>
 #include "conf.h"
 #include "ui-connect.h"
 #include "ui-dialogs.h"
-#include "ui-toolbar.h"
 #include "ui-update.h"
 #include "conn.h"
 #include "mt-ssh.h"
@@ -40,10 +38,13 @@ static void connection_dialog_connect(GtkWidget*, gpointer);
 static void connection_dialog_cancel(GtkWidget*, gpointer);
 static void connection_cancel(void);
 
+static void connection_dialog_from_profile(const conf_profile_t*);
+static conf_profile_t* connection_dialog_to_profile(const gchar*);
+
 void
 connection_dialog(void)
 {
-    gint row;
+    guint row;
 
     dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(dialog), "Connection");
@@ -65,15 +66,17 @@ connection_dialog(void)
     GtkCellRenderer *cell = gtk_cell_renderer_text_new();
     g_object_set(cell, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
     gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(c_profile), cell, TRUE);
-    gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(c_profile), cell, "text", PROFILE_COL_NAME, NULL);
+    gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(c_profile), cell, "text", CONF_PROFILE_COL_NAME, NULL);
     gtk_box_pack_start(GTK_BOX(hbox_profile), c_profile, TRUE, TRUE, 4);
 
     b_profile_add = gtk_button_new();
     gtk_button_set_image(GTK_BUTTON(b_profile_add), gtk_image_new_from_stock(GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON));
     gtk_box_pack_start(GTK_BOX(hbox_profile), b_profile_add, FALSE, FALSE, 0);
+
     b_profile_remove = gtk_button_new();
     gtk_button_set_image(GTK_BUTTON(b_profile_remove), gtk_image_new_from_stock(GTK_STOCK_REMOVE, GTK_ICON_SIZE_BUTTON));
     gtk_box_pack_start(GTK_BOX(hbox_profile), b_profile_remove, FALSE, FALSE, 0);
+
     b_profile_clear = gtk_button_new();
     gtk_button_set_image(GTK_BUTTON(b_profile_clear), gtk_image_new_from_stock(GTK_STOCK_CLEAR, GTK_ICON_SIZE_BUTTON));
     gtk_box_pack_start(GTK_BOX(hbox_profile), b_profile_clear, FALSE, FALSE, 0);
@@ -188,6 +191,8 @@ connection_dialog(void)
     g_signal_connect(dialog, "destroy", G_CALLBACK(connection_dialog_destroy), NULL);
 
     gtk_combo_box_set_active(GTK_COMBO_BOX(c_profile), conf_get_interface_last_profile());
+    if(gtk_combo_box_get_active(GTK_COMBO_BOX(c_profile)) < 0)
+        connection_dialog_from_profile(conf_get_profile_default());
 
     gtk_widget_show_all(dialog);
     connection_dialog_unlock(TRUE);
@@ -198,28 +203,10 @@ static void
 connection_dialog_destroy(GtkWidget *widget,
                           gpointer   data)
 {
-    connection_cancel();
-    /*
-    conf_set_conn_host(gtk_entry_get_text(GTK_ENTRY(e_host)));
-    conf_set_conn_port(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_port)));
-    conf_set_conn_login(gtk_entry_get_text(GTK_ENTRY(e_login)));
-    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_password)))
-    {
-        conf_set_conn_password(gtk_entry_get_text(GTK_ENTRY(e_password)));
-    }
-    else
-    {
-        conf_set_conn_password("");
-    }
-    conf_set_conn_interface(gtk_entry_get_text(GTK_ENTRY(e_interface)));
-    conf_set_conn_duration(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_duration)));
-    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_duration)))
-    {
-        conf_set_conn_duration_time(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_duration)));
-    }
-    conf_set_conn_remote(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_remote)));
-    */
+    conf_set_profile_default(connection_dialog_to_profile("default"));
     conf_set_interface_last_profile(gtk_combo_box_get_active(GTK_COMBO_BOX(c_profile)));
+
+    connection_cancel();
     dialog = NULL;
 }
 
@@ -228,25 +215,12 @@ connection_dialog_profile_changed(GtkComboBox *widget,
                                   gpointer     data)
 {
     GtkTreeIter iter;
-    mtscan_profile_t profile;
+    conf_profile_t *p;
     if(gtk_combo_box_get_active_iter(widget, &iter))
     {
-        profile = conf_profile_get(&iter);
-        profile_reset_flag = FALSE;
-
-        gtk_entry_set_text(GTK_ENTRY(e_host), profile.host);
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(s_port), (gdouble)profile.port);
-        gtk_entry_set_text(GTK_ENTRY(e_login), profile.login);
-        gtk_entry_set_text(GTK_ENTRY(e_password), profile.password);
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_password), (gboolean)strlen(profile.password));
-        gtk_entry_set_text(GTK_ENTRY(e_interface), profile.iface);
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(s_duration), (gdouble)profile.duration_time);
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_duration), profile.duration);
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_remote), profile.remote);
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_background), profile.background);
-
-        profile_reset_flag = TRUE;
-        conf_profile_free(&profile);
+        p = conf_profile_get(&iter);
+        connection_dialog_from_profile(p);
+        conf_profile_free(p);
     }
 }
 
@@ -359,14 +333,15 @@ connection_dialog_profile_add(GtkWidget *widget,
 {
     GtkWidget *dialog_profile, *entry;
     gchar *default_name;
-    mtscan_profile_t profile;
+    conf_profile_t *p;
     GtkTreeIter iter;
 
     dialog_profile = gtk_message_dialog_new(GTK_WINDOW(dialog),
                                             GTK_DIALOG_MODAL,
                                             GTK_MESSAGE_QUESTION,
                                             GTK_BUTTONS_OK_CANCEL,
-                                            "Profile name:");
+                                            NULL);
+    gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog_profile), "<big>Profile name:</big>");
     gtk_window_set_title(GTK_WINDOW(dialog_profile), "Add a profile");
 
     entry = gtk_entry_new();
@@ -384,20 +359,10 @@ connection_dialog_profile_add(GtkWidget *widget,
 
     if(gtk_dialog_run(GTK_DIALOG(dialog_profile)) == GTK_RESPONSE_OK)
     {
-        profile.name = (gchar*)gtk_entry_get_text(GTK_ENTRY(entry));
-        profile.host = (gchar*)gtk_entry_get_text(GTK_ENTRY(e_host));
-        profile.port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_port));
-        profile.login = (gchar*)gtk_entry_get_text(GTK_ENTRY(e_login));
-        if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_password)))
-            profile.password = (gchar*)gtk_entry_get_text(GTK_ENTRY(e_password));
-        else
-            profile.password = "";
-        profile.iface = (gchar*)gtk_entry_get_text(GTK_ENTRY(e_interface));
-        profile.duration = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_duration));
-        profile.duration_time = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_duration));
-        profile.remote = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_remote));
-        profile.background = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_background));
-        iter = conf_profile_add(&profile);
+        p = connection_dialog_to_profile(gtk_entry_get_text(GTK_ENTRY(entry)));
+        iter = conf_profile_add(p);
+        conf_profile_free(p);
+
         g_signal_handlers_block_by_func(G_OBJECT(c_profile), GINT_TO_POINTER(connection_dialog_profile_changed), NULL);
         gtk_combo_box_set_active_iter(GTK_COMBO_BOX(c_profile), &iter);
         g_signal_handlers_unblock_by_func(G_OBJECT(c_profile), GINT_TO_POINTER(connection_dialog_profile_changed), NULL);
@@ -429,7 +394,7 @@ connection_dialog_profile_remove(GtkWidget *widget,
     GtkTreeIter iter;
     if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(c_profile), &iter))
     {
-        if(ui_dialog_yesno(GTK_WINDOW(dialog), "Are you sure you want to remove the selected profile?") == UI_DIALOG_YES)
+        if(ui_dialog_yesno(GTK_WINDOW(dialog), "<big>Remove a profile</big>\nAre you sure you want to remove the selected profile?") == UI_DIALOG_YES)
             gtk_list_store_remove(GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(c_profile))), &iter);
     }
 }
@@ -438,7 +403,7 @@ static void
 connection_dialog_profile_clear(GtkWidget *widget,
                                 gpointer   data)
 {
-    if(ui_dialog_yesno(GTK_WINDOW(dialog), "Are you sure you want to remove ALL profiles?") == UI_DIALOG_YES)
+    if(ui_dialog_yesno(GTK_WINDOW(dialog), "<big><b>Remove all profiles</b></big>\nAre you sure you want to remove all profiles?") == UI_DIALOG_YES)
         gtk_list_store_clear(GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(c_profile))));
 }
 
@@ -509,6 +474,46 @@ connection_cancel(void)
         conn = NULL;
         ui_disconnected();
     }
+}
+
+static void
+connection_dialog_from_profile(const conf_profile_t *p)
+{
+    profile_reset_flag = FALSE;
+
+    gtk_entry_set_text(GTK_ENTRY(e_host), conf_profile_get_host(p));
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(s_port), (gdouble)conf_profile_get_port(p));
+    gtk_entry_set_text(GTK_ENTRY(e_login), conf_profile_get_login(p));
+    gtk_entry_set_text(GTK_ENTRY(e_password), conf_profile_get_password(p));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_password), (gboolean)strlen(conf_profile_get_password(p)));
+    gtk_entry_set_text(GTK_ENTRY(e_interface), conf_profile_get_interface(p));
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(s_duration), (gdouble)conf_profile_get_duration_time(p));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_duration), conf_profile_get_duration(p));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_remote), conf_profile_get_remote(p));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c_background), conf_profile_get_background(p));
+
+    profile_reset_flag = TRUE;
+}
+
+static conf_profile_t*
+connection_dialog_to_profile(const gchar *name)
+{
+    conf_profile_t *p;
+    gboolean keep_pass;
+    keep_pass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_password));
+
+    p = conf_profile_new(g_strdup(name),
+                         g_strdup(gtk_entry_get_text(GTK_ENTRY(e_host))),
+                         gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_port)),
+                         g_strdup(gtk_entry_get_text(GTK_ENTRY(e_login))),
+                         g_strdup(keep_pass ? gtk_entry_get_text(GTK_ENTRY(e_password)) : ""),
+                         g_strdup(gtk_entry_get_text(GTK_ENTRY(e_interface))),
+                         gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(s_duration)),
+                         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_duration)),
+                         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_remote)),
+                         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c_background)));
+
+    return p;
 }
 
 gboolean
