@@ -1416,7 +1416,7 @@ parse_scan_channel(const gchar  *buff,
                    gchar       **channel_width,
                    gchar       **mode)
 {
-    gchar *ptr, *endptr, *endstr;
+    gchar *ptr, *endptr, *endstr, *nextptr;
     gdouble frequency = 0.0;
 
     if(strlen(buff) > position &&
@@ -1435,7 +1435,12 @@ parse_scan_channel(const gchar  *buff,
                 ptr = endptr+1;
                 endptr = strchr(ptr, ' ');
                 if(endptr)
+                {
+                    nextptr = strchr(ptr, '/');
+                    if(nextptr && nextptr < endptr)
+                        endptr = nextptr;
                     *mode = g_strndup(ptr, (endptr - ptr));
+                }
             }
         }
     }
