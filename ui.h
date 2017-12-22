@@ -3,6 +3,8 @@
 #include <gtk/gtk.h>
 #include "mtscan.h"
 #include "model.h"
+#include "ui-connection.h"
+#include "mt-ssh.h"
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 
@@ -47,6 +49,10 @@ typedef struct mtscan_gtk
     mtscan_model_t *model;
     gchar *filename;
     gchar *name;
+
+    ui_connection_t *conn_dialog;
+    mt_ssh_t *conn;
+
     gboolean connected;
     gboolean scanning;
     gboolean changed;

@@ -7,7 +7,6 @@
 #include "ui-view-menu.h"
 #include "ui-icons.h"
 #include "ui-dialogs.h"
-#include "conn.h"
 #include "signals.h"
 
 static gboolean ui_view_popup(GtkWidget*, gpointer);

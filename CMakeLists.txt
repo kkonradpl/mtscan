@@ -26,12 +26,12 @@ add_definitions(${ZLIB_CFLAGS_OTHER})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
 
 set(SOURCE_FILES
+        callbacks.c
+        callbacks.h
         conf-profile.c
         conf-profile.h
         conf.c
         conf.h
-        conn.c
-        conn.h
         export.c
         export.h
         gps.c
@@ -52,8 +52,10 @@ set(SOURCE_FILES
         scanlist.h
         signals.c
         signals.h
-        ui-connect.c
-        ui-connect.h
+        ui-callbacks.c
+        ui-callbacks.h
+        ui-connection.c
+        ui-connection.h
         ui-dialogs.c
         ui-dialogs.h
         ui-icons.c
@@ -62,8 +64,6 @@ set(SOURCE_FILES
         ui-preferences.h
         ui-toolbar.c
         ui-toolbar.h
-        ui-update.c
-        ui-update.h
         ui-view-menu.c
         ui-view-menu.h
         ui-view.c

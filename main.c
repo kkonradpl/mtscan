@@ -17,7 +17,6 @@
 #include <string.h>
 #include "conf.h"
 #include "ui.h"
-#include "conn.h"
 #include "log.h"
 #include "model.h"
 #ifdef G_OS_WIN32
@@ -67,7 +66,6 @@ main(gint   argc,
 #endif
 
     conf_init(get_config_path(argc, argv));
-    conn = NULL;
 
     memset(&ui, 0, sizeof(ui));
     ui.model = mtscan_model_new();

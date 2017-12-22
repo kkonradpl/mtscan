@@ -5,7 +5,6 @@
 
 typedef struct network_flags
 {
-    gboolean active;
     gboolean privacy;
     gboolean routeros;
     gboolean nstreme;

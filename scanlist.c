@@ -1,7 +1,7 @@
 #include <string.h>
 #include <gdk/gdkkeysyms.h>
 #include "ui.h"
-#include "conn.h"
+#include "mt-ssh.h"
 #include "scanlist.h"
 #include "misc.h"
 
@@ -188,13 +188,16 @@ scanlist_click(GtkWidget      *widget,
                gpointer        user_data)
 {
     gint freq = GPOINTER_TO_INT(user_data);
+    gchar *string;
 
-    if(conn &&
+    if(ui.conn &&
        event->type == GDK_BUTTON_PRESS &&
        event->button == 3) // right mouse button
     {
         /* Quick frequency set */
-        g_async_queue_push(conn->queue, conn_command_new(COMMAND_SET_SCANLIST, g_strdup_printf("%d", freq)));
+        string = g_strdup_printf("%d", freq);
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, string);
+        g_free(string);
         return TRUE;
     }
     return FALSE;
@@ -223,7 +226,7 @@ scanlist_set(GtkWidget *widget,
     gchar *output, *compress;
     gint len;
 
-    if(!conn)
+    if(!ui.conn)
         return;
 
     str = g_string_new("");
@@ -247,7 +250,8 @@ scanlist_set(GtkWidget *widget,
         output = compress;
     }
 
-    g_async_queue_push(conn->queue, conn_command_new(COMMAND_SET_SCANLIST, output));
+    mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, output);
+    g_free(output);
 }
 
 static gboolean

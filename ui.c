@@ -5,10 +5,9 @@
 #include "ui-dialogs.h"
 #include "ui-view.h"
 #include "ui-toolbar.h"
-#include "ui-connect.h"
+#include "ui-connection.h"
 #include "ui-icons.h"
 #include "log.h"
-#include "conn.h"
 #include "conf.h"
 #include "model.h"
 #include "gps.h"
@@ -302,7 +301,7 @@ ui_disconnected(void)
 {
     ui.connected = FALSE;
     ui.scanning = FALSE;
-    conn = NULL;
+    ui.conn = NULL;
 
     ui_toolbar_connect_set_state(FALSE);
     ui_toolbar_scan_set_state(FALSE);

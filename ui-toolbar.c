@@ -6,7 +6,7 @@
 #include "log.h"
 #include "mt-ssh.h"
 #include "scanlist.h"
-#include "ui-connect.h"
+#include "ui-connection.h"
 #include "ui-toolbar.h"
 #include "ui-preferences.h"
 #include "export.h"
@@ -192,18 +192,19 @@ static void
 ui_toolbar_connect(GtkWidget *widget,
                    gpointer   data)
 {
-    if(conn)
+    if(ui.conn)
     {
         /* Close connection */
         ui_toolbar_connect_set_state(TRUE);
         gtk_widget_set_sensitive(widget, FALSE);
-        g_async_queue_push(conn->queue, conn_command_new(COMMAND_DISCONNECT, NULL));
+
+        mt_ssh_cancel(ui.conn);
         return;
     }
 
     /* Display connection dialog */
     ui_toolbar_connect_set_state(FALSE);
-    connection_dialog();
+    ui.conn_dialog = ui_connection_new();
 }
 
 void
@@ -219,12 +220,12 @@ ui_toolbar_scan(GtkWidget *widget,
                 gpointer   data)
 {
     ui_toolbar_scan_set_state(ui.scanning);
-    if(conn)
+    if(ui.conn)
     {
         if(ui.scanning)
-            g_async_queue_push(conn->queue, conn_command_new(COMMAND_SCAN_STOP, NULL));
+            mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
         else
-            g_async_queue_push(conn->queue, conn_command_new(COMMAND_SCAN_START, NULL));
+            mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCAN, NULL);
         gtk_widget_set_sensitive(widget, FALSE);
     }
 }
@@ -241,9 +242,10 @@ static void
 ui_toolbar_restart(GtkWidget *widget,
                    gpointer   data)
 {
-    if(conn)
+    if(ui.conn)
     {
-        g_async_queue_push(conn->queue, conn_command_new(COMMAND_SCAN_RESTART, NULL));
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCAN, NULL);
         gtk_widget_set_sensitive(widget, FALSE);
     }
 }
@@ -252,8 +254,8 @@ static void
 ui_toolbar_scanlist_default(GtkWidget *widget,
                             gpointer   data)
 {
-    if(conn)
-        g_async_queue_push(conn->queue, conn_command_new(COMMAND_SET_SCANLIST, g_strdup("default")));
+    if(ui.conn)
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, "default");
 }
 
 static void
@@ -281,8 +283,8 @@ ui_toolbar_scanlist_custom(GtkWidget *widget,
         gtk_widget_destroy(dialog);
     }
 
-    if(set_scanlist && conn)
-        g_async_queue_push(conn->queue, conn_command_new(COMMAND_SET_SCANLIST, g_strdup(range)));
+    if(set_scanlist && ui.conn)
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, range);
 
 }
 

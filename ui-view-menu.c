@@ -4,7 +4,6 @@
 #include "ui-view.h"
 #include "ui-dialogs.h"
 #include "log.h"
-#include "conn.h"
 #include "scanlist.h"
 #include "conf.h"
 #include "misc.h"
@@ -246,7 +245,7 @@ ui_view_menu_lock(GtkWidget *menuitem,
     gint frequency;
     gchar *output;
 
-    if(!conn)
+    if(!ui.conn)
         return;
 
     list = gtk_tree_selection_get_selected_rows(selection, &model);
@@ -270,15 +269,9 @@ ui_view_menu_lock(GtkWidget *menuitem,
     {
         /* Remove ending comma */
         output[strlen(output) - 1] = '\0';
-        g_async_queue_push(conn->queue,
-                           conn_command_new(COMMAND_SET_SCANLIST, output));
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, output);
     }
-    else
-    {
-        /* No frequencies selected */
-        g_free(output);
-    }
-
+    g_free(output);
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
     g_tree_unref(tree);

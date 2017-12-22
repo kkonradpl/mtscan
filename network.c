@@ -13,7 +13,6 @@ network_init(network_t *net)
     net->radioname = NULL;
     net->rssi = MODEL_NO_SIGNAL;
     net->noise = MODEL_NO_SIGNAL;
-    net->flags.active = FALSE;
     net->flags.routeros = FALSE;
     net->flags.privacy = FALSE;
     net->flags.nstreme = FALSE;
@@ -32,13 +31,16 @@ network_init(network_t *net)
 void
 network_free(network_t *net)
 {
-    g_free(net->channel);
-    g_free(net->mode);
-    g_free(net->ssid);
-    g_free(net->radioname);
-    g_free(net->routeros_ver);
-    if(net->signals)
-        signals_free(net->signals);
+    if(net)
+    {
+        g_free(net->channel);
+        g_free(net->mode);
+        g_free(net->ssid);
+        g_free(net->radioname);
+        g_free(net->routeros_ver);
+        if (net->signals)
+            signals_free(net->signals);
+    }
 }
 
 void
