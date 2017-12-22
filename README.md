@@ -1,7 +1,7 @@
 MTscan
 =======
 
-Mikrotik RouterOS wireless scanner.
+MikroTik RouterOS wireless scanner.
 
 Copyright (C) 2015-2017  Konrad Kosmatka
 

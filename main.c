@@ -1,7 +1,7 @@
 /*
- *  MTscan
- *  Copyright (C) 2015-2017  Konrad Kosmatka
-
+ *  MTscan - MikroTik RouterOS wireless scanner
+ *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
