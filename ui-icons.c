@@ -210,7 +210,7 @@ ui_icon_draw_heartbeat(GtkWidget      *widget,
 {
     cairo_t *cr;
 #endif
-    gboolean *status = (gboolean*)data;
+    gint *status = (gint*)data;
     gint height = gtk_widget_get_allocated_height(widget);
     gint width = height * 2;
     gdouble x, y, r;
@@ -233,8 +233,10 @@ ui_icon_draw_heartbeat(GtkWidget      *widget,
     cairo_arc(cr, x, y, r, 0, 2*M_PI);
     cairo_fill(cr);
 
-    if(*status)
+    if(*status == MTSCAN_MODE_SCANNER)
         cairo_set_source_rgb(cr, 1.0, 0.0, 0.0);
+    else if(*status == MTSCAN_MODE_SNIFFER)
+        cairo_set_source_rgb(cr, 0.0, 0.0, 1.0);
     else
         cairo_set_source_rgb(cr, 0.64, 0.64, 0.64);
 

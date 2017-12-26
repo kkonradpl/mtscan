@@ -519,7 +519,6 @@ ui_connection_connect(GtkWidget *widget,
 
     ui.conn = mt_ssh_new(callback_mt_ssh,
                          callback_mt_ssh_msg,
-                         callback_mt_ssh_net,
                          MT_SSH_MODE_SCANNER,
                          hostname,
                          port,

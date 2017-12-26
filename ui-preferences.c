@@ -67,14 +67,6 @@ typedef struct ui_preferences
     GtkWidget *b_cancel;
 } ui_preferences_t;
 
-enum
-{
-    P_COL_ID,
-    P_COL_NAME,
-    P_COL_HIDDEN,
-    P_COL_COUNT
-};
-
 
 static void ui_preferences_list_create(ui_preferences_list_t*, GtkWidget*, const gchar*, const gchar*, const gchar*);
 static void ui_preferences_list_format(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);

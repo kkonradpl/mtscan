@@ -90,14 +90,14 @@ ui_init(void)
     ui.statusbar = gtk_hbox_new(FALSE, 6);
     gtk_container_add(GTK_CONTAINER(ui.statusbar_align), ui.statusbar);
 
-    ui.heartbeat = gtk_drawing_area_new();
-    gtk_widget_set_tooltip_text(ui.heartbeat, "Activity icon");
+    ui.activity_icon = gtk_drawing_area_new();
+    gtk_widget_set_tooltip_text(ui.activity_icon, "Activity icon");
 #if GTK_CHECK_VERSION (3, 0, 0)
-    g_signal_connect(G_OBJECT(ui.heartbeat), "draw", G_CALLBACK(ui_icon_draw_heartbeat), &ui.heartbeat_status);
+    g_signal_connect(G_OBJECT(ui.activity_icon), "draw", G_CALLBACK(ui_icon_draw_heartbeat), &ui.activity);
 #else
-    g_signal_connect(G_OBJECT(ui.heartbeat), "expose-event", G_CALLBACK(ui_icon_draw_heartbeat), &ui.heartbeat_status);
+    g_signal_connect(G_OBJECT(ui.activity_icon), "expose-event", G_CALLBACK(ui_icon_draw_heartbeat), &ui.activity);
 #endif
-    gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.heartbeat, FALSE, FALSE, 1);
+    gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.activity_icon, FALSE, FALSE, 1);
 
     ui.l_net_status = gtk_label_new(NULL);
     gtk_misc_set_alignment(GTK_MISC(ui.l_net_status), 0.0, 0.5);
@@ -315,13 +315,14 @@ void
 ui_disconnected(void)
 {
     ui.connected = FALSE;
-    ui.scanning = FALSE;
+    ui.mode = MTSCAN_MODE_NONE;
     ui.conn = NULL;
 
     ui_toolbar_connect_set_state(FALSE);
-    ui_toolbar_scan_set_state(FALSE);
+    ui_toolbar_mode_set_state(FALSE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_connect), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_scan), TRUE);
+    gtk_widget_set_sensitive(GTK_WIDGET(ui.b_sniff), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_restart), TRUE);
     gtk_label_set_text(GTK_LABEL(ui.l_conn_status), "disconnected");
 

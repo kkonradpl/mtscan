@@ -32,6 +32,7 @@ static gchar range_ext[] = "5330-5490,5720-5785,default,5790-5900,5055-5170,defa
 
 static void ui_toolbar_connect(GtkWidget*, gpointer);
 static void ui_toolbar_scan(GtkWidget*, gpointer);
+static void ui_toolbar_sniff(GtkWidget*, gpointer);
 static void ui_toolbar_restart(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist_default(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist_custom(GtkWidget*, gpointer);
@@ -83,17 +84,25 @@ ui_toolbar_create(void)
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scan, -1);
     gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scan), "clicked", accel_group, GDK_KEY_2, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
+    ui.b_sniff = gtk_toggle_tool_button_new();
+    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_sniff), gtk_image_new_from_stock(GTK_STOCK_FIND, GTK_ICON_SIZE_BUTTON));
+    gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_sniff), "Sniff");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_sniff), "Sniff (Ctrl+3)");
+    g_signal_connect(ui.b_sniff, "clicked", G_CALLBACK(ui_toolbar_sniff), NULL);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_sniff, -1);
+    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_sniff), "clicked", accel_group, GDK_KEY_3, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+
     ui.b_restart = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_REFRESH, GTK_ICON_SIZE_BUTTON), "Restart");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_restart), "Restart (Ctrl+3)");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_restart), "Restart (Ctrl+4)");
     g_signal_connect(ui.b_restart, "clicked", G_CALLBACK(ui_toolbar_restart), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_restart, -1);
-    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_restart), "clicked", accel_group, GDK_KEY_3, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_restart), "clicked", accel_group, GDK_KEY_4, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     ui.b_scanlist_default = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_HOME, GTK_ICON_SIZE_BUTTON), "Default scan-list");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_default), "Default scan-list (Ctrl+4)");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_default), "Default scan-list (Ctrl+5)");
     g_signal_connect(ui.b_scanlist_default, "clicked", G_CALLBACK(ui_toolbar_scanlist_default), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_default, -1);
-    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_default), "clicked", accel_group, GDK_KEY_4, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_default), "clicked", accel_group, GDK_KEY_5, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     ui.b_scanlist = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_EDIT, GTK_ICON_SIZE_BUTTON), "Custom scan-list");
     gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist), "Custom scan-list (Ctrl+L)");
@@ -234,23 +243,40 @@ static void
 ui_toolbar_scan(GtkWidget *widget,
                 gpointer   data)
 {
-    ui_toolbar_scan_set_state(ui.scanning);
+    ui_toolbar_mode_set_state((ui.mode == MTSCAN_MODE_SCANNER));
     if(ui.conn)
     {
-        if(ui.scanning)
-            mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
-        else
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
+        if(ui.mode != MTSCAN_MODE_SCANNER)
             mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCAN, NULL);
         gtk_widget_set_sensitive(widget, FALSE);
     }
 }
 
+static void
+ui_toolbar_sniff(GtkWidget *widget,
+                 gpointer   data)
+{
+    ui_toolbar_mode_set_state((ui.mode == MTSCAN_MODE_SNIFFER));
+    if(ui.conn)
+    {
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
+        if(ui.mode != MTSCAN_MODE_SNIFFER)
+            mt_ssh_cmd(ui.conn, MT_SSH_CMD_SNIFF, NULL);
+        gtk_widget_set_sensitive(widget, FALSE);
+    }
+}
+
 void
-ui_toolbar_scan_set_state(gboolean state)
+ui_toolbar_mode_set_state(gint state)
 {
     g_signal_handlers_block_by_func(G_OBJECT(ui.b_scan), GINT_TO_POINTER(ui_toolbar_scan), NULL);
-    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(ui.b_scan), state);
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(ui.b_scan), (state == MTSCAN_MODE_SCANNER));
     g_signal_handlers_unblock_by_func(G_OBJECT(ui.b_scan), GINT_TO_POINTER(ui_toolbar_scan), NULL);
+
+    g_signal_handlers_block_by_func(G_OBJECT(ui.b_sniff), GINT_TO_POINTER(ui_toolbar_sniff), NULL);
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(ui.b_sniff), (state == MTSCAN_MODE_SNIFFER));
+    g_signal_handlers_unblock_by_func(G_OBJECT(ui.b_sniff), GINT_TO_POINTER(ui_toolbar_sniff), NULL);
 }
 
 static void
@@ -260,8 +286,16 @@ ui_toolbar_restart(GtkWidget *widget,
     if(ui.conn)
     {
         mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
-        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCAN, NULL);
-        gtk_widget_set_sensitive(widget, FALSE);
+        if(ui.mode == MTSCAN_MODE_SCANNER)
+        {
+            mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCAN, NULL);
+            gtk_widget_set_sensitive(widget, FALSE);
+        }
+        else if(ui.mode == MTSCAN_MODE_SNIFFER)
+        {
+            mt_ssh_cmd(ui.conn, MT_SSH_CMD_SNIFF, NULL);
+            gtk_widget_set_sensitive(widget, FALSE);
+        }
     }
 }
 
@@ -300,7 +334,6 @@ ui_toolbar_scanlist_custom(GtkWidget *widget,
 
     if(set_scanlist && ui.conn)
         mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, range);
-
 }
 
 static void

@@ -64,7 +64,7 @@ ui_callback_verify(const mt_ssh_t *context,
 
 void
 ui_callback_connected(const mt_ssh_t *context,
-                      const gchar    *identity)
+                      const gchar    *hwaddr)
 {
     if(ui.conn != context)
         return;
@@ -91,25 +91,26 @@ ui_callback_disconnected(const mt_ssh_t *context)
 }
 
 void
-ui_callback_scanning_state(const mt_ssh_t *context,
-                           gboolean        value)
+ui_callback_state(const mt_ssh_t *context,
+                  gboolean        value)
 {
     if(ui.conn != context)
         return;
 
-    ui.scanning = value;
-    ui_toolbar_scan_set_state(ui.scanning);
+    ui.mode = value;
+    ui_toolbar_mode_set_state(value);
 
-    if(!ui.scanning)
+    if(!ui.mode)
         mtscan_model_buffer_clear(ui.model);
 
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_scan), TRUE);
+    gtk_widget_set_sensitive(GTK_WIDGET(ui.b_sniff), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_restart), TRUE);
 }
 
 void
-ui_callback_scanning_error(const mt_ssh_t *context,
-                           const gchar    *error)
+ui_callback_failure(const mt_ssh_t *context,
+                    const gchar    *error)
 {
     if(context != ui.conn)
         return;
@@ -117,7 +118,7 @@ ui_callback_scanning_error(const mt_ssh_t *context,
     ui_dialog(GTK_WINDOW(ui.window),
               GTK_MESSAGE_ERROR,
               APP_NAME,
-              "<big><b>Scanning error:</b></big>\n%s",
+              "<big><b>Command failure:</b></big>\n%s",
               error);
 }
 
@@ -164,7 +165,7 @@ ui_callback_heartbeat(const mt_ssh_t *context)
             break;
     }
     gtk_widget_thaw_child_notify(ui.treeview);
-    ui_callback_heartbeat_timeout(GINT_TO_POINTER(TRUE));
+    ui_callback_heartbeat_timeout(GINT_TO_POINTER(ui.mode));
 
     if(timeout_id)
         g_source_remove(timeout_id);
@@ -182,10 +183,10 @@ static gboolean
 ui_callback_heartbeat_timeout(gpointer data)
 {
     static guint timeout_id = 0;
-    ui.heartbeat_status = GPOINTER_TO_INT(data);
-    gtk_widget_queue_draw(ui.heartbeat);
+    ui.activity = GPOINTER_TO_INT(data);
+    gtk_widget_queue_draw(ui.activity_icon);
 
-    if(ui.heartbeat_status)
+    if(ui.activity)
     {
         if(timeout_id)
             g_source_remove(timeout_id);

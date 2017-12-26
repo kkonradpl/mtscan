@@ -16,6 +16,10 @@
 #include "mt-ssh.h"
 #include "ui-callbacks.h"
 
+static void callback_mt_ssh_info(const mt_ssh_t *, const mt_ssh_info_t *);
+static void callback_mt_ssh_net(const mt_ssh_t *, const mt_ssh_net_t *);
+static void callback_mt_ssh_snf(const mt_ssh_t *, const mt_ssh_snf_t *);
+
 void
 callback_mt_ssh(mt_ssh_t *context)
 {
@@ -63,6 +67,10 @@ callback_mt_ssh(mt_ssh_t *context)
             ui_callback_status(context, "libssh channel request shell error", NULL);
             break;
 
+        case MT_SSH_ERR_INTERFACE:
+            ui_callback_status(context, "Invalid wireless interface", NULL);
+            break;
+
         default:
             break;
     }
@@ -72,52 +80,86 @@ callback_mt_ssh(mt_ssh_t *context)
 }
 
 void
-callback_mt_ssh_msg(const mt_ssh_msg_t *message)
+callback_mt_ssh_msg(const mt_ssh_t    *context,
+                    mt_ssh_msg_type_t  type,
+                    gconstpointer      data)
 {
-    const mt_ssh_t *context = mt_ssh_msg_get_context(message);
-    const gchar *data = mt_ssh_msg_get_data(message);
-
-    switch(mt_ssh_msg_get_type(message))
+    switch(type)
     {
-        case MT_SSH_MSG_CONNECTING:
+        case MT_SSH_MSG_INFO:
+            callback_mt_ssh_info(context, data);
+            break;
+
+        case MT_SSH_MSG_NET:
+            callback_mt_ssh_net(context, data);
+            break;
+
+        case MT_SSH_MSG_SNF:
+            callback_mt_ssh_snf(context, data);
+            break;
+    }
+}
+
+
+static void
+callback_mt_ssh_info(const mt_ssh_t      *context,
+                     const mt_ssh_info_t *info)
+{
+    const gchar *data = mt_ssh_info_get_data(info);
+
+    switch(mt_ssh_info_get_type(info))
+    {
+        case MT_SSH_INFO_CONNECTING:
             ui_callback_status(context, "Connecting...", NULL);
             break;
 
-        case MT_SSH_MSG_AUTHENTICATING:
+        case MT_SSH_INFO_AUTHENTICATING:
             ui_callback_status(context, "Authenticating...", NULL);
             break;
 
-        case MT_SSH_MSG_AUTH_VERIFY:
+        case MT_SSH_INFO_AUTH_VERIFY:
             ui_callback_verify(context, data);
             break;
 
-        case MT_SSH_MSG_CONNECTED:
-            ui_callback_status(context, "Waiting for a prompt...", NULL);
+        case MT_SSH_INFO_CONNECTED:
+            ui_callback_status(context, "Waiting for prompt...", NULL);
             break;
 
-        case MT_SSH_MSG_IDENTITY:
+        case MT_SSH_INFO_IDENTITY:
+            ui_callback_status(context, "Checking wireless interface...", NULL);
+            break;
+
+        case MT_SSH_INFO_INTERFACE:
             ui_callback_connected(context, data);
             break;
 
-        case MT_SSH_MSG_SCANLIST:
+        case MT_SSH_INFO_SCANLIST:
             ui_callback_scanlist(context, data);
             break;
 
-        case MT_SSH_MSG_HEARTBEAT:
+        case MT_SSH_INFO_HEARTBEAT:
             ui_callback_heartbeat(context);
             break;
 
-        case MT_SSH_MSG_FAILURE:
-            ui_callback_scanning_error(context, data);
-            ui_callback_scanning_state(context, FALSE);
+        case MT_SSH_INFO_FAILURE:
+            ui_callback_failure(context, data);
+            ui_callback_state(context, MTSCAN_MODE_NONE);
             break;
 
-        case MT_SSH_MSG_SCANNER_START:
-            ui_callback_scanning_state(context, TRUE);
+        case MT_SSH_INFO_SCANNER_START:
+            ui_callback_state(context, MTSCAN_MODE_SCANNER);
             break;
 
-        case MT_SSH_MSG_SCANNER_STOP:
-            ui_callback_scanning_state(context, FALSE);
+        case MT_SSH_INFO_SCANNER_STOP:
+            ui_callback_state(context, MTSCAN_MODE_NONE);
+            break;
+
+        case MT_SSH_INFO_SNIFFER_START:
+            ui_callback_state(context, MTSCAN_MODE_SNIFFER);
+            break;
+
+        case MT_SSH_INFO_SNIFFER_STOP:
+            ui_callback_state(context, MTSCAN_MODE_NONE);
             break;
 
         default:
@@ -125,8 +167,9 @@ callback_mt_ssh_msg(const mt_ssh_msg_t *message)
     }
 }
 
-void
-callback_mt_ssh_net(const mt_ssh_net_t *data)
+static void
+callback_mt_ssh_net(const mt_ssh_t     *context,
+                    const mt_ssh_net_t *data)
 {
     network_t *net = g_malloc(sizeof(network_t));
     network_init(net);
@@ -148,5 +191,13 @@ callback_mt_ssh_net(const mt_ssh_net_t *data)
     net->firstseen = mt_ssh_net_get_timestamp(data);
     net->lastseen = mt_ssh_net_get_timestamp(data);
 
-    ui_callback_network(mt_ssh_net_get_context(data), net);
+    ui_callback_network(context, net);
+}
+
+static void
+callback_mt_ssh_snf(const mt_ssh_t     *context,
+                    const mt_ssh_snf_t *data)
+{
+
+
 }

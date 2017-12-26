@@ -23,6 +23,13 @@
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 
+enum
+{
+    MTSCAN_MODE_NONE,
+    MTSCAN_MODE_SCANNER,
+    MTSCAN_MODE_SNIFFER
+};
+
 typedef struct mtscan_gtk
 {
     GtkWidget *window;
@@ -32,6 +39,7 @@ typedef struct mtscan_gtk
     GtkWidget *toolbar;
     GtkToolItem *b_connect;
     GtkToolItem *b_scan;
+    GtkToolItem *b_sniff;
     GtkToolItem *b_restart;
     GtkToolItem *b_scanlist_default;
     GtkToolItem *b_scanlist_preset;
@@ -56,22 +64,21 @@ typedef struct mtscan_gtk
 
     GtkWidget *statusbar_align;
     GtkWidget *statusbar;
-    GtkWidget *heartbeat;
+    GtkWidget *activity_icon;
     GtkWidget *l_net_status;
     GtkWidget *l_conn_status;
     GtkWidget *group_gps, *l_gps_status;
 
     mtscan_model_t *model;
+    gboolean changed;
     gchar *filename;
     gchar *name;
 
     ui_connection_t *conn_dialog;
     mt_ssh_t *conn;
-
     gboolean connected;
-    gboolean scanning;
-    gboolean changed;
-    gboolean heartbeat_status;
+    gint mode;
+    gint activity;
 } mtscan_gtk_t;
 
 mtscan_gtk_t ui;
