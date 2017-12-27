@@ -123,7 +123,7 @@ typedef struct mt_ssh
     gboolean      background;
 
     /* Callback pointers */
-    void (*cb)    (mt_ssh_t*);
+    void (*cb)    (mt_ssh_t*, mt_ssh_ret_t, const gchar*);
     void (*cb_msg)(const mt_ssh_t*, mt_ssh_msg_type_t, gconstpointer);
 
     /* Command queue */
@@ -243,7 +243,7 @@ static gchar*         parse_scanlist(const gchar*);
 
 
 mt_ssh_t*
-mt_ssh_new(void         (*cb)(mt_ssh_t*),
+mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
            void         (*cb_msg)(const mt_ssh_t*, mt_ssh_msg_type_t, gconstpointer),
            mt_ssh_mode_t  mode_default,
            const gchar   *hostname,
@@ -387,30 +387,6 @@ gboolean
 mt_ssh_get_background(const mt_ssh_t *context)
 {
     return context->background;
-}
-
-mt_ssh_ret_t
-mt_ssh_get_return_state(mt_ssh_t *context)
-{
-    if(context->canceled &&
-       context->return_state != MT_SSH_ERR_VERIFY &&
-       context->return_state != MT_SSH_ERR_INTERFACE)
-    {
-        return MT_SSH_CANCELED;
-    }
-    return context->return_state;
-}
-
-const gchar*
-mt_ssh_get_return_error(mt_ssh_t *context)
-{
-    if(context->canceled &&
-       context->return_state != MT_SSH_ERR_VERIFY &&
-       context->return_state != MT_SSH_ERR_INTERFACE)
-    {
-        return NULL;
-    }
-    return context->return_error;
 }
 
 static mt_ssh_cmd_t*
@@ -678,8 +654,23 @@ gboolean
 mt_ssh_cb(gpointer user_data)
 {
     mt_ssh_t *context = (mt_ssh_t*)user_data;
+    mt_ssh_ret_t return_state;
+    const gchar *return_error;
 
-    context->cb(context);
+    if(context->canceled &&
+       context->return_state != MT_SSH_ERR_VERIFY &&
+       context->return_state != MT_SSH_ERR_INTERFACE)
+    {
+        return_state = MT_SSH_CANCELED;
+        return_error = NULL;
+    }
+    else
+    {
+        return_state = context->return_state;
+        return_error = context->return_error;
+    }
+
+    context->cb(context, return_state, return_error);
     return FALSE;
 }
 

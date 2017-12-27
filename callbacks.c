@@ -21,11 +21,11 @@ static void callback_mt_ssh_net(const mt_ssh_t *, const mt_ssh_net_t *);
 static void callback_mt_ssh_snf(const mt_ssh_t *, const mt_ssh_snf_t *);
 
 void
-callback_mt_ssh(mt_ssh_t *context)
+callback_mt_ssh(mt_ssh_t     *context,
+                mt_ssh_ret_t  return_state,
+                const gchar  *return_error)
 {
-    const gchar* err = mt_ssh_get_return_error(context);
-
-    switch(mt_ssh_get_return_state(context))
+    switch(return_state)
     {
         case MT_SSH_CLOSED:
         case MT_SSH_CANCELED:
@@ -40,11 +40,11 @@ callback_mt_ssh(mt_ssh_t *context)
             break;
 
         case MT_SSH_ERR_CONNECT:
-            ui_callback_status(context, (err ? err : "Unable to connect."), NULL);
+            ui_callback_status(context, (return_error ? return_error : "Unable to connect."), NULL);
             break;
 
         case MT_SSH_ERR_VERIFY:
-            ui_callback_status(context, "Unable to verify the SSH server.", err);
+            ui_callback_status(context, "Unable to verify the SSH server.", return_error);
             break;
 
         case MT_SSH_ERR_AUTH:

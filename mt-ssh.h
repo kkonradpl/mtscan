@@ -79,7 +79,7 @@ typedef enum mt_ssh_mode
     MT_SSH_MODE_SNIFFER
 } mt_ssh_mode_t;
 
-mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*),
+mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
                               void         (*cb_msg)(const mt_ssh_t*, mt_ssh_msg_type_t, gconstpointer),
                               mt_ssh_mode_t  mode_default,
                               const gchar   *hostname,
@@ -101,8 +101,6 @@ const gchar*       mt_ssh_get_interface(const mt_ssh_t*);
 gint               mt_ssh_get_duration(const mt_ssh_t*);
 gboolean           mt_ssh_get_remote_mode(const mt_ssh_t*);
 gboolean           mt_ssh_get_background(const mt_ssh_t*);
-mt_ssh_ret_t       mt_ssh_get_return_state(mt_ssh_t*);
-const gchar*       mt_ssh_get_return_error(mt_ssh_t*);
 
 mt_ssh_info_type_t mt_ssh_info_get_type(const mt_ssh_info_t*);
 const gchar*       mt_ssh_info_get_data(const mt_ssh_info_t*);
