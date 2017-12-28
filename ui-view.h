@@ -28,6 +28,7 @@ void ui_view_remove_iter(GtkWidget*, GtkTreeIter*, gboolean);
 void ui_view_remove_selection(GtkWidget*);
 void ui_view_check_position(GtkWidget*);
 void ui_view_dark_mode(GtkWidget*, gboolean);
+void ui_view_noise_column(GtkWidget*, gboolean);
 void ui_view_latlon_column(GtkWidget*, gboolean);
 void ui_view_azimuth_column(GtkWidget*, gboolean);
 

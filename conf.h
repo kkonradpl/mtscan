@@ -75,6 +75,9 @@ void conf_set_preferences_icon_size(gint);
 gint conf_get_preferences_search_column(void);
 void conf_set_preferences_search_column(gint);
 
+gboolean conf_get_preferences_noise_column(void);
+void conf_set_preferences_noise_column(gboolean);
+
 gboolean conf_get_preferences_latlon_column(void);
 void conf_set_preferences_latlon_column(gboolean);
 

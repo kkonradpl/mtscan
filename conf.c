@@ -54,6 +54,7 @@
 
 #define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
+#define CONF_DEFAULT_PREFERENCES_NOISE_COLUMN           FALSE
 #define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN          FALSE
 #define CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN         FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
@@ -107,6 +108,7 @@ typedef struct conf
     /* [preferences] */
     gint      preferences_icon_size;
     gint      preferences_search_column;
+    gboolean  preferences_noise_column;
     gboolean  preferences_latlon_column;
     gboolean  preferences_azimuth_column;
     gboolean  preferences_signals;
@@ -205,6 +207,7 @@ conf_read(void)
 
     conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
+    conf.preferences_noise_column = conf_read_boolean("preferences", "noise_column", CONF_DEFAULT_PREFERENCES_NOISE_COLUMN);
     conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
     conf.preferences_azimuth_column = conf_read_boolean("preferences", "azimuth_column", CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
@@ -395,6 +398,7 @@ conf_save(void)
 
     g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "noise_column", conf.preferences_noise_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "azimuth_column", conf.preferences_azimuth_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
@@ -745,6 +749,18 @@ void
 conf_set_preferences_search_column(gint value)
 {
     conf.preferences_search_column = value;
+}
+
+gboolean
+conf_get_preferences_noise_column(void)
+{
+    return conf.preferences_noise_column;
+}
+
+void
+conf_set_preferences_noise_column(gboolean value)
+{
+    conf.preferences_noise_column = value;
 }
 
 gboolean

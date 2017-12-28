@@ -128,7 +128,7 @@ ui_view_new(mtscan_model_t *model,
 
     /* Max signal column */
     renderer = gtk_cell_renderer_text_new();
-    gtk_cell_renderer_set_padding(renderer, 2, 0);
+    gtk_cell_renderer_set_padding(renderer, 3, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_MAXRSSI, renderer, NULL);
@@ -139,7 +139,7 @@ ui_view_new(mtscan_model_t *model,
 
     /* Signal column */
     renderer = gtk_cell_renderer_text_new();
-    gtk_cell_renderer_set_padding(renderer, 2, 0);
+    gtk_cell_renderer_set_padding(renderer, 3, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_RSSI, renderer, NULL);
@@ -150,13 +150,14 @@ ui_view_new(mtscan_model_t *model,
 
     /* Noise floor column */
     renderer = gtk_cell_renderer_text_new();
-    gtk_cell_renderer_set_padding(renderer, 2, 0);
+    gtk_cell_renderer_set_padding(renderer, 3, 0);
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_NOISE, renderer, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_NOISE));
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_NOISE), NULL);
+    g_object_set_data(G_OBJECT(treeview), "mtscan-column-noise", column);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
     /* Privacy column */
@@ -171,7 +172,7 @@ ui_view_new(mtscan_model_t *model,
 
     /* Mikrotik RouterOS column */
     renderer = gtk_cell_renderer_toggle_new();
-    gtk_cell_renderer_set_padding(renderer, 0, 0);
+    gtk_cell_renderer_set_padding(renderer, 1, 0);
     column = gtk_tree_view_column_new_with_attributes(MODEL_TEXT_ROUTEROS, renderer, "active", COL_ROUTEROS, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_ROUTEROS));
@@ -857,6 +858,15 @@ ui_view_dark_mode(GtkWidget *treeview,
         gtk_widget_modify_text(treeview, GTK_STATE_SELECTED, NULL);
         gtk_widget_modify_text(treeview, GTK_STATE_ACTIVE, NULL);
     }
+}
+
+void
+ui_view_noise_column(GtkWidget *treeview,
+                      gboolean   visible)
+{
+    GtkTreeViewColumn *column;
+    column = GTK_TREE_VIEW_COLUMN(g_object_get_data(G_OBJECT(treeview), "mtscan-column-noise"));
+    gtk_tree_view_column_set_visible(column, visible);
 }
 
 void
