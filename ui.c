@@ -451,13 +451,17 @@ ui_show_uri(const gchar *uri)
 void
 ui_play_sound(gchar *filename)
 {
+    gchar *path;
+
     if(!conf_get_interface_sound())
         return;
 
+    path = g_build_filename(APP_SOUND_DIR, filename, NULL);
+
 #ifdef G_OS_WIN32
-    win32_play(filename);
+    win32_play(path);
 #else
-    gchar *command[] = { APP_SOUND_EXEC, filename, NULL };
+    gchar *command[] = { APP_SOUND_EXEC, path, NULL };
     GError *error = NULL;
     if(!g_spawn_async(NULL, command, NULL, G_SPAWN_SEARCH_PATH, 0, NULL, NULL, &error))
     {
@@ -465,6 +469,8 @@ ui_play_sound(gchar *filename)
         g_error_free(error);
     }
 #endif
+
+    g_free(path);
 }
 
 void

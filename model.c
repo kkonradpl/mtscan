@@ -29,6 +29,13 @@
 #define MIKROTIK_LOW_SIGNAL_BUGFIX  1
 #define MIKROTIK_HIGH_SIGNAL_BUGFIX 1
 
+enum
+{
+    MODEL_NETWORK_UPDATE,
+    MODEL_NETWORK_NEW,
+    MODEL_NETWORK_NEW_HIGHLIGHT
+};
+
 static gint model_sort_ascii_string(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_rssi(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static gint model_sort_double(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
@@ -36,7 +43,7 @@ static gint model_sort_float(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer
 static gint model_sort_version(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
 static void model_free_foreach(gpointer, gpointer, gpointer);
 static gboolean model_clear_active_foreach(gpointer, gpointer, gpointer);
-static gboolean model_update_network(mtscan_model_t*, network_t*);
+static gint model_update_network(mtscan_model_t*, network_t*);
 
 static void trim_zeros(gchar*);
 
@@ -405,6 +412,7 @@ mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
 {
     GSList *current;
     gint state;
+    gint new_network;
 
     if(!model->buffer)
         state = MODEL_UPDATE_NONE;
@@ -416,8 +424,14 @@ mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
         while(current)
         {
             network_t* net = (network_t*)(current->data);
-            if(model_update_network(model, net))
+            new_network = model_update_network(model, net);
+
+            if(new_network == MODEL_NETWORK_NEW_HIGHLIGHT)
+                state = MODEL_UPDATE_NEW_HIGHLIGHT;
+            else if(new_network == MODEL_NETWORK_NEW &&
+                    state == MODEL_UPDATE)
                 state = MODEL_UPDATE_NEW;
+
             network_free(net);
             g_free(net);
             current = current->next;
@@ -434,7 +448,7 @@ mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
     return state;
 }
 
-static gboolean
+gint
 model_update_network(mtscan_model_t *model,
                      network_t      *net)
 {
@@ -548,7 +562,7 @@ model_update_network(mtscan_model_t *model,
 
         /* Add address to the active network list */
         g_hash_table_insert(model->active, address, iter_ptr);
-        new_network_found = FALSE;
+        new_network_found = MODEL_NETWORK_UPDATE;
     }
     else
     {
@@ -588,7 +602,10 @@ model_update_network(mtscan_model_t *model,
 
         g_hash_table_insert(model->map, address, iter_ptr);
         g_hash_table_insert(model->active, address, iter_ptr);
-        new_network_found = TRUE;
+        if(conf_get_preferences_highlightlist_enabled() && conf_get_preferences_highlightlist(*address))
+            new_network_found = MODEL_NETWORK_NEW_HIGHLIGHT;
+        else
+            new_network_found = MODEL_NETWORK_NEW;
     }
 
     /* Signals are stored in GtkListStore just as pointer,

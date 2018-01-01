@@ -15,6 +15,7 @@
 
 #ifndef MTSCAN_H_
 #define MTSCAN_H_
+#include <glib.h>
 
 #define APP_NAME          "MTscan"
 #define APP_VERSION       "0.2-git"
@@ -23,8 +24,15 @@
 #define APP_FILE_COMPRESS ".gz"
 #define APP_SOUND_EXEC    "paplay"
 
-#define APP_SOUND_NETWORK "wav/network.wav"
-#define APP_SOUND_GPSLOST "wav/gpslost.wav"
+#ifdef G_OS_WIN32
+#define APP_SOUND_DIR "wav"
+#else
+#define APP_SOUND_DIR "/usr/share/sounds/mtscan"
+#endif
+
+#define APP_SOUND_NETWORK  "network.wav"
+#define APP_SOUND_NETWORK2 "network2.wav"
+#define APP_SOUND_GPSLOST  "gpslost.wav"
 
 #define APP_LICENCE \
 "This program is free software; you can redistribute it and/or\n" \

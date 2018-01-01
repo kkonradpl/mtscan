@@ -100,7 +100,7 @@ ui_callback_state(const mt_ssh_t *context,
     ui.mode = value;
     ui_toolbar_mode_set_state(value);
 
-    if(!ui.mode)
+    if(ui.mode == MTSCAN_MODE_NONE)
         mtscan_model_buffer_clear(ui.model);
 
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_scan), TRUE);
@@ -148,22 +148,26 @@ void
 ui_callback_heartbeat(const mt_ssh_t *context)
 {
     static guint timeout_id = 0;
+    gint ret;
 
     if(ui.conn != context)
         return;
 
     gtk_widget_freeze_child_notify(ui.treeview);
-    switch(mtscan_model_buffer_and_inactive_update(ui.model))
+    ret = mtscan_model_buffer_and_inactive_update(ui.model);
+    switch(ret)
     {
+        case MODEL_UPDATE_NEW_HIGHLIGHT:
         case MODEL_UPDATE_NEW:
             ui_view_check_position(ui.treeview);
-            ui_play_sound(APP_SOUND_NETWORK);
+            ui_play_sound((ret == MODEL_UPDATE_NEW_HIGHLIGHT ? APP_SOUND_NETWORK2 : APP_SOUND_NETWORK));
         case MODEL_UPDATE:
             ui_changed();
         case MODEL_UPDATE_ONLY_INACTIVE:
             ui_status_update_networks();
             break;
     }
+
     gtk_widget_thaw_child_notify(ui.treeview);
     ui_callback_heartbeat_timeout(GINT_TO_POINTER(ui.mode));
 
