@@ -758,7 +758,7 @@ model_format_address(gint64   address,
 
     if(!separated)
     {
-        g_snprintf(str, sizeof(str), "%012lX", address);
+        g_snprintf(str, sizeof(str), "%012" G_GINT64_MODIFIER "X", address);
     }
     else
     {

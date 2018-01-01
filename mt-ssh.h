@@ -86,7 +86,7 @@ mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const 
                               gint           port,
                               const gchar   *login,
                               const gchar   *password,
-                              const gchar   *interface,
+                              const gchar   *iface,
                               gint           duration,
                               gboolean       remote,
                               gboolean       background);

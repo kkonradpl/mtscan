@@ -250,7 +250,7 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
            gint           port,
            const gchar   *login,
            const gchar   *password,
-           const gchar   *interface,
+           const gchar   *iface,
            gint           duration,
            gboolean       remote,
            gboolean       background)
@@ -263,7 +263,7 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
     context->port = g_strdup_printf("%d", port);
     context->login = g_strdup(login);
     context->password = g_strdup(password);
-    context->iface = g_strdup(interface);
+    context->iface = g_strdup(iface);
     context->duration = duration;
     context->mode_default = mode_default;
     context->remote_mode = remote;
@@ -1113,7 +1113,7 @@ mt_ssh_interface(mt_ssh_t *context,
 
     if((context->hwaddr = parse_scan_address(line, 0)) >= 0)
     {
-        data = g_strdup_printf("%012lX", context->hwaddr);
+        data = g_strdup_printf("%012" G_GINT64_MODIFIER "X", context->hwaddr);
         g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_INTERFACE, data)));
         mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
     }
@@ -1351,7 +1351,6 @@ mt_ssh_commands(mt_ssh_t *context,
 
     while((cmd = g_async_queue_timeout_pop(context->queue, timeout)))
     {
-        printf("HELLO\n");
         switch(cmd->type)
         {
             case MT_SSH_CMD_AUTH:
