@@ -46,6 +46,8 @@ typedef struct ui_preferences
     GtkWidget *table_general;
     GtkWidget *l_general_icon_size;
     GtkWidget *s_general_icon_size;
+    GtkWidget *l_general_screenshot_directory;
+    GtkWidget *c_general_screenshot_directory;
     GtkWidget *l_general_search_column;
     GtkWidget *c_general_search_column;
     GtkWidget *x_general_noise_column;
@@ -122,6 +124,13 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_icon_size, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.s_general_icon_size = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 16.0, 64.0, 1.0, 10.0, 0.0)), 0, 0);
     gtk_table_attach(GTK_TABLE(p.table_general), p.s_general_icon_size, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_general_screenshot_directory = gtk_label_new("Screenshots:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_general_screenshot_directory), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_screenshot_directory, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.c_general_screenshot_directory = gtk_file_chooser_button_new("Screenshots", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_screenshot_directory, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.l_general_search_column = gtk_label_new("Search column:");
@@ -289,7 +298,7 @@ ui_preferences_key_list(GtkWidget   *widget,
                         gpointer     data)
 {
     GtkButton *b_remove = GTK_BUTTON(data);
-    if(event->keyval == GDK_Delete)
+    if(event->keyval == GDK_KEY_Delete)
     {
         gtk_button_clicked(b_remove);
         return TRUE;
@@ -304,7 +313,7 @@ ui_preferences_key_list_add(GtkWidget   *widget,
 {
     GtkDialog *dialog = GTK_DIALOG(data);
 
-    if(event->keyval == GDK_Return)
+    if(event->keyval == GDK_KEY_Return)
     {
         gtk_dialog_response(dialog, GTK_RESPONSE_OK);
         return TRUE;
@@ -418,6 +427,7 @@ ui_preferences_load(ui_preferences_t *p)
 
     /* General */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_general_icon_size), conf_get_preferences_icon_size());
+    gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory), conf_get_path_screenshot());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_noise_column), conf_get_preferences_noise_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_latlon_column), conf_get_preferences_latlon_column());
@@ -449,6 +459,7 @@ ui_preferences_apply(GtkWidget *widget,
 {
     ui_preferences_t *p = (ui_preferences_t*)data;
     gint new_icon_size;
+    gchar *new_screenshot_directory;
     gint new_search_column;
     gboolean new_noise_column;
     gboolean new_latlon_column;
@@ -463,6 +474,10 @@ ui_preferences_apply(GtkWidget *widget,
         conf_set_preferences_icon_size(new_icon_size);
         ui_view_set_icon_size(ui.treeview, new_icon_size);
     }
+
+    new_screenshot_directory = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory));
+    conf_set_path_screenshot(new_screenshot_directory ? new_screenshot_directory : "");
+    g_free(new_screenshot_directory);
 
     new_search_column = gtk_combo_box_get_active(GTK_COMBO_BOX(p->c_general_search_column));
     if(new_search_column != conf_get_preferences_search_column())

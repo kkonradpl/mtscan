@@ -68,6 +68,9 @@ void conf_set_path_log_save(const gchar*);
 const gchar* conf_get_path_log_export(void);
 void conf_set_path_log_export(const gchar*);
 
+const gchar* conf_get_path_screenshot(void);
+void conf_set_path_screenshot(const gchar*);
+
 /* Configuration [preferences] */
 gint conf_get_preferences_icon_size(void);
 void conf_set_preferences_icon_size(gint);

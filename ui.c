@@ -479,10 +479,27 @@ ui_screenshot(void)
     gint width, height;
     time_t tt = time(NULL);
     gchar *filename;
+    gchar *path;
     gchar t[20];
+    gint i;
 
     strftime(t, sizeof(t), "%Y%m%d-%H%M%S", localtime(&tt));
-    filename = g_strdup_printf("%s/mtscan-%s.png", g_get_home_dir(), t);
+
+    for(i=0; TRUE; i++)
+    {
+        if(i == 0)
+            filename = g_strdup_printf("mtscan-%s.png", t);
+        else
+            filename = g_strdup_printf("mtscan-%s_%d.png", t, i);
+
+        path = g_build_filename(conf_get_path_screenshot(), filename, NULL);
+
+        if(!g_file_test(path, (G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR)))
+            break;
+
+        g_free(filename);
+        g_free(path);
+    }
 
 #if GTK_CHECK_VERSION (3, 0, 0)
     cairo_surface_t *surface;
@@ -495,12 +512,13 @@ ui_screenshot(void)
     cr = cairo_create(surface);
     gtk_widget_draw(ui.window, cr);
     cairo_destroy(cr);
-    if(cairo_surface_write_to_png(surface, filename) != CAIRO_STATUS_SUCCESS)
+    if(cairo_surface_write_to_png(surface, path) != CAIRO_STATUS_SUCCESS)
     {
         ui_dialog(GTK_WINDOW(ui.window),
                   GTK_MESSAGE_ERROR,
                   "Screenshot",
-                  "Unable to save a screenshot.");
+                  "Unable to save a screenshot to:\n%s",
+                  path);
     }
     cairo_surface_destroy(surface);
 #else
@@ -514,7 +532,7 @@ ui_screenshot(void)
     pixmap = gtk_widget_get_snapshot(ui.window, NULL);
     gdk_pixmap_get_size(pixmap, &width, &height);
     pixbuf = gdk_pixbuf_get_from_drawable(NULL, pixmap, NULL, 0, 0, 0, 0, width, height);
-    if(!gdk_pixbuf_save(pixbuf, filename, "png", &err, NULL))
+    if(!gdk_pixbuf_save(pixbuf, path, "png", &err, NULL))
     {
         ui_dialog(GTK_WINDOW(ui.window),
                   GTK_MESSAGE_ERROR,
@@ -525,6 +543,7 @@ ui_screenshot(void)
     }
     g_object_unref(G_OBJECT(pixmap));
     g_object_unref(G_OBJECT(pixbuf));
-    g_free(filename);
 #endif
+    g_free(path);
+    g_free(filename);
 }

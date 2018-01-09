@@ -51,6 +51,7 @@
 #define CONF_DEFAULT_PATH_LOG_OPEN   ""
 #define CONF_DEFAULT_PATH_LOG_SAVE   ""
 #define CONF_DEFAULT_PATH_LOG_EXPORT ""
+#define CONF_DEFAULT_PATH_SCREENSHOT ""
 
 #define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
@@ -104,6 +105,7 @@ typedef struct conf
     gchar *path_log_open;
     gchar *path_log_save;
     gchar *path_log_export;
+    gchar *path_screenshot;
 
     /* [preferences] */
     gint      preferences_icon_size;
@@ -204,6 +206,7 @@ conf_read(void)
     conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
     conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
     conf.path_log_export = conf_read_string("path", "log_export", CONF_DEFAULT_PATH_LOG_EXPORT);
+    conf.path_screenshot = conf_read_string("path", "screenshot", CONF_DEFAULT_PATH_SCREENSHOT);
 
     conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
@@ -395,6 +398,7 @@ conf_save(void)
     g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
     g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
     g_key_file_set_string(conf.keyfile, "path", "log_export", conf.path_log_export);
+    g_key_file_set_string(conf.keyfile, "path", "screenshot", conf.path_screenshot);
 
     g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
@@ -725,6 +729,18 @@ void
 conf_set_path_log_export(const gchar *path)
 {
     conf_change_string(&conf.path_log_export, path);
+}
+
+const gchar*
+conf_get_path_screenshot(void)
+{
+    return conf.path_screenshot;
+}
+
+void
+conf_set_path_screenshot(const gchar *path)
+{
+    conf_change_string(&conf.path_screenshot, path);
 }
 
 gint
