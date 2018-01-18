@@ -16,6 +16,11 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <inttypes.h>
+#include "mtscan.h"
+
+#ifdef G_OS_WIN32
+#include "win32.h"
+#endif
 
 #define MAC_ADDR_HEX_LEN 12
 
@@ -179,4 +184,25 @@ str_addr_to_gint64(const gchar* str,
             return value;
     }
     return -1;
+}
+
+void
+mtscan_sound(const gchar *filename)
+{
+    gchar *path;
+    path = g_build_filename(APP_SOUND_DIR, filename, NULL);
+
+#ifdef G_OS_WIN32
+    win32_play(path);
+#else
+    gchar *command[] = { APP_SOUND_EXEC, path, NULL };
+    GError *error = NULL;
+    if(!g_spawn_async(NULL, command, NULL, G_SPAWN_SEARCH_PATH, 0, NULL, NULL, &error))
+    {
+        fprintf(stderr, "Unable to start " APP_SOUND_EXEC ": %s\n", error->message);
+        g_error_free(error);
+    }
+#endif
+
+    g_free(path);
 }

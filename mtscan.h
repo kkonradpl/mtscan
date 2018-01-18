@@ -33,6 +33,7 @@
 #define APP_SOUND_NETWORK  "network.wav"
 #define APP_SOUND_NETWORK2 "network2.wav"
 #define APP_SOUND_GPSLOST  "gpslost.wav"
+#define APP_SOUND_NODATA   "nodata.wav"
 
 #define APP_LICENCE \
 "This program is free software; you can redistribute it and/or\n" \

@@ -27,6 +27,8 @@
 #include "model.h"
 #include "gps.h"
 #include "signals.h"
+#include "misc.h"
+
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
@@ -45,7 +47,8 @@ static void ui_restore(void);
 static gboolean ui_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean ui_delete_event(GtkWidget*, GdkEvent*, gpointer);
 static void ui_drag_data_received(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, guint);
-static gboolean ui_status_gps_timeout(gpointer);
+static gboolean ui_idle_timeout(gpointer);
+static void ui_status_gps_timeout();
 static gchar* ui_get_name(const gchar*);
 
 void
@@ -114,8 +117,8 @@ ui_init(void)
     gtk_box_pack_start(GTK_BOX(ui.group_gps), ui.l_gps_status, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.group_gps, FALSE, FALSE, 0);
 
-    ui_status_gps_timeout(NULL);
-    g_timeout_add(1000, ui_status_gps_timeout, NULL);
+    ui_idle_timeout(&ui);
+    g_timeout_add(1000, ui_idle_timeout, &ui);
 
     gtk_drag_dest_set(ui.window, GTK_DEST_DEFAULT_ALL, drop_types, n_drop_types, GDK_ACTION_COPY);
     g_signal_connect(ui.window, "drag-data-received", G_CALLBACK(ui_drag_data_received), NULL);
@@ -253,7 +256,25 @@ ui_drag_data_received(GtkWidget        *widget,
 }
 
 static gboolean
-ui_status_gps_timeout(gpointer data)
+ui_idle_timeout(gpointer user_data)
+{
+    mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
+    gint64 ts = UNIX_TIMESTAMP();
+
+    if(conf_get_interface_sound() &&
+       ui->mode != MTSCAN_MODE_NONE &&
+       (ts - ui->activity_ts) > 5 &&
+       (ts % 2) == 0)
+    {
+        mtscan_sound(APP_SOUND_NODATA);
+    }
+
+    ui_status_gps_timeout(ui);
+    return G_SOURCE_CONTINUE;
+}
+
+static void
+ui_status_gps_timeout(mtscan_gtk_t *ui)
 {
     static gint last_gps_state = -1;
     const mtscan_gps_data_t *gps_data;
@@ -267,7 +288,7 @@ ui_status_gps_timeout(gpointer data)
        state < GPS_OK &&
        UNIX_TIMESTAMP() % 2)
     {
-        ui_play_sound(APP_SOUND_GPSLOST);
+        mtscan_sound(APP_SOUND_GPSLOST);
     }
 
     if(state != last_gps_state || state == GPS_OK)
@@ -275,16 +296,16 @@ ui_status_gps_timeout(gpointer data)
         switch(state)
         {
         case GPS_OFF:
-            gtk_label_set_text(GTK_LABEL(ui.l_gps_status), "GPS: off");
+            gtk_label_set_text(GTK_LABEL(ui->l_gps_status), "GPS: off");
             break;
         case GPS_OPENING:
-            gtk_label_set_markup(GTK_LABEL(ui.l_gps_status), "GPS: <span color=\"red\"><b>opening…</b></span>");
+            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>opening…</b></span>");
             break;
         case GPS_WAITING_FOR_DATA:
-            gtk_label_set_markup(GTK_LABEL(ui.l_gps_status), "GPS: <span color=\"red\"><b>waiting for data</b></span>");
+            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>waiting for data</b></span>");
             break;
         case GPS_INVALID:
-            gtk_label_set_markup(GTK_LABEL(ui.l_gps_status), "GPS: <span color=\"red\"><b>no fix</b></span>");
+            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>no fix</b></span>");
             break;
         case GPS_OK:
             text = g_strdup_printf("GPS: %c%.5f° %c%.5f° (HDOP: %.1f)",
@@ -293,13 +314,12 @@ ui_status_gps_timeout(gpointer data)
                                    (gps_data->lon >= 0.0 ? 'E' : 'W'),
                                    gps_data->lon,
                                    gps_data->hdop);
-            gtk_label_set_text(GTK_LABEL(ui.l_gps_status), text);
+            gtk_label_set_text(GTK_LABEL(ui->l_gps_status), text);
             g_free(text);
         }
         last_gps_state = state;
     }
 
-    return TRUE;
 }
 
 void
@@ -448,30 +468,6 @@ ui_show_uri(const gchar *uri)
 #endif
 }
 
-void
-ui_play_sound(gchar *filename)
-{
-    gchar *path;
-
-    if(!conf_get_interface_sound())
-        return;
-
-    path = g_build_filename(APP_SOUND_DIR, filename, NULL);
-
-#ifdef G_OS_WIN32
-    win32_play(path);
-#else
-    gchar *command[] = { APP_SOUND_EXEC, path, NULL };
-    GError *error = NULL;
-    if(!g_spawn_async(NULL, command, NULL, G_SPAWN_SEARCH_PATH, 0, NULL, NULL, &error))
-    {
-        fprintf(stderr, "Unable to start " APP_SOUND_EXEC ": %s\n", error->message);
-        g_error_free(error);
-    }
-#endif
-
-    g_free(path);
-}
 
 void
 ui_screenshot(void)

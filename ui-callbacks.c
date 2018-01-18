@@ -19,11 +19,12 @@
 #include "ui-view.h"
 #include "gps.h"
 #include "scanlist.h"
-#include "mt-ssh.h"
 #include "ui-dialogs.h"
+#include "conf.h"
+#include "misc.h"
 
-static gboolean ui_callback_heartbeat_timeout(gpointer);
 static gboolean ui_callback_timeout(gpointer);
+static gboolean ui_callback_heartbeat_timeout(gpointer);
 
 void
 ui_callback_status(const mt_ssh_t *context,
@@ -106,6 +107,7 @@ ui_callback_state(const mt_ssh_t *context,
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_scan), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_sniff), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_restart), TRUE);
+    ui.activity_ts = UNIX_TIMESTAMP();
 }
 
 void
@@ -147,7 +149,6 @@ ui_callback_network(const mt_ssh_t *context,
 void
 ui_callback_heartbeat(const mt_ssh_t *context)
 {
-    static guint timeout_id = 0;
     gint ret;
 
     if(ui.conn != context)
@@ -160,7 +161,8 @@ ui_callback_heartbeat(const mt_ssh_t *context)
         case MODEL_UPDATE_NEW_HIGHLIGHT:
         case MODEL_UPDATE_NEW:
             ui_view_check_position(ui.treeview);
-            ui_play_sound((ret == MODEL_UPDATE_NEW_HIGHLIGHT ? APP_SOUND_NETWORK2 : APP_SOUND_NETWORK));
+            if(conf_get_interface_sound())
+                mtscan_sound((ret == MODEL_UPDATE_NEW_HIGHLIGHT ? APP_SOUND_NETWORK2 : APP_SOUND_NETWORK));
         case MODEL_UPDATE:
             ui_changed();
         case MODEL_UPDATE_ONLY_INACTIVE:
@@ -169,11 +171,40 @@ ui_callback_heartbeat(const mt_ssh_t *context)
     }
 
     gtk_widget_thaw_child_notify(ui.treeview);
-    ui_callback_heartbeat_timeout(GINT_TO_POINTER(ui.mode));
 
-    if(timeout_id)
-        g_source_remove(timeout_id);
-    timeout_id = g_timeout_add(ui.model->active_timeout * 1000, ui_callback_timeout, &timeout_id);
+    ui.activity = ui.mode;
+    ui.activity_ts = UNIX_TIMESTAMP();
+    gtk_widget_queue_draw(ui.activity_icon);
+
+    if(ui.activity_timeout)
+        g_source_remove(ui.activity_timeout);
+    ui.activity_timeout = g_timeout_add(500, ui_callback_heartbeat_timeout, &ui);
+
+    if(ui.data_timeout)
+        g_source_remove(ui.data_timeout);
+    ui.data_timeout = g_timeout_add(ui.model->active_timeout * 1000, ui_callback_timeout, &ui);
+}
+
+static gboolean
+ui_callback_timeout(gpointer user_data)
+{
+    mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
+
+    mtscan_model_clear_active(ui->model);
+    ui_status_update_networks();
+    ui->data_timeout = 0;
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean
+ui_callback_heartbeat_timeout(gpointer user_data)
+{
+    mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
+
+    ui->activity = MTSCAN_MODE_NONE;
+    gtk_widget_queue_draw(ui->activity_icon);
+    ui->activity_timeout = 0;
+    return G_SOURCE_REMOVE;
 }
 
 void
@@ -181,34 +212,4 @@ ui_callback_scanlist(const mt_ssh_t *context,
                      const gchar    *data)
 {
     scanlist_current(data);
-}
-
-static gboolean
-ui_callback_heartbeat_timeout(gpointer data)
-{
-    static guint timeout_id = 0;
-    ui.activity = GPOINTER_TO_INT(data);
-    gtk_widget_queue_draw(ui.activity_icon);
-
-    if(ui.activity)
-    {
-        if(timeout_id)
-            g_source_remove(timeout_id);
-        timeout_id = g_timeout_add(500, ui_callback_heartbeat_timeout, GINT_TO_POINTER(FALSE));
-    }
-    else
-    {
-        timeout_id = 0;
-    }
-    return FALSE;
-}
-
-static gboolean
-ui_callback_timeout(gpointer data)
-{
-    guint *timeout_id = (guint*)data;
-    mtscan_model_clear_active(ui.model);
-    ui_status_update_networks();
-    *timeout_id = 0;
-    return FALSE;
 }

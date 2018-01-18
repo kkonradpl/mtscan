@@ -76,9 +76,13 @@ typedef struct mtscan_gtk
 
     ui_connection_t *conn_dialog;
     mt_ssh_t *conn;
+
     gboolean connected;
     gint mode;
     gint activity;
+    gint64 activity_ts;
+    guint activity_timeout;
+    guint data_timeout;
 } mtscan_gtk_t;
 
 mtscan_gtk_t ui;
@@ -94,7 +98,6 @@ void ui_status_update_networks(void);
 void ui_set_title(gchar*);
 void ui_clear(void);
 void ui_show_uri(const gchar*);
-void ui_play_sound(gchar*);
 void ui_screenshot(void);
 
 #endif

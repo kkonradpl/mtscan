@@ -28,4 +28,6 @@ void fill_tree_from_liststore(GTree*, GtkListStore*);
 
 gint64 str_addr_to_gint64(const gchar*, gint);
 
+void mtscan_sound(const gchar *);
+
 #endif
