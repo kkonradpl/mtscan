@@ -34,6 +34,7 @@
 #define CONF_DEFAULT_INTERFACE_LAST_PROFILE  -1
 #define CONF_DEFAULT_INTERFACE_SOUND         FALSE
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
+#define CONF_DEFAULT_INTERFACE_AUTOSAVE      FALSE
 #define CONF_DEFAULT_INTERFACE_GPS           FALSE
 #define CONF_DEFAULT_INTERFACE_ROTATOR       FALSE
 
@@ -51,9 +52,11 @@
 #define CONF_DEFAULT_PATH_LOG_OPEN   ""
 #define CONF_DEFAULT_PATH_LOG_SAVE   ""
 #define CONF_DEFAULT_PATH_LOG_EXPORT ""
+#define CONF_DEFAULT_PATH_AUTOSAVE   ""
 #define CONF_DEFAULT_PATH_SCREENSHOT ""
 
 #define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
+#define CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL      5
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
 #define CONF_DEFAULT_PREFERENCES_NOISE_COLUMN           FALSE
 #define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN          FALSE
@@ -91,6 +94,7 @@ typedef struct conf
     /* [interface] */
     gboolean interface_sound;
     gboolean interface_dark_mode;
+    gboolean interface_autosave;
     gboolean interface_gps;
     gint     interface_last_profile;
     gboolean interface_rotator;
@@ -105,10 +109,12 @@ typedef struct conf
     gchar *path_log_open;
     gchar *path_log_save;
     gchar *path_log_export;
+    gchar *path_autosave;
     gchar *path_screenshot;
 
     /* [preferences] */
     gint      preferences_icon_size;
+    gint      preferences_autosave_interval;
     gint      preferences_search_column;
     gboolean  preferences_noise_column;
     gboolean  preferences_latlon_column;
@@ -196,6 +202,7 @@ conf_read(void)
 
     conf.interface_sound = conf_read_boolean("interface", "sound", CONF_DEFAULT_INTERFACE_SOUND);
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
+    conf.interface_autosave = conf_read_boolean("interface", "autosave", CONF_DEFAULT_INTERFACE_AUTOSAVE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
     conf.interface_rotator = conf_read_boolean("interface", "rotator", CONF_DEFAULT_INTERFACE_ROTATOR);
@@ -206,9 +213,11 @@ conf_read(void)
     conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
     conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
     conf.path_log_export = conf_read_string("path", "log_export", CONF_DEFAULT_PATH_LOG_EXPORT);
+    conf.path_autosave = conf_read_string("path", "autosave", CONF_DEFAULT_PATH_AUTOSAVE);
     conf.path_screenshot = conf_read_string("path", "screenshot", CONF_DEFAULT_PATH_SCREENSHOT);
 
     conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
+    conf.preferences_autosave_interval = conf_read_integer("preferences", "autosave_interval", CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
     conf.preferences_noise_column = conf_read_boolean("preferences", "noise_column", CONF_DEFAULT_PREFERENCES_NOISE_COLUMN);
     conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
@@ -388,6 +397,7 @@ conf_save(void)
 
     g_key_file_set_boolean(conf.keyfile, "interface", "sound", conf.interface_sound);
     g_key_file_set_boolean(conf.keyfile, "interface", "dark_mode", conf.interface_dark_mode);
+    g_key_file_set_boolean(conf.keyfile, "interface", "autosave", conf.interface_autosave);
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
     g_key_file_set_boolean(conf.keyfile, "interface", "rotator", conf.interface_rotator);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
@@ -398,9 +408,11 @@ conf_save(void)
     g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
     g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
     g_key_file_set_string(conf.keyfile, "path", "log_export", conf.path_log_export);
+    g_key_file_set_string(conf.keyfile, "path", "autosave", conf.path_autosave);
     g_key_file_set_string(conf.keyfile, "path", "screenshot", conf.path_screenshot);
 
     g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
+    g_key_file_set_integer(conf.keyfile, "preferences", "autosave_interval", conf.preferences_autosave_interval);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "noise_column", conf.preferences_noise_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
@@ -629,6 +641,18 @@ conf_set_interface_dark_mode(gboolean dark_mode)
 }
 
 gboolean
+conf_get_interface_autosave(void)
+{
+    return conf.interface_autosave;
+}
+
+void
+conf_set_interface_autosave(gboolean autosave)
+{
+    conf.interface_autosave = autosave;
+}
+
+gboolean
 conf_get_interface_gps(void)
 {
     return conf.interface_gps;
@@ -732,6 +756,18 @@ conf_set_path_log_export(const gchar *path)
 }
 
 const gchar*
+conf_get_path_autosave(void)
+{
+    return conf.path_autosave;
+}
+
+void
+conf_set_path_autosave(const gchar *path)
+{
+    conf_change_string(&conf.path_autosave, path);
+}
+
+const gchar*
 conf_get_path_screenshot(void)
 {
     return conf.path_screenshot;
@@ -753,6 +789,18 @@ void
 conf_set_preferences_icon_size(gint value)
 {
     conf.preferences_icon_size = value;
+}
+
+gint
+conf_get_preferences_autosave_interval(void)
+{
+    return (conf.preferences_autosave_interval > 0 ? conf.preferences_autosave_interval : 1);
+}
+
+void
+conf_set_preferences_autosave_interval(gint value)
+{
+    conf.preferences_autosave_interval = value;
 }
 
 gint

@@ -17,7 +17,13 @@
 #define MTSCAN_LOG_H_
 #include <gtk/gtk.h>
 
+typedef struct log_save_error
+{
+    gint wrote;
+    gint length;
+} log_save_error_t;
+
 void log_open(GSList*, gboolean);
-gboolean log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
 
 #endif

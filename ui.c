@@ -33,6 +33,8 @@
 #include "win32.h"
 #endif
 
+#define ACTIVITY_TIMEOUT 5
+
 #define UI_DRAG_URI_LIST_ID 0
 static const GtkTargetEntry drop_types[] = {{ "text/uri-list", 0, UI_DRAG_URI_LIST_ID }};
 static const gint n_drop_types = sizeof(drop_types) / sizeof(drop_types[0]);
@@ -48,7 +50,8 @@ static gboolean ui_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean ui_delete_event(GtkWidget*, GdkEvent*, gpointer);
 static void ui_drag_data_received(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, guint);
 static gboolean ui_idle_timeout(gpointer);
-static void ui_status_gps_timeout();
+static gboolean ui_idle_timeout_autosave(gpointer);
+static void ui_status_gps_timeout(mtscan_gtk_t*);
 static gchar* ui_get_name(const gchar*);
 
 void
@@ -119,6 +122,7 @@ ui_init(void)
 
     ui_idle_timeout(&ui);
     g_timeout_add(1000, ui_idle_timeout, &ui);
+    g_timeout_add(1000, ui_idle_timeout_autosave, &ui);
 
     gtk_drag_dest_set(ui.window, GTK_DEST_DEFAULT_ALL, drop_types, n_drop_types, GDK_ACTION_COPY);
     g_signal_connect(ui.window, "drag-data-received", G_CALLBACK(ui_drag_data_received), NULL);
@@ -152,6 +156,9 @@ ui_restore(void)
 
     if(conf_get_interface_dark_mode())
         g_signal_emit_by_name(ui.b_mode, "clicked");
+
+    if(conf_get_interface_autosave())
+        g_signal_emit_by_name(ui.b_autosave, "clicked");
 
     if(conf_get_interface_sound())
         g_signal_emit_by_name(ui.b_sound, "clicked");
@@ -263,13 +270,46 @@ ui_idle_timeout(gpointer user_data)
 
     if(conf_get_interface_sound() &&
        ui->mode != MTSCAN_MODE_NONE &&
-       (ts - ui->activity_ts) > 5 &&
+       (ts - ui->activity_ts) >= ACTIVITY_TIMEOUT &&
        (ts % 2) == 0)
     {
         mtscan_sound(APP_SOUND_NODATA);
     }
 
     ui_status_gps_timeout(ui);
+    return G_SOURCE_CONTINUE;
+}
+
+static gboolean
+ui_idle_timeout_autosave(gpointer user_data)
+{
+    mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
+    gint64 ts;
+    gchar *filename;
+
+    if(conf_get_interface_autosave() &&
+       ui->changed &&
+       ui->mode != MTSCAN_MODE_NONE)
+    {
+        ts = UNIX_TIMESTAMP();
+        if((ts - ui->log_ts) >= conf_get_preferences_autosave_interval()*60)
+        {
+            filename = (!ui->filename ? timestamp_to_filename(conf_get_path_autosave(), ui->log_ts) : NULL);
+
+            if(!ui_log_save_full((!filename ? ui->filename : filename), FALSE, FALSE, FALSE, NULL, FALSE))
+            {
+                g_signal_emit_by_name(ui->b_autosave, "clicked");
+
+                ui_dialog(GTK_WINDOW(ui->window),
+                          GTK_MESSAGE_ERROR,
+                          "Error",
+                          "Unable to save a file:\n%s\n\n<b>Autosave has been disabled.</b>",
+                          (!filename ? ui->filename : filename));
+
+                g_free(filename);
+            }
+        }
+    }
     return G_SOURCE_CONTINUE;
 }
 
@@ -319,7 +359,6 @@ ui_status_gps_timeout(mtscan_gtk_t *ui)
         }
         last_gps_state = state;
     }
-
 }
 
 void
@@ -359,6 +398,7 @@ ui_changed(void)
     if(!ui.changed)
     {
         ui.changed = TRUE;
+        ui.log_ts = UNIX_TIMESTAMP();
         ui_set_title(ui.filename);
     }
 }
@@ -542,4 +582,62 @@ ui_screenshot(void)
 #endif
     g_free(path);
     g_free(filename);
+}
+
+gboolean
+ui_log_save(gchar       *filename,
+            gboolean     strip_signals,
+            gboolean     strip_gps,
+            gboolean     strip_azi,
+            GList       *iterlist,
+            gboolean     show_message)
+{
+    log_save_error_t *error;
+    error = log_save(filename, strip_signals, strip_gps, strip_azi, iterlist);
+
+    if(error)
+    {
+        if(show_message)
+        {
+            if (error->length != error->wrote)
+            {
+                ui_dialog(GTK_WINDOW(ui.window),
+                          GTK_MESSAGE_ERROR,
+                          "Error",
+                          "Unable to save a file:\n%s\n\nWrote only %d of %d uncompressed bytes.",
+                          filename, error->wrote, error->length);
+            }
+            else
+            {
+                ui_dialog(GTK_WINDOW(ui.window),
+                          GTK_MESSAGE_ERROR,
+                          "Error",
+                          "Unable to save a file:\n%s",
+                          filename);
+            }
+        }
+        g_free(error);
+        return FALSE;
+    }
+    return TRUE;
+}
+
+
+gboolean
+ui_log_save_full(gchar       *filename,
+                 gboolean     strip_signals,
+                 gboolean     strip_gps,
+                 gboolean     strip_azi,
+                 GList       *iterlist,
+                 gboolean     show_message)
+{
+    if(ui_log_save(filename, strip_signals, strip_gps, strip_azi, iterlist, show_message))
+    {
+        /* update the window title */
+        ui.changed = FALSE;
+        ui.log_ts = UNIX_TIMESTAMP();
+        ui_set_title(filename);
+        return TRUE;
+    }
+    return FALSE;
 }

@@ -41,6 +41,9 @@ void conf_set_interface_sound(gboolean);
 gboolean conf_get_interface_dark_mode(void);
 void conf_set_interface_dark_mode(gboolean);
 
+gboolean conf_get_interface_autosave(void);
+void conf_set_interface_autosave(gboolean);
+
 gboolean conf_get_interface_gps(void);
 void conf_set_interface_gps(gboolean);
 
@@ -68,12 +71,18 @@ void conf_set_path_log_save(const gchar*);
 const gchar* conf_get_path_log_export(void);
 void conf_set_path_log_export(const gchar*);
 
+const gchar* conf_get_path_autosave(void);
+void conf_set_path_autosave(const gchar*);
+
 const gchar* conf_get_path_screenshot(void);
 void conf_set_path_screenshot(const gchar*);
 
 /* Configuration [preferences] */
 gint conf_get_preferences_icon_size(void);
 void conf_set_preferences_icon_size(gint);
+
+gint conf_get_preferences_autosave_interval(void);
+void conf_set_preferences_autosave_interval(gint);
 
 gint conf_get_preferences_search_column(void);
 void conf_set_preferences_search_column(gint);

@@ -206,3 +206,25 @@ mtscan_sound(const gchar *filename)
 
     g_free(path);
 }
+
+gchar*
+timestamp_to_filename(const gchar *path,
+                      gint64       ts)
+{
+    static gchar output[50];
+    struct tm *tm;
+#ifdef G_OS_WIN32
+    __time64_t ts_val;
+
+    ts_val = (__time64_t)ts;
+    tm = _localtime64(&ts_val);
+#else
+    time_t ts_val;
+
+    ts_val = (time_t)ts;
+    tm = localtime(&ts_val);
+#endif
+
+    strftime(output, sizeof(output), "%Y%m%d-%H%M%S" APP_FILE_EXT APP_FILE_COMPRESS, tm);
+    return g_build_filename(path, output, NULL);
+}

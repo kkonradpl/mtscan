@@ -46,6 +46,12 @@ typedef struct ui_preferences
     GtkWidget *table_general;
     GtkWidget *l_general_icon_size;
     GtkWidget *s_general_icon_size;
+    GtkWidget *l_general_icon_size_unit;
+    GtkWidget *l_general_autosave_interval;
+    GtkWidget *s_general_autosave_interval;
+    GtkWidget *l_general_autosave_interval_unit;
+    GtkWidget *l_general_autosave_directory;
+    GtkWidget *c_general_autosave_directory;
     GtkWidget *l_general_screenshot_directory;
     GtkWidget *c_general_screenshot_directory;
     GtkWidget *l_general_search_column;
@@ -112,25 +118,43 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(6, 2, TRUE);
+    p.table_general = gtk_table_new(10, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
     gtk_container_add(GTK_CONTAINER(p.page_general), p.table_general);
 
     row = 0;
-    p.l_general_icon_size = gtk_label_new("Icon size [px]:");
+    p.l_general_icon_size = gtk_label_new("Icon size:");
     gtk_misc_set_alignment(GTK_MISC(p.l_general_icon_size), 0.0, 0.5);
     gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_icon_size, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.s_general_icon_size = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 16.0, 64.0, 1.0, 10.0, 0.0)), 0, 0);
     gtk_table_attach(GTK_TABLE(p.table_general), p.s_general_icon_size, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.l_general_icon_size_unit = gtk_label_new("px");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_icon_size_unit, 2, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
-    p.l_general_screenshot_directory = gtk_label_new("Screenshots:");
+    p.l_general_autosave_interval = gtk_label_new("Autosave interval:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_general_autosave_interval), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_autosave_interval, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_general_autosave_interval = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 1.0, 60.0, 1.0, 5.0, 0.0)), 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.s_general_autosave_interval, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.l_general_autosave_interval_unit = gtk_label_new("min");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_autosave_interval_unit, 2, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_general_autosave_directory = gtk_label_new("Autosave path:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_general_autosave_directory), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_autosave_directory, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.c_general_autosave_directory = gtk_file_chooser_button_new("Autosave", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_autosave_directory, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_general_screenshot_directory = gtk_label_new("Screenshot path:");
     gtk_misc_set_alignment(GTK_MISC(p.l_general_screenshot_directory), 0.0, 0.5);
     gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_screenshot_directory, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.c_general_screenshot_directory = gtk_file_chooser_button_new("Screenshots", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-    gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_screenshot_directory, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_screenshot_directory, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.l_general_search_column = gtk_label_new("Search column:");
@@ -140,26 +164,26 @@ ui_preferences_dialog(void)
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(p.c_general_search_column), "Address");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(p.c_general_search_column), "SSID");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(p.c_general_search_column), "Radio name");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_search_column, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_search_column, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_general_noise_column = gtk_check_button_new_with_label("Show noise floor column");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_noise_column, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_noise_column, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_general_latlon_column = gtk_check_button_new_with_label("Show latitude & longitude column");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_latlon_column, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_latlon_column, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_general_azimuth_column = gtk_check_button_new_with_label("Show azimuth column");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_azimuth_column, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_azimuth_column, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
-    gtk_table_attach(GTK_TABLE(p.table_general), gtk_hseparator_new(), 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), gtk_hseparator_new(), 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_general_signals = gtk_check_button_new_with_label("Record all signal samples");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_signals, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_signals, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     /* GPS */
     p.page_gps = gtk_vbox_new(FALSE, 5);
@@ -427,6 +451,8 @@ ui_preferences_load(ui_preferences_t *p)
 
     /* General */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_general_icon_size), conf_get_preferences_icon_size());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_general_autosave_interval), conf_get_preferences_autosave_interval());
+    gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_autosave_directory), conf_get_path_autosave());
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory), conf_get_path_screenshot());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_noise_column), conf_get_preferences_noise_column());
@@ -459,6 +485,7 @@ ui_preferences_apply(GtkWidget *widget,
 {
     ui_preferences_t *p = (ui_preferences_t*)data;
     gint new_icon_size;
+    gchar *new_autosave_directory;
     gchar *new_screenshot_directory;
     gint new_search_column;
     gboolean new_noise_column;
@@ -474,6 +501,12 @@ ui_preferences_apply(GtkWidget *widget,
         conf_set_preferences_icon_size(new_icon_size);
         ui_view_set_icon_size(ui.treeview, new_icon_size);
     }
+
+    conf_set_preferences_autosave_interval(gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_general_autosave_interval)));
+
+    new_autosave_directory = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->c_general_autosave_directory));
+    conf_set_path_autosave(new_autosave_directory ? new_autosave_directory : "");
+    g_free(new_autosave_directory);
 
     new_screenshot_directory = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory));
     conf_set_path_screenshot(new_screenshot_directory ? new_screenshot_directory : "");

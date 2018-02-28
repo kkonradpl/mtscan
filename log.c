@@ -168,6 +168,7 @@ log_open(GSList   *filenames,
     if(!merge)
         ui_clear();
 
+    ui_set_title(NULL);
     ui_view_lock(ui.treeview);
 
     while(filenames != NULL)
@@ -244,11 +245,7 @@ log_open(GSList   *filenames,
     {
         ui_status_update_networks();
         if(merge)
-        {
-            /* Set filename to NULL after merge */
-            ui_set_title(NULL);
             ui_changed();
-        }
     }
 }
 
@@ -459,7 +456,7 @@ parse_array_end(gpointer ptr)
     return 1;
 }
 
-gboolean
+log_save_error_t*
 log_save(gchar       *filename,
          gboolean     strip_signals,
          gboolean     strip_gps,
@@ -475,6 +472,7 @@ log_save(gchar       *filename,
     size_t json_length;
     gint wrote;
     GList *i;
+    log_save_error_t *ret;
 
     ext = strrchr(filename, '.');
     compression = (ext && !g_ascii_strcasecmp(ext, ".gz"));
@@ -486,11 +484,8 @@ log_save(gchar       *filename,
 
     if(!gzfp && !fp)
     {
-        ui_dialog(GTK_WINDOW(ui.window),
-                  GTK_MESSAGE_ERROR,
-                  "Error",
-                  "Unable to save a file:\n%s", filename);
-        return FALSE;
+        ret = g_malloc0(sizeof(log_save_error_t));
+        return ret;
     }
 
     ctx.gen = yajl_gen_alloc(NULL);
@@ -520,7 +515,7 @@ log_save(gchar       *filename,
     }
     else
     {
-        wrote = fwrite(json_string, sizeof(gchar), json_length, fp);
+        wrote = (gint)fwrite(json_string, sizeof(gchar), json_length, fp);
         fclose(fp);
     }
 
@@ -528,14 +523,13 @@ log_save(gchar       *filename,
 
     if(json_length != wrote)
     {
-        ui_dialog(GTK_WINDOW(ui.window),
-                  GTK_MESSAGE_ERROR,
-                  "Error",
-                  "Unable to save a file:\n%s\n\nWrote only %d of %d uncompressed bytes.",
-                  filename, wrote, json_length);
-        return FALSE;
+        ret = g_malloc(sizeof(log_save_error_t));
+        ret->wrote = wrote;
+        ret->length = json_length;
+        return ret;
     }
-    return TRUE;
+
+    return NULL;
 }
 
 static gboolean

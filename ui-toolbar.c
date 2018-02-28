@@ -49,6 +49,7 @@ static void ui_toolbar_screenshot(GtkWidget*, gpointer);
 static void ui_toolbar_preferences(GtkWidget*, gpointer);
 static void ui_toolbar_sound(GtkWidget*, gpointer);
 static void ui_toolbar_mode(GtkWidget*, gpointer);
+static void ui_toolbar_autosave(GtkWidget*, gpointer);
 static void ui_toolbar_gps(GtkWidget*, gpointer);
 static void ui_toolbar_about(GtkWidget*, gpointer);
 
@@ -197,6 +198,13 @@ ui_toolbar_create(void)
     g_signal_connect(ui.b_mode, "clicked", G_CALLBACK(ui_toolbar_mode), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_mode, -1);
 
+    ui.b_autosave = gtk_toggle_tool_button_new();
+    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_autosave), gtk_image_new_from_stock(GTK_STOCK_FLOPPY, GTK_ICON_SIZE_BUTTON));
+    gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_autosave), "Enable autosave");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_autosave), "Enable autosave");
+    g_signal_connect(ui.b_autosave, "clicked", G_CALLBACK(ui_toolbar_autosave), NULL);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_autosave, -1);
+
     ui.b_gps = gtk_toggle_tool_button_new();
     gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_gps), gtk_image_new_from_icon_name("mtscan-gps", GTK_ICON_SIZE_BUTTON));
     gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_gps), "Enable GPS");
@@ -243,7 +251,7 @@ static void
 ui_toolbar_scan(GtkWidget *widget,
                 gpointer   data)
 {
-    ui_toolbar_mode_set_state((ui.mode == MTSCAN_MODE_SCANNER));
+    ui_toolbar_mode_set_state(ui.mode);
     if(ui.conn)
     {
         mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
@@ -257,7 +265,7 @@ static void
 ui_toolbar_sniff(GtkWidget *widget,
                  gpointer   data)
 {
-    ui_toolbar_mode_set_state((ui.mode == MTSCAN_MODE_SNIFFER));
+    ui_toolbar_mode_set_state(ui.mode);
     if(ui.conn)
     {
         mt_ssh_cmd(ui.conn, MT_SSH_CMD_STOP, NULL);
@@ -390,12 +398,7 @@ ui_toolbar_save(GtkWidget *widget,
         return;
     }
 
-    if(log_save(ui.filename, FALSE, FALSE, FALSE, NULL))
-    {
-        /* update the window title */
-        ui.changed = FALSE;
-        ui_set_title(ui.filename);
-    }
+    ui_log_save_full(ui.filename, FALSE, FALSE, FALSE, NULL, TRUE);
 }
 
 static void
@@ -405,16 +408,8 @@ ui_toolbar_save_as(GtkWidget *widget,
     ui_dialog_save_t *s = ui_dialog_save(GTK_WINDOW(ui.window));
     if(s)
     {
-        if(log_save(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, NULL))
-        {
-            /* update the window title */
-            ui.changed = FALSE;
-            ui_set_title(s->filename);
-        }
-        else
-        {
+        if(!ui_log_save_full(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, NULL, TRUE))
             g_free(s->filename);
-        }
         g_free(s);
     }
 }
@@ -482,6 +477,19 @@ ui_toolbar_mode(GtkWidget *widget,
     g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_mode), NULL);
     gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(widget), pressed);
     g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_mode), NULL);
+}
+
+static void
+ui_toolbar_autosave(GtkWidget *widget,
+                    gpointer   data)
+{
+    static gboolean pressed = FALSE;
+    pressed = !pressed;
+    conf_set_interface_autosave(pressed);
+
+    g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_autosave), NULL);
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(widget), pressed);
+    g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_autosave), NULL);
 }
 
 static void

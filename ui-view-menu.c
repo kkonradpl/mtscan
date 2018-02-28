@@ -18,7 +18,6 @@
 #include "ui.h"
 #include "ui-view.h"
 #include "ui-dialogs.h"
-#include "log.h"
 #include "scanlist.h"
 #include "conf.h"
 #include "misc.h"
@@ -499,7 +498,7 @@ ui_view_menu_save_as(GtkWidget *menuitem,
             gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
             iterlist = g_list_append(iterlist, (gpointer)gtk_tree_iter_copy(&iter));
         }
-        log_save(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, iterlist);
+        ui_log_save(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, iterlist, TRUE);
         g_free(s->filename);
         g_free(s);
     }

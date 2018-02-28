@@ -40,7 +40,7 @@
 #define SOCKET_BUFFER  PTY_COLS*20
 #define READ_TIMEOUT_MSEC      100
 
-#define DEBUG    1
+#define DEBUG    0
 #define DUMP_PTY 0
 
 #define SSID_LEN        32

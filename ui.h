@@ -56,6 +56,7 @@ typedef struct mtscan_gtk
     GtkToolItem *b_preferences;
     GtkToolItem *b_sound;
     GtkToolItem *b_mode;
+    GtkToolItem *b_autosave;
     GtkToolItem *b_gps;
     GtkToolItem *b_about;
 
@@ -73,6 +74,7 @@ typedef struct mtscan_gtk
     gboolean changed;
     gchar *filename;
     gchar *name;
+    gint64 log_ts;
 
     ui_connection_t *conn_dialog;
     mt_ssh_t *conn;
@@ -99,5 +101,8 @@ void ui_set_title(gchar*);
 void ui_clear(void);
 void ui_show_uri(const gchar*);
 void ui_screenshot(void);
+
+gboolean ui_log_save(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
+gboolean ui_log_save_full(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
 
 #endif
