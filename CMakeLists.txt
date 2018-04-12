@@ -34,6 +34,8 @@ set(SOURCE_FILES
         conf.h
         export.c
         export.h
+        gpsd.c
+        gpsd.h
         gps.c
         gps.h
         log.c
@@ -84,7 +86,7 @@ set(LIBRARIES
         m)
 
 set(LIBRARIES_UNIX
-        gps)
+        )
 
 set(LIBRARIES_MINGW
         ws2_32

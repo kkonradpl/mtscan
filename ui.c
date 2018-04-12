@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -15,6 +15,7 @@
 
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <gdk/gdkkeysyms.h>
 #include "ui.h"
 #include "ui-dialogs.h"
@@ -51,7 +52,7 @@ static gboolean ui_delete_event(GtkWidget*, GdkEvent*, gpointer);
 static void ui_drag_data_received(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, guint);
 static gboolean ui_idle_timeout(gpointer);
 static gboolean ui_idle_timeout_autosave(gpointer);
-static void ui_status_gps_timeout(mtscan_gtk_t*);
+static void ui_gps(mtscan_gps_state_t, const mtscan_gps_data_t*, gpointer);
 static gchar* ui_get_name(const gchar*);
 
 void
@@ -123,6 +124,7 @@ ui_init(void)
     ui_idle_timeout(&ui);
     g_timeout_add(1000, ui_idle_timeout, &ui);
     g_timeout_add(1000, ui_idle_timeout_autosave, &ui);
+    gps_set_callback(ui_gps, &ui);
 
     gtk_drag_dest_set(ui.window, GTK_DEST_DEFAULT_ALL, drop_types, n_drop_types, GDK_ACTION_COPY);
     g_signal_connect(ui.window, "drag-data-received", G_CALLBACK(ui_drag_data_received), NULL);
@@ -267,6 +269,7 @@ ui_idle_timeout(gpointer user_data)
 {
     mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
     gint64 ts = UNIX_TIMESTAMP();
+    mtscan_gps_state_t state;
 
     if(conf_get_interface_sound() &&
        ui->mode != MTSCAN_MODE_NONE &&
@@ -276,7 +279,15 @@ ui_idle_timeout(gpointer user_data)
         mtscan_sound(APP_SOUND_NODATA);
     }
 
-    ui_status_gps_timeout(ui);
+    state = gps_get_data(NULL);
+    if(conf_get_interface_sound() &&
+       state > GPS_OFF &&
+       state < GPS_OK &&
+       (ts % 2) != 0)
+    {
+        mtscan_sound(APP_SOUND_GPSLOST);
+    }
+
     return G_SOURCE_CONTINUE;
 }
 
@@ -314,50 +325,62 @@ ui_idle_timeout_autosave(gpointer user_data)
 }
 
 static void
-ui_status_gps_timeout(mtscan_gtk_t *ui)
+ui_gps(mtscan_gps_state_t       state,
+       const mtscan_gps_data_t *gps_data,
+       gpointer                 user_data)
 {
-    static gint last_gps_state = -1;
-    const mtscan_gps_data_t *gps_data;
-    gint state;
+    mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
+    GString *string;
     gchar *text;
 
-    state = gps_get_data(&gps_data);
-
-    if(conf_get_interface_sound() &&
-       state > GPS_OFF &&
-       state < GPS_OK &&
-       UNIX_TIMESTAMP() % 2)
+    switch(state)
     {
-        mtscan_sound(APP_SOUND_GPSLOST);
-    }
-
-    if(state != last_gps_state || state == GPS_OK)
-    {
-        switch(state)
-        {
         case GPS_OFF:
             gtk_label_set_text(GTK_LABEL(ui->l_gps_status), "GPS: off");
             break;
         case GPS_OPENING:
             gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>opening…</b></span>");
             break;
-        case GPS_WAITING_FOR_DATA:
-            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>waiting for data</b></span>");
+        case GPS_AWAITING:
+            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>awaiting…</b></span>");
             break;
-        case GPS_INVALID:
+        case GPS_NO_FIX:
             gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>no fix</b></span>");
             break;
         case GPS_OK:
-            text = g_strdup_printf("GPS: %c%.5f° %c%.5f° (HDOP: %.1f)",
+            string = g_string_new("GPS: ");
+            g_string_append_printf(string, " %c%.5f° %c%.5f°",
                                    (gps_data->lat >= 0.0 ? 'N' : 'S'),
                                    gps_data->lat,
                                    (gps_data->lon >= 0.0 ? 'E' : 'W'),
-                                   gps_data->lon,
-                                   gps_data->hdop);
+                                   gps_data->lon);
+
+            if(conf_get_preferences_gps_show_errors() &&
+               !isnan(gps_data->epx) && !isnan(gps_data->epy))
+            {
+                g_string_append_printf(string, " (±%.0f/%.0fm)",
+                                       round(gps_data->epy),
+                                       round(gps_data->epx));
+            }
+
+            if(conf_get_preferences_gps_show_altitude() &&
+               !isnan(gps_data->alt))
+            {
+
+                g_string_append_printf(string, " %.0fm",
+                                       round(gps_data->alt));
+
+                if(conf_get_preferences_gps_show_errors() &&
+                   !isnan(gps_data->epv))
+                {
+                    g_string_append_printf(string, " (±%.0fm)",
+                                           round(gps_data->epv));
+                }
+            }
+
+            text = g_string_free(string, FALSE);
             gtk_label_set_text(GTK_LABEL(ui->l_gps_status), text);
             g_free(text);
-        }
-        last_gps_state = state;
     }
 }
 

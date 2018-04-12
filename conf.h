@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -104,6 +104,12 @@ void conf_set_preferences_gps_hostname(const gchar*);
 
 gint conf_get_preferences_gps_tcp_port(void);
 void conf_set_preferences_gps_tcp_port(gint);
+
+gboolean conf_get_preferences_gps_show_altitude(void);
+void conf_set_preferences_gps_show_altitude(gboolean);
+
+gboolean conf_get_preferences_gps_show_errors(void);
+void conf_set_preferences_gps_show_errors(gboolean);
 
 const gchar* conf_get_preferences_rotator_hostname(void);
 void conf_set_preferences_rotator_hostname(const gchar*);

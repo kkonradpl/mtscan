@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -16,36 +16,30 @@
 #ifndef MTSCAN_GPS_H_
 #define MTSCAN_GPS_H_
 
-enum
+typedef enum mtscan_gps_state
 {
     GPS_OFF,
     GPS_OPENING,
-    GPS_WAITING_FOR_DATA,
-    GPS_INVALID,
+    GPS_AWAITING,
+    GPS_NO_FIX,
     GPS_OK
-};
-
-typedef struct mtscan_gps
-{
-    gchar *host;
-    gchar *port;
-    volatile gboolean connected;
-    volatile gboolean canceled;
-} mtscan_gps_t;
+} mtscan_gps_state_t;
 
 typedef struct mtscan_gps_data
 {
+    gboolean valid;
     gboolean fix;
     gdouble lat;
     gdouble lon;
-    gdouble hdop;
-    gint sat;
-    gint64 timestamp;
-    mtscan_gps_t *source;
+    gdouble alt;
+    gdouble epx;
+    gdouble epy;
+    gdouble epv;
 } mtscan_gps_data_t;
 
 void gps_start(const gchar*, gint);
 void gps_stop(void);
-gint gps_get_data(const mtscan_gps_data_t**);
+void gps_set_callback(void (*cb)(mtscan_gps_state_t, const mtscan_gps_data_t*, gpointer), gpointer);
+mtscan_gps_state_t gps_get_data(const mtscan_gps_data_t**);
 
 #endif

@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -64,6 +64,8 @@
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
+#define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE      TRUE
+#define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ERRORS        FALSE
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_HOSTNAME       "localhost"
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_TCP_PORT       7399
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_PASSWORD       ""
@@ -123,6 +125,8 @@ typedef struct conf
 
     gchar    *preferences_gps_hostname;
     gint      preferences_gps_tcp_port;
+    gboolean  preferences_gps_show_altitude;
+    gboolean  preferences_gps_show_errors;
 
     gchar    *preferences_rotator_hostname;
     gint      preferences_rotator_tcp_port;
@@ -226,6 +230,8 @@ conf_read(void)
 
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
+    conf.preferences_gps_show_altitude = conf_read_boolean("preferences", "gps_show_altitude", CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE);
+    conf.preferences_gps_show_errors = conf_read_boolean("preferences", "gps_show_errors", CONF_DEFAULT_PREFERENCES_GPS_SHOW_ERRORS);
 
     conf.preferences_rotator_hostname = conf_read_string("preferences", "rotator_hostname", CONF_DEFAULT_PREFERENCES_ROTATOR_HOSTNAME);
     conf.preferences_rotator_tcp_port = conf_read_integer("preferences", "rotator_tcp_port", CONF_DEFAULT_PREFERENCES_ROTATOR_TCP_PORT);
@@ -421,6 +427,8 @@ conf_save(void)
 
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "gps_show_altitude", conf.preferences_gps_show_altitude);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "gps_show_errors", conf.preferences_gps_show_errors);
 
     g_key_file_set_string(conf.keyfile, "preferences", "rotator_hostname", conf.preferences_rotator_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "rotator_tcp_port", conf.preferences_rotator_tcp_port);
@@ -885,6 +893,30 @@ void
 conf_set_preferences_gps_tcp_port(gint value)
 {
     conf.preferences_gps_tcp_port = value;
+}
+
+gboolean
+conf_get_preferences_gps_show_altitude(void)
+{
+    return conf.preferences_gps_show_altitude;
+}
+
+void
+conf_set_preferences_gps_show_altitude(gboolean value)
+{
+    conf.preferences_gps_show_altitude = value;
+}
+
+gboolean
+conf_get_preferences_gps_show_errors(void)
+{
+    return conf.preferences_gps_show_errors;
+}
+
+void
+conf_set_preferences_gps_show_errors(gboolean value)
+{
+    conf.preferences_gps_show_errors = value;
 }
 
 const gchar*

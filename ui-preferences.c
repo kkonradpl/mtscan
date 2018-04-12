@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -67,6 +67,8 @@ typedef struct ui_preferences
     GtkWidget *e_gps_hostname;
     GtkWidget *l_gps_tcp_port;
     GtkWidget *s_gps_tcp_port;
+    GtkWidget *x_gps_show_altitude;
+    GtkWidget *x_gps_show_errors;
 
     ui_preferences_list_t blacklist;
     ui_preferences_list_t highlightlist;
@@ -191,7 +193,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_gps, gtk_label_new("GPSd"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_gps, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_gps = gtk_table_new(2, 2, TRUE);
+    p.table_gps = gtk_table_new(4, 2, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_gps), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_gps), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_gps), 4);
@@ -210,6 +212,14 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_gps), p.l_gps_tcp_port, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.s_gps_tcp_port = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(2947.0, 1024.0, 65535.0, 1.0, 10.0, 0.0)), 0, 0);
     gtk_table_attach(GTK_TABLE(p.table_gps), p.s_gps_tcp_port, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_gps_show_altitude = gtk_check_button_new_with_label("Show altitude");
+    gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_altitude, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_gps_show_errors = gtk_check_button_new_with_label("Show error estimates");
+    gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     ui_preferences_list_create(&p.blacklist, p.notebook, "Blacklist", "Enable blacklist", "Invert to whitelist");
     ui_preferences_list_create(&p.highlightlist, p.notebook, "Highlight", "Enable highlight list", "Invert highlight list");
@@ -463,6 +473,8 @@ ui_preferences_load(ui_preferences_t *p)
     /* GPS */
     gtk_entry_set_text(GTK_ENTRY(p->e_gps_hostname), conf_get_preferences_gps_hostname());
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_gps_tcp_port), conf_get_preferences_gps_tcp_port());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_gps_show_altitude), conf_get_preferences_gps_show_altitude());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_gps_show_errors), conf_get_preferences_gps_show_errors());
 
     /* Blacklist */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled), conf_get_preferences_blacklist_enabled());
@@ -556,6 +568,8 @@ ui_preferences_apply(GtkWidget *widget,
             gps_start(new_gps_hostname, new_gps_tcp_port);
         }
     }
+    conf_set_preferences_gps_show_altitude(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_altitude)));
+    conf_set_preferences_gps_show_errors(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_errors)));
 
     /* Blacklist */
     conf_set_preferences_blacklist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled)));

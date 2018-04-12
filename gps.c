@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -15,162 +15,209 @@
 
 #include <gtk/gtk.h>
 #include <math.h>
-#ifndef G_OS_WIN32
-#include <gps.h>
-#endif
 #include "gps.h"
+#include "gpsd.h"
 
+#define GPS_RECONNECT_SEC    1
 #define GPS_DATA_TIMEOUT_SEC 5
-#define GPS_WAITING_LOOP_MSEC 100
-#define GPS_RECONNECT_DELAY_MSEC 1000
 
-#define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
+typedef struct gps_context
+{
+    gpsd_conn_t       *conn;
+    gboolean           connected;
+    guint              timeout_id;
+    mtscan_gps_data_t  data;
+    void             (*update_cb)(mtscan_gps_state_t, const mtscan_gps_data_t*, gpointer);
+    gpointer           update_cb_user_data;
+} gps_context_t;
 
-static mtscan_gps_t *gps_conn = NULL;
-static mtscan_gps_data_t *gps = NULL;
+static gps_context_t gps =
+{
+    .conn = NULL,
+    .connected = FALSE,
+    .timeout_id = 0,
+    .data = {0},
+    .update_cb = NULL,
+    .update_cb_user_data = NULL
+};
 
-static gpointer gps_thread(gpointer);
-static gboolean gps_closed(gpointer);
-static gboolean gps_update(gpointer);
 static void gps_null(void);
+static void gps_update(void);
+static void gps_cb(gpsd_conn_t*);
+static void gps_cb_msg(const gpsd_conn_t*, gpsd_msg_type_t, gconstpointer);
+static void gps_cb_msg_info(gpsd_msg_info_t);
+static void gps_cb_msg_data(const gpsd_data_t*);
+
+static gboolean gps_cb_timeout(gpointer);
 
 void
 gps_start(const gchar *host,
           gint         port)
 {
     gps_stop();
-    gps_conn = g_new(mtscan_gps_t, 1);
-    gps_conn->host = g_strdup(host);
-    gps_conn->port = g_strdup_printf("%d", port);
-    gps_conn->connected = FALSE;
-    gps_conn->canceled = FALSE;
-    g_thread_unref(g_thread_new("gps-thread", gps_thread, gps_conn));
+    gps.conn = gpsd_conn_new(gps_cb, gps_cb_msg, host, port, GPS_RECONNECT_SEC);
+    gps_update();
 }
 
 void
 gps_stop(void)
 {
-    if(gps_conn)
-        gps_conn->canceled = TRUE;
-    gps_null();
+    if(gps.conn)
+    {
+        gpsd_conn_cancel(gps.conn);
+        gps_null();
+    }
 }
 
-gint
+void
+gps_set_callback(void     (*cb)(mtscan_gps_state_t, const mtscan_gps_data_t*, gpointer),
+                 gpointer   user_data)
+{
+    gps.update_cb = cb;
+    gps.update_cb_user_data = user_data;
+    gps_update();
+}
+
+mtscan_gps_state_t
 gps_get_data(const mtscan_gps_data_t **gps_out)
 {
-    *gps_out = gps;
-    if(!gps_conn)
+    if(gps_out)
+        *gps_out = &gps.data;
+
+    if(!gps.conn)
         return GPS_OFF;
-    if(!gps_conn->connected)
+
+    if(!gps.connected)
         return GPS_OPENING;
-    if(!gps || UNIX_TIMESTAMP() >= (gps->timestamp + GPS_DATA_TIMEOUT_SEC))
-        return GPS_WAITING_FOR_DATA;
-    if(!gps->fix || isnan(gps->lat) || isnan(gps->lon))
-        return GPS_INVALID;
+
+    if(!gps.data.valid)
+        return GPS_AWAITING;
+
+    if(!gps.data.fix ||
+       isnan(gps.data.lat) ||
+       isnan(gps.data.lon))
+        return GPS_NO_FIX;
+
     return GPS_OK;
-}
-
-static gpointer
-gps_thread(gpointer data)
-{
-    mtscan_gps_t *gps_conn = (mtscan_gps_t*)data;
-    mtscan_gps_data_t *new_data;
-#ifndef G_OS_WIN32
-    struct gps_data_t gps_data;
-
-gps_thread_reconnect:
-    if(gps_conn->canceled)
-        goto gps_thread_cleanup;
-
-    if(gps_open(gps_conn->host, gps_conn->port, &gps_data) != 0)
-    {
-        g_usleep(GPS_RECONNECT_DELAY_MSEC*1000);
-        goto gps_thread_reconnect;
-    }
-
-    if(gps_conn->canceled)
-        goto gps_thread_cleanup_close;
-
-    gps_stream(&gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
-    gps_conn->connected = TRUE;
-
-    while(!gps_conn->canceled)
-    {
-        if(gps_waiting(&gps_data, GPS_WAITING_LOOP_MSEC*1000))
-        {
-            if(gps_read(&gps_data) < 0)
-            {
-                gps_close(&gps_data);
-                gps_conn->connected = FALSE;
-
-                g_usleep(GPS_RECONNECT_DELAY_MSEC*1000);
-                goto gps_thread_reconnect;
-            }
-
-            new_data = g_new(mtscan_gps_data_t, 1);
-            new_data->lat = gps_data.fix.latitude;
-            new_data->lon = gps_data.fix.longitude;
-            new_data->hdop = gps_data.dop.hdop;
-            new_data->sat = gps_data.satellites_used;
-            new_data->timestamp = UNIX_TIMESTAMP();
-            new_data->source = gps_conn;
-
-            if(gps_data.status > STATUS_NO_FIX &&
-               gps_data.fix.mode > MODE_NO_FIX &&
-               !isnan(gps_data.dop.hdop) &&
-               !isnan(gps_data.fix.latitude) &&
-               !isnan(gps_data.fix.longitude))
-               {
-                    new_data->fix = TRUE;
-               }
-
-            g_idle_add(gps_update, new_data);
-        }
-    }
-
-gps_thread_cleanup_close:
-    gps_stream(&gps_data, WATCH_DISABLE, NULL);
-    gps_close(&gps_data);
-gps_thread_cleanup:
-#endif
-    g_idle_add(gps_closed, gps_conn);
-    return NULL;
-}
-
-static gboolean
-gps_closed(gpointer data)
-{
-    mtscan_gps_t *current_conn = (mtscan_gps_t*)data;
-
-    if(current_conn == gps_conn)
-        gps_null();
-
-    g_free(current_conn->host);
-    g_free(current_conn->port);
-    g_free(current_conn);
-    return FALSE;
-}
-
-static gboolean
-gps_update(gpointer data)
-{
-    mtscan_gps_data_t *new_data = (mtscan_gps_data_t*)data;
-    if(new_data->source == gps_conn)
-    {
-        g_free(gps);
-        gps = new_data;
-    }
-    else
-    {
-        g_free(new_data);
-    }
-    return FALSE;
 }
 
 static void
 gps_null(void)
 {
-    g_free(gps);
-    gps = NULL;
-    gps_conn = NULL;
+    if(gps.timeout_id)
+    {
+        g_source_remove(gps.timeout_id);
+        gps.timeout_id = 0;
+    }
+
+    gps.connected = FALSE;
+    gps.conn = NULL;
+    gps_update();
+}
+
+static void
+gps_update(void)
+{
+    mtscan_gps_state_t state;
+    const mtscan_gps_data_t *data;
+    if(gps.update_cb)
+    {
+        state = gps_get_data(&data);
+        gps.update_cb(state, data, gps.update_cb_user_data);
+    }
+}
+
+static void
+gps_cb(gpsd_conn_t *src)
+{
+    if(gps.conn == src)
+        gps_null();
+
+    gpsd_conn_free(src);
+}
+
+static void
+gps_cb_msg(const gpsd_conn_t *src,
+           gpsd_msg_type_t    type,
+           gconstpointer      data)
+{
+    if(gps.conn != src)
+        return;
+
+    switch(type)
+    {
+        case GPSD_MSG_INFO:
+            gps_cb_msg_info((gpsd_msg_info_t)data);
+            break;
+
+        case GPSD_MSG_DATA:
+            gps_cb_msg_data((const gpsd_data_t*)data);
+            break;
+    }
+}
+
+static void
+gps_cb_msg_info(gpsd_msg_info_t type)
+{
+    switch(type)
+    {
+        case GPSD_INFO_RESOLVING:
+            break;
+
+        case GPSD_INFO_ERR_RESOLV:
+            break;
+
+        case GPSD_INFO_CONNECTING:
+            break;
+
+        case GPSD_INFO_ERR_CONN:
+            break;
+
+        case GPSD_INFO_ERR_TIMEOUT:
+            break;
+
+        case GPSD_INFO_ERR_MISMATCH:
+            break;
+
+        case GPSD_INFO_CONNECTED:
+            gps.connected = TRUE;
+            gps.data.valid = FALSE;
+            gps_update();
+            break;
+
+        case GPSD_INFO_DISCONNECTED:
+            gps.connected = FALSE;
+            gps_update();
+            break;
+    }
+}
+
+static void
+gps_cb_msg_data(const gpsd_data_t *data)
+{
+    gint mode;
+    mode = gpsd_data_get_mode(data);
+
+    gps.data.fix = (mode != GPSD_MODE_INVALID && mode != GPSD_MODE_NONE);
+    gps.data.lat = gpsd_data_get_lat(data);
+    gps.data.lon = gpsd_data_get_lon(data);
+    gps.data.alt = gpsd_data_get_alt(data);
+    gps.data.epx = gpsd_data_get_epx(data);
+    gps.data.epy = gpsd_data_get_epy(data);
+    gps.data.epv = gpsd_data_get_epv(data);
+    gps.data.valid = TRUE;
+    gps_update();
+
+    if(gps.timeout_id)
+        g_source_remove(gps.timeout_id);
+    gps.timeout_id = g_timeout_add(GPS_DATA_TIMEOUT_SEC * 1000, gps_cb_timeout, NULL);
+}
+
+static gboolean
+gps_cb_timeout(gpointer user_data)
+{
+    gps.data.valid = FALSE;
+    gps_update();
+    gps.timeout_id = 0;
+    return G_SOURCE_REMOVE;
 }
