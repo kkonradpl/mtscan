@@ -32,11 +32,11 @@ enum
 
 enum
 {
-    MODEL_UPDATE_NONE,
-    MODEL_UPDATE_NEW,
-    MODEL_UPDATE_NEW_HIGHLIGHT,
-    MODEL_UPDATE,
-    MODEL_UPDATE_ONLY_INACTIVE
+    MODEL_UPDATE_NONE          = 0,
+    MODEL_UPDATE_NEW           = (1 << 1),
+    MODEL_UPDATE_NEW_HIGHLIGHT = (1 << 2),
+    MODEL_UPDATE               = (1 << 3),
+    MODEL_UPDATE_ONLY_INACTIVE = (1 << 4)
 };
 
 typedef struct mtscan_model

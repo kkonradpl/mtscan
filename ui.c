@@ -272,6 +272,7 @@ ui_idle_timeout(gpointer user_data)
     mtscan_gps_state_t state;
 
     if(conf_get_interface_sound() &&
+       conf_get_preferences_sounds_no_data() &&
        ui->mode != MTSCAN_MODE_NONE &&
        (ts - ui->activity_ts) >= ACTIVITY_TIMEOUT &&
        (ts % 2) == 0)
@@ -281,6 +282,7 @@ ui_idle_timeout(gpointer user_data)
 
     state = gps_get_data(NULL);
     if(conf_get_interface_sound() &&
+       conf_get_preferences_sounds_no_gps_data() &&
        state > GPS_OFF &&
        state < GPS_OK &&
        (ts % 2) != 0)

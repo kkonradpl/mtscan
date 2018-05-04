@@ -411,26 +411,25 @@ gint
 mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
 {
     GSList *current;
-    gint state;
-    gint new_network;
+    gint state = MODEL_UPDATE_NONE;
+    gint status;
 
-    if(!model->buffer)
-        state = MODEL_UPDATE_NONE;
-    else
+    if(model->buffer)
     {
         model->buffer = g_slist_reverse(model->buffer);
         current = model->buffer;
-        state = MODEL_UPDATE;
+
         while(current)
         {
             network_t* net = (network_t*)(current->data);
-            new_network = model_update_network(model, net);
 
-            if(new_network == MODEL_NETWORK_NEW_HIGHLIGHT)
-                state = MODEL_UPDATE_NEW_HIGHLIGHT;
-            else if(new_network == MODEL_NETWORK_NEW &&
-                    state == MODEL_UPDATE)
-                state = MODEL_UPDATE_NEW;
+            status = model_update_network(model, net);
+            if(status == MODEL_NETWORK_NEW_HIGHLIGHT)
+                state |= MODEL_UPDATE_NEW_HIGHLIGHT;
+            else if(status == MODEL_NETWORK_NEW)
+                state |= MODEL_UPDATE_NEW;
+            else if(status == MODEL_NETWORK_UPDATE)
+                state |= MODEL_UPDATE;
 
             network_free(net);
             g_free(net);

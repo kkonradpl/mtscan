@@ -99,6 +99,18 @@ void conf_set_preferences_azimuth_column(gboolean);
 gboolean conf_get_preferences_signals(void);
 void conf_set_preferences_signals(gboolean);
 
+gboolean conf_get_preferences_sounds_new_network(void);
+void conf_set_preferences_sounds_new_network(gboolean);
+
+gboolean conf_get_preferences_sounds_new_network_hi(void);
+void conf_set_preferences_sounds_new_network_hi(gboolean);
+
+gboolean conf_get_preferences_sounds_no_data(void);
+void conf_set_preferences_sounds_no_data(gboolean);
+
+gboolean conf_get_preferences_sounds_no_gps_data(void);
+void conf_set_preferences_sounds_no_gps_data(gboolean);
+
 const gchar* conf_get_preferences_gps_hostname(void);
 void conf_set_preferences_gps_hostname(const gchar*);
 

@@ -62,6 +62,10 @@
 #define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN          FALSE
 #define CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN         FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
 #define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE      TRUE
@@ -122,6 +126,11 @@ typedef struct conf
     gboolean  preferences_latlon_column;
     gboolean  preferences_azimuth_column;
     gboolean  preferences_signals;
+
+    gboolean  preferences_sounds_new_network;
+    gboolean  preferences_sounds_new_network_hi;
+    gboolean  preferences_sounds_no_data;
+    gboolean  preferences_sounds_no_gps_data;
 
     gchar    *preferences_gps_hostname;
     gint      preferences_gps_tcp_port;
@@ -227,6 +236,11 @@ conf_read(void)
     conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
     conf.preferences_azimuth_column = conf_read_boolean("preferences", "azimuth_column", CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
+
+    conf.preferences_sounds_new_network = conf_read_boolean("preferences", "sounds_new_network", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK);
+    conf.preferences_sounds_new_network_hi = conf_read_boolean("preferences", "sounds_new_network_hi", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI);
+    conf.preferences_sounds_no_data = conf_read_boolean("preferences", "sounds_no_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA);
+    conf.preferences_sounds_no_gps_data = conf_read_boolean("preferences", "sounds_no_gps_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA);
 
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
@@ -424,6 +438,11 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "azimuth_column", conf.preferences_azimuth_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
+
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network", conf.preferences_sounds_new_network);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_hi", conf.preferences_sounds_new_network_hi);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_data", conf.preferences_sounds_no_data);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gps_data", conf.preferences_sounds_no_gps_data);
 
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
@@ -869,6 +888,54 @@ void
 conf_set_preferences_signals(gboolean value)
 {
     conf.preferences_signals = value;
+}
+
+gboolean
+conf_get_preferences_sounds_new_network(void)
+{
+    return conf.preferences_sounds_new_network;
+}
+
+void
+conf_set_preferences_sounds_new_network(gboolean value)
+{
+    conf.preferences_sounds_new_network = value;
+}
+
+gboolean
+conf_get_preferences_sounds_new_network_hi(void)
+{
+    return conf.preferences_sounds_new_network_hi;
+}
+
+void
+conf_set_preferences_sounds_new_network_hi(gboolean value)
+{
+    conf.preferences_sounds_new_network_hi = value;
+}
+
+gboolean
+conf_get_preferences_sounds_no_data(void)
+{
+    return conf.preferences_sounds_no_data;
+}
+
+void
+conf_set_preferences_sounds_no_data(gboolean value)
+{
+    conf.preferences_sounds_no_data = value;
+}
+
+gboolean
+conf_get_preferences_sounds_no_gps_data(void)
+{
+    return conf.preferences_sounds_no_gps_data;
+}
+
+void
+conf_set_preferences_sounds_no_gps_data(gboolean value)
+{
+    conf.preferences_sounds_no_gps_data = value;
 }
 
 const gchar*

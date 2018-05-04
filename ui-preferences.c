@@ -61,6 +61,13 @@ typedef struct ui_preferences
     GtkWidget *x_general_azimuth_column;
     GtkWidget *x_general_signals;
 
+    GtkWidget *page_sounds;
+    GtkWidget *table_sounds;
+    GtkWidget *x_sounds_new_network;
+    GtkWidget *x_sounds_new_network_hi;
+    GtkWidget *x_sounds_no_data;
+    GtkWidget *x_sounds_no_gps_data;
+
     GtkWidget *page_gps;
     GtkWidget *table_gps;
     GtkWidget *l_gps_hostname;
@@ -186,6 +193,36 @@ ui_preferences_dialog(void)
     row++;
     p.x_general_signals = gtk_check_button_new_with_label("Record all signal samples");
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_signals, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+
+    /* Sounds */
+    p.page_sounds = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(p.page_sounds), 4);
+    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_sounds, gtk_label_new("Sounds"));
+    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_sounds, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
+
+    p.table_sounds = gtk_table_new(4, 1, TRUE);
+    gtk_table_set_homogeneous(GTK_TABLE(p.table_sounds), FALSE);
+    gtk_table_set_row_spacings(GTK_TABLE(p.table_sounds), 4);
+    gtk_table_set_col_spacings(GTK_TABLE(p.table_sounds), 4);
+    gtk_container_add(GTK_CONTAINER(p.page_sounds), p.table_sounds);
+
+    row = 0;
+    p.x_sounds_new_network = gtk_check_button_new_with_label("New network");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_sounds_new_network_hi = gtk_check_button_new_with_label("New highlighted network");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network_hi, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_sounds_no_data = gtk_check_button_new_with_label("No data");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_no_data, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_sounds_no_gps_data = gtk_check_button_new_with_label("No GPS data");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_no_gps_data, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
 
     /* GPS */
     p.page_gps = gtk_vbox_new(FALSE, 5);
@@ -470,6 +507,12 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_azimuth_column), conf_get_preferences_azimuth_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_signals), conf_get_preferences_signals());
 
+    /* Sounds */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network), conf_get_preferences_sounds_new_network());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_hi), conf_get_preferences_sounds_new_network_hi());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data), conf_get_preferences_sounds_no_data());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data), conf_get_preferences_sounds_no_gps_data());
+
     /* GPS */
     gtk_entry_set_text(GTK_ENTRY(p->e_gps_hostname), conf_get_preferences_gps_hostname());
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_gps_tcp_port), conf_get_preferences_gps_tcp_port());
@@ -553,6 +596,12 @@ ui_preferences_apply(GtkWidget *widget,
     }
 
     conf_set_preferences_signals(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_signals)));
+
+    /* Sounds */
+    conf_set_preferences_sounds_new_network(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network)));
+    conf_set_preferences_sounds_new_network_hi(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_hi)));
+    conf_set_preferences_sounds_no_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data)));
+    conf_set_preferences_sounds_no_gps_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data)));
 
     /* GPS */
     new_gps_hostname = gtk_entry_get_text(GTK_ENTRY(p->e_gps_hostname));
