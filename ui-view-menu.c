@@ -228,17 +228,29 @@ ui_view_menu_addr(GtkWidget *menuitem,
     GtkTreeModel *model;
     GtkTreeIter iter;
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
+    GList *i;
+    GString *str;
+    gchar *text;
     GtkClipboard *clipboard;
     gint64 address;
 
     if(!list)
         return;
 
-    gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
-    gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
+    str = g_string_new(NULL);
+    for(i=list; i; i=i->next)
+    {
+        gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
+        gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
+        if(i!=list)
+            g_string_append(str, "\n");
+        g_string_append(str, model_format_address(address, TRUE));
+    }
 
+    text = g_string_free(str, FALSE);
     clipboard = gtk_widget_get_clipboard(GTK_WIDGET(treeview), GDK_SELECTION_CLIPBOARD);
-    gtk_clipboard_set_text(clipboard, model_format_address(address, TRUE), -1);
+    gtk_clipboard_set_text(clipboard, text, -1);
+    g_free(text);
 
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
