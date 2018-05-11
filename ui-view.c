@@ -670,6 +670,7 @@ ui_view_compare_string(GtkTreeModel *model,
 
     gtk_tree_model_get(model, iter, column, &value, -1);
     ret = g_ascii_strncasecmp(value, string, strlen(string));
+    g_free(value);
     return ret;
 }
 
