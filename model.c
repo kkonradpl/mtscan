@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -33,7 +33,8 @@ enum
 {
     MODEL_NETWORK_UPDATE,
     MODEL_NETWORK_NEW,
-    MODEL_NETWORK_NEW_HIGHLIGHT
+    MODEL_NETWORK_NEW_HIGHLIGHT,
+    MODEL_NETWORK_NEW_ALARM
 };
 
 static gint model_sort_ascii_string(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpointer);
@@ -424,7 +425,9 @@ mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
             network_t* net = (network_t*)(current->data);
 
             status = model_update_network(model, net);
-            if(status == MODEL_NETWORK_NEW_HIGHLIGHT)
+            if(status == MODEL_NETWORK_NEW_ALARM)
+                state |= MODEL_UPDATE_NEW_ALARM;
+            else if(status == MODEL_NETWORK_NEW_HIGHLIGHT)
                 state |= MODEL_UPDATE_NEW_HIGHLIGHT;
             else if(status == MODEL_NETWORK_NEW)
                 state |= MODEL_UPDATE_NEW;
@@ -601,7 +604,9 @@ model_update_network(mtscan_model_t *model,
 
         g_hash_table_insert(model->map, address, iter_ptr);
         g_hash_table_insert(model->active, address, iter_ptr);
-        if(conf_get_preferences_highlightlist_enabled() && conf_get_preferences_highlightlist(*address))
+        if(conf_get_preferences_alarmlist_enabled() && conf_get_preferences_alarmlist(*address))
+            new_network_found = MODEL_NETWORK_NEW_ALARM;
+        else if(conf_get_preferences_highlightlist_enabled() && conf_get_preferences_highlightlist(*address))
             new_network_found = MODEL_NETWORK_NEW_HIGHLIGHT;
         else
             new_network_found = MODEL_NETWORK_NEW;

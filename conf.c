@@ -64,6 +64,7 @@
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
@@ -81,6 +82,7 @@
 #define CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED     FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED  FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED FALSE
+#define CONF_DEFAULT_PREFERENCES_ALARMLIST_ENABLED      FALSE
 
 #define CONF_PROFILE_GROUP_PREFIX  "profile_"
 #define CONF_PROFILE_GROUP_DEFAULT "profile"
@@ -129,6 +131,7 @@ typedef struct conf
 
     gboolean  preferences_sounds_new_network;
     gboolean  preferences_sounds_new_network_hi;
+    gboolean  preferences_sounds_new_network_al;
     gboolean  preferences_sounds_no_data;
     gboolean  preferences_sounds_no_gps_data;
 
@@ -152,6 +155,9 @@ typedef struct conf
     gboolean  preferences_highlightlist_enabled;
     gboolean  preferences_highlightlist_inverted;
     GTree    *highlightlist;
+
+    gboolean  preferences_alarmlist_enabled;
+    GTree    *alarmlist;
 } conf_t;
 
 static conf_t conf;
@@ -190,6 +196,7 @@ conf_init(const gchar *custom_path)
     conf.keyfile = g_key_file_new();
     conf.blacklist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf.highlightlist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
+    conf.alarmlist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf_read();
 }
 
@@ -239,6 +246,7 @@ conf_read(void)
 
     conf.preferences_sounds_new_network = conf_read_boolean("preferences", "sounds_new_network", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK);
     conf.preferences_sounds_new_network_hi = conf_read_boolean("preferences", "sounds_new_network_hi", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI);
+    conf.preferences_sounds_new_network_al = conf_read_boolean("preferences", "sounds_new_network_al", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL);
     conf.preferences_sounds_no_data = conf_read_boolean("preferences", "sounds_no_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA);
     conf.preferences_sounds_no_gps_data = conf_read_boolean("preferences", "sounds_no_gps_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA);
 
@@ -262,6 +270,9 @@ conf_read(void)
     conf.preferences_highlightlist_enabled = conf_read_boolean("preferences", "highlightlist_enabled", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED);
     conf.preferences_highlightlist_inverted = conf_read_boolean("preferences", "highlightlist_inverted", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED);
     conf_read_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
+
+    conf.preferences_alarmlist_enabled = conf_read_boolean("preferences", "alarmlist_enabled", CONF_DEFAULT_PREFERENCES_ALARMLIST_ENABLED);
+    conf_read_gint64_tree(conf.keyfile, "preferences", "alarmlist", conf.alarmlist);
 
     if(!file_exists)
         conf_save();
@@ -441,6 +452,7 @@ conf_save(void)
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network", conf.preferences_sounds_new_network);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_hi", conf.preferences_sounds_new_network_hi);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_al", conf.preferences_sounds_new_network_al);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_data", conf.preferences_sounds_no_data);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gps_data", conf.preferences_sounds_no_gps_data);
 
@@ -464,6 +476,9 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_enabled", conf.preferences_highlightlist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_inverted", conf.preferences_highlightlist_inverted);
     conf_save_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
+
+    g_key_file_set_boolean(conf.keyfile, "preferences", "alarmlist_enabled", conf.preferences_alarmlist_enabled);
+    conf_save_gint64_tree(conf.keyfile, "preferences", "alarmlist", conf.alarmlist);
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -915,6 +930,18 @@ conf_set_preferences_sounds_new_network_hi(gboolean value)
 }
 
 gboolean
+conf_get_preferences_sounds_new_network_al(void)
+{
+    return conf.preferences_sounds_new_network_al;
+}
+
+void
+conf_set_preferences_sounds_new_network_al(gboolean value)
+{
+    conf.preferences_sounds_new_network_al = value;
+}
+
+gboolean
 conf_get_preferences_sounds_no_data(void)
 {
     return conf.preferences_sounds_no_data;
@@ -1190,4 +1217,47 @@ void
 conf_set_preferences_highlightlist_from_liststore(GtkListStore *model)
 {
     fill_tree_from_liststore(conf.highlightlist, model);
+}
+
+gboolean
+conf_get_preferences_alarmlist_enabled(void)
+{
+    return conf.preferences_alarmlist_enabled;
+}
+
+void
+conf_set_preferences_alarmlist_enabled(gboolean value)
+{
+    conf.preferences_alarmlist_enabled = value;
+}
+
+gboolean
+conf_get_preferences_alarmlist(gint64 value)
+{
+    gboolean found = GPOINTER_TO_INT(g_tree_lookup(conf.alarmlist, &value));
+    return found;
+}
+
+void
+conf_set_preferences_alarmlist(gint64 value)
+{
+    g_tree_insert(conf.alarmlist, gint64dup(&value), GINT_TO_POINTER(TRUE));
+}
+
+void
+conf_del_preferences_alarmlist(gint64 value)
+{
+    g_tree_remove(conf.alarmlist, &value);
+}
+
+GtkListStore*
+conf_get_preferences_alarmlist_as_liststore(void)
+{
+    return create_liststore_from_tree(conf.alarmlist);
+}
+
+void
+conf_set_preferences_alarmlist_from_liststore(GtkListStore *model)
+{
+    fill_tree_from_liststore(conf.alarmlist, model);
 }

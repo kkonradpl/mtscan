@@ -105,6 +105,9 @@ void conf_set_preferences_sounds_new_network(gboolean);
 gboolean conf_get_preferences_sounds_new_network_hi(void);
 void conf_set_preferences_sounds_new_network_hi(gboolean);
 
+gboolean conf_get_preferences_sounds_new_network_al(void);
+void conf_set_preferences_sounds_new_network_al(gboolean);
+
 gboolean conf_get_preferences_sounds_no_data(void);
 void conf_set_preferences_sounds_no_data(gboolean);
 
@@ -169,5 +172,18 @@ void conf_del_preferences_highlightlist(gint64);
 
 GtkListStore* conf_get_preferences_highlightlist_as_liststore(void);
 void conf_set_preferences_highlightlist_from_liststore(GtkListStore*);
+
+gboolean conf_get_preferences_alarmlist_enabled(void);
+void conf_set_preferences_alarmlist_enabled(gboolean);
+
+gboolean conf_get_preferences_alarmlist_inverted(void);
+void conf_set_preferences_alarmlist_inverted(gboolean);
+
+gboolean conf_get_preferences_alarmlist(gint64);
+void conf_set_preferences_alarmlist(gint64);
+void conf_del_preferences_alarmlist(gint64);
+
+GtkListStore* conf_get_preferences_alarmlist_as_liststore(void);
+void conf_set_preferences_alarmlist_from_liststore(GtkListStore*);
 
 #endif

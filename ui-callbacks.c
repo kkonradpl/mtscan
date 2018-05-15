@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -163,7 +163,9 @@ ui_callback_heartbeat(const mt_ssh_t *context)
         ui_view_check_position(ui.treeview);
         if(conf_get_interface_sound())
         {
-            if(conf_get_preferences_sounds_new_network_hi() && (ret & MODEL_UPDATE_NEW_HIGHLIGHT))
+            if(conf_get_preferences_sounds_new_network_al() && (ret & MODEL_UPDATE_NEW_ALARM))
+                mtscan_sound(APP_SOUND_NETWORK3);
+            else if(conf_get_preferences_sounds_new_network_hi() && (ret & MODEL_UPDATE_NEW_HIGHLIGHT))
                 mtscan_sound(APP_SOUND_NETWORK2);
             else if(conf_get_preferences_sounds_new_network() && (ret & MODEL_UPDATE_NEW))
                 mtscan_sound(APP_SOUND_NETWORK);

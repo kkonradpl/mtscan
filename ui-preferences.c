@@ -65,6 +65,7 @@ typedef struct ui_preferences
     GtkWidget *table_sounds;
     GtkWidget *x_sounds_new_network;
     GtkWidget *x_sounds_new_network_hi;
+    GtkWidget *x_sounds_new_network_al;
     GtkWidget *x_sounds_no_data;
     GtkWidget *x_sounds_no_gps_data;
 
@@ -79,6 +80,7 @@ typedef struct ui_preferences
 
     ui_preferences_list_t blacklist;
     ui_preferences_list_t highlightlist;
+    ui_preferences_list_t alarmlist;
 
     GtkWidget *box_button;
     GtkWidget *b_apply;
@@ -201,7 +203,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_sounds, gtk_label_new("Sounds"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_sounds, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_sounds = gtk_table_new(4, 1, TRUE);
+    p.table_sounds = gtk_table_new(5, 1, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_sounds), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_sounds), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_sounds), 4);
@@ -212,8 +214,12 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
-    p.x_sounds_new_network_hi = gtk_check_button_new_with_label("New highlighted network");
+    p.x_sounds_new_network_hi = gtk_check_button_new_with_label("New network from highlight list");
     gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network_hi, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_sounds_new_network_al = gtk_check_button_new_with_label("New network from alarm list");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network_al, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_sounds_no_data = gtk_check_button_new_with_label("No data");
@@ -260,6 +266,7 @@ ui_preferences_dialog(void)
 
     ui_preferences_list_create(&p.blacklist, p.notebook, "Blacklist", "Enable blacklist", "Invert to whitelist");
     ui_preferences_list_create(&p.highlightlist, p.notebook, "Highlight", "Enable highlight list", "Invert highlight list");
+    ui_preferences_list_create(&p.alarmlist, p.notebook, "Alarm", "Enable alarm list", NULL);
 
     /* --- */
     p.box_button = gtk_hbutton_box_new();
@@ -301,8 +308,15 @@ ui_preferences_list_create(ui_preferences_list_t *l,
     l->x_enabled = gtk_check_button_new_with_label(enable_title);
     gtk_box_pack_start(GTK_BOX(l->box), l->x_enabled, FALSE, FALSE, 0);
 
-    l->x_inverted = gtk_check_button_new_with_label(invert_title);
-    gtk_box_pack_start(GTK_BOX(l->box), l->x_inverted, FALSE, FALSE, 0);
+    if(invert_title)
+    {
+        l->x_inverted = gtk_check_button_new_with_label(invert_title);
+        gtk_box_pack_start(GTK_BOX(l->box), l->x_inverted, FALSE, FALSE, 0);
+    }
+    else
+    {
+        l->x_inverted = NULL;
+    }
 
     l->view = gtk_tree_view_new();
     renderer = gtk_cell_renderer_text_new();
@@ -510,6 +524,7 @@ ui_preferences_load(ui_preferences_t *p)
     /* Sounds */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network), conf_get_preferences_sounds_new_network());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_hi), conf_get_preferences_sounds_new_network_hi());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al), conf_get_preferences_sounds_new_network_al());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data), conf_get_preferences_sounds_no_data());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data), conf_get_preferences_sounds_no_gps_data());
 
@@ -531,6 +546,12 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_inverted), conf_get_preferences_highlightlist_inverted());
     model = conf_get_preferences_highlightlist_as_liststore();
     gtk_tree_view_set_model(GTK_TREE_VIEW(p->highlightlist.view), GTK_TREE_MODEL(model));
+    g_object_unref(model);
+
+    /* Alarm list */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_enabled), conf_get_preferences_alarmlist_enabled());
+    model = conf_get_preferences_alarmlist_as_liststore();
+    gtk_tree_view_set_model(GTK_TREE_VIEW(p->alarmlist.view), GTK_TREE_MODEL(model));
     g_object_unref(model);
 }
 
@@ -600,6 +621,7 @@ ui_preferences_apply(GtkWidget *widget,
     /* Sounds */
     conf_set_preferences_sounds_new_network(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network)));
     conf_set_preferences_sounds_new_network_hi(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_hi)));
+    conf_set_preferences_sounds_new_network_al(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al)));
     conf_set_preferences_sounds_no_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data)));
     conf_set_preferences_sounds_no_gps_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data)));
 
@@ -629,6 +651,10 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_highlightlist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_enabled)));
     conf_set_preferences_highlightlist_inverted(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_inverted)));
     conf_set_preferences_highlightlist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->highlightlist.view))));
+
+    /* Alarm list */
+    conf_set_preferences_alarmlist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_enabled)));
+    conf_set_preferences_alarmlist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->alarmlist.view))));
 
     /* --- */
     gtk_widget_destroy(p->window);

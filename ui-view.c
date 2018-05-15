@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -450,6 +450,8 @@ ui_view_format_background(GtkTreeViewColumn *col,
                                             { 0, 0x8800, 0xeb00, 0x8800 }, { 0, 0x3100, 0x5e00, 0x3100 }};
     static const GdkColor c_highlight[4] = {{ 0, 0xff00, 0xff00, 0xd400 }, { 0, 0x3300, 0x3300, 0x1900 },
                                             { 0, 0xf000, 0xf000, 0xc500 }, { 0, 0x4700, 0x4700, 0x2b00 }};
+    static const GdkColor c_alarm[4]     = {{ 0, 0xff00, 0xd400, 0xd400 }, { 0, 0x4d00, 0x2200, 0x2200 },
+                                            { 0, 0xf000, 0xc500, 0xc500 }, { 0, 0x5e00, 0x3100, 0x3100 }};
     gint col_id, col_sorted, id;
     const GdkColor *ptr = NULL;
     guint8 state;
@@ -463,6 +465,11 @@ ui_view_format_background(GtkTreeViewColumn *col,
     if(state == MODEL_STATE_NEW)
     {
         ptr = (col_id == col_sorted ? &c_new[id+2] : &c_new[id]);
+    }
+    else if(conf_get_preferences_alarmlist_enabled() &&
+            conf_get_preferences_alarmlist(address))
+    {
+        ptr = (col_id == col_sorted ? &c_alarm[id+2] : &c_alarm[id]);
     }
     else if(conf_get_preferences_highlightlist_enabled() &&
             conf_get_preferences_highlightlist(address))

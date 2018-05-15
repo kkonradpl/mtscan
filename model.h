@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -35,8 +35,9 @@ enum
     MODEL_UPDATE_NONE          = 0,
     MODEL_UPDATE_NEW           = (1 << 1),
     MODEL_UPDATE_NEW_HIGHLIGHT = (1 << 2),
-    MODEL_UPDATE               = (1 << 3),
-    MODEL_UPDATE_ONLY_INACTIVE = (1 << 4)
+    MODEL_UPDATE_NEW_ALARM     = (1 << 3),
+    MODEL_UPDATE               = (1 << 4),
+    MODEL_UPDATE_ONLY_INACTIVE = (1 << 5)
 };
 
 typedef struct mtscan_model

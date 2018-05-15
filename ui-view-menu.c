@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -33,6 +33,8 @@ static void ui_view_menu_blacklist(GtkWidget*, gpointer);
 static void ui_view_menu_unblacklist(GtkWidget*, gpointer);
 static void ui_view_menu_highlight(GtkWidget*, gpointer);
 static void ui_view_menu_dehighlight(GtkWidget*, gpointer);
+static void ui_view_menu_alarm_set(GtkWidget*, gpointer);
+static void ui_view_menu_alarm_unset(GtkWidget*, gpointer);
 static void ui_view_menu_list(GtkTreeView*, gint);
 static void ui_view_menu_save_as(GtkWidget*, gpointer);
 static void ui_view_menu_remove(GtkWidget*, gpointer);
@@ -43,7 +45,9 @@ enum
     FLAG_UNBLACKLIST = (1 << 1),
     FLAG_HIGHLIGHT   = (1 << 2),
     FLAG_DEHIGHLIGHT = (1 << 3),
-    FLAG_POSITION    = (1 << 4)
+    FLAG_ALARM_SET   = (1 << 4),
+    FLAG_ALARM_UNSET = (1 << 5),
+    FLAG_POSITION    = (1 << 6)
 };
 
 void
@@ -80,6 +84,9 @@ ui_view_menu(GtkWidget      *treeview,
         if(conf_get_preferences_highlightlist_enabled())
             flags |= conf_get_preferences_highlightlist(address) ? FLAG_DEHIGHLIGHT : FLAG_HIGHLIGHT;
 
+        if(conf_get_preferences_alarmlist_enabled())
+            flags |= conf_get_preferences_alarmlist(address) ? FLAG_ALARM_UNSET : FLAG_ALARM_SET;
+
         if(!isnan(latitude) && !isnan(longitude))
             flags |= FLAG_POSITION;
 
@@ -92,6 +99,9 @@ ui_view_menu(GtkWidget      *treeview,
 
         if(conf_get_preferences_highlightlist_enabled())
             flags |= FLAG_HIGHLIGHT | FLAG_DEHIGHLIGHT;
+
+        if(conf_get_preferences_alarmlist_enabled())
+            flags |= FLAG_ALARM_SET | FLAG_ALARM_UNSET;
 
         menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, -1, 0, flags);
     }
@@ -120,6 +130,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_scanlist;
     GtkWidget *item_blacklist, *item_unblacklist;
     GtkWidget *item_highlight, *item_dehighlight;
+    GtkWidget *item_alarm_set, *item_alarm_unset;
     GtkWidget *item_save_as;
     GtkWidget *item_remove;
     gchar* string;
@@ -201,6 +212,23 @@ ui_view_menu_create(GtkTreeView *treeview,
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_dehighlight), gtk_image_new_from_stock(GTK_STOCK_NO, GTK_ICON_SIZE_MENU));
         g_signal_connect(item_dehighlight, "activate", (GCallback)ui_view_menu_dehighlight, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_dehighlight);
+    }
+
+    /* Add or remove from alarm list */
+    if(flags & FLAG_ALARM_SET)
+    {
+        item_alarm_set = gtk_image_menu_item_new_with_label("Set alarm");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_alarm_set), gtk_image_new_from_stock(GTK_STOCK_DIALOG_WARNING, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_alarm_set, "activate", (GCallback)ui_view_menu_alarm_set, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_alarm_set);
+    }
+
+    if(flags & FLAG_ALARM_UNSET)
+    {
+        item_alarm_unset = gtk_image_menu_item_new_with_label("Unset alarm");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_alarm_unset), gtk_image_new_from_stock(GTK_STOCK_CAPS_LOCK_WARNING, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_alarm_unset, "activate", (GCallback)ui_view_menu_alarm_unset, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_alarm_unset);
     }
 
     /* Save selected networks as */
@@ -439,6 +467,22 @@ ui_view_menu_dehighlight(GtkWidget *menuitem,
 }
 
 static void
+ui_view_menu_alarm_set(GtkWidget *menuitem,
+                       gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, FLAG_ALARM_SET);
+}
+
+static void
+ui_view_menu_alarm_unset(GtkWidget *menuitem,
+                         gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, FLAG_ALARM_UNSET);
+}
+
+static void
 ui_view_menu_list(GtkTreeView *treeview,
                   gint         mode)
 {
@@ -465,6 +509,10 @@ ui_view_menu_list(GtkTreeView *treeview,
             conf_set_preferences_highlightlist(address);
         else if(mode == FLAG_DEHIGHLIGHT)
             conf_del_preferences_highlightlist(address);
+        else if(mode == FLAG_ALARM_SET)
+            conf_set_preferences_alarmlist(address);
+        else if(mode == FLAG_ALARM_UNSET)
+            conf_del_preferences_alarmlist(address);
     }
     else
     {
@@ -481,6 +529,10 @@ ui_view_menu_list(GtkTreeView *treeview,
                 conf_set_preferences_highlightlist(address);
             else if(mode == FLAG_DEHIGHLIGHT)
                 conf_del_preferences_highlightlist(address);
+            else if(mode == FLAG_ALARM_SET)
+                conf_set_preferences_alarmlist(address);
+            else if(mode == FLAG_ALARM_UNSET)
+                conf_del_preferences_alarmlist(address);
         }
     }
 

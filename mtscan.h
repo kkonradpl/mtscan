@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -32,6 +32,7 @@
 
 #define APP_SOUND_NETWORK  "network.wav"
 #define APP_SOUND_NETWORK2 "network2.wav"
+#define APP_SOUND_NETWORK3 "network3.wav"
 #define APP_SOUND_GPSLOST  "gpslost.wav"
 #define APP_SOUND_NODATA   "nodata.wav"
 
