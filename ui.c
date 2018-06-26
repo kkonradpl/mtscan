@@ -629,7 +629,7 @@ ui_log_save(gchar       *filename,
                 ui_dialog(GTK_WINDOW(ui.window),
                           GTK_MESSAGE_ERROR,
                           "Error",
-                          "Unable to save a file:\n%s\n\nWrote only %d of %d uncompressed bytes.",
+                          "Unable to save a file:\n%s\n\nWrote only %d of %d uncompressed bytes so far.",
                           filename, error->wrote, error->length);
             }
             else

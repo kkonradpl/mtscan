@@ -113,10 +113,14 @@ typedef struct read_context
 
 typedef struct save_context
 {
+    gzFile gzfp;
+    FILE *fp;
     yajl_gen gen;
     gboolean strip_signals;
     gboolean strip_gps;
     gboolean strip_azi;
+    size_t wrote;
+    size_t length;
 } save_ctx_t;
 
 static gint parse_integer(gpointer, long long int);
@@ -128,6 +132,7 @@ static gint parse_key_end(gpointer);
 static gint parse_array_start(gpointer);
 static gint parse_array_end(gpointer);
 static gboolean log_save_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static gboolean log_save_write(save_ctx_t*);
 
 static yajl_callbacks json_callbacks =
 {
@@ -463,30 +468,31 @@ log_save(gchar       *filename,
          gboolean     strip_azi,
          GList       *iterlist)
 {
-    gzFile gzfp = NULL;
-    FILE *fp = NULL;
-    gchar *ext;
-    gboolean compression;
     save_ctx_t ctx;
-    const guchar *json_string;
-    size_t json_length;
-    gint wrote;
+    gchar *ext;
     GList *i;
     log_save_error_t *ret;
 
     ext = strrchr(filename, '.');
-    compression = (ext && !g_ascii_strcasecmp(ext, ".gz"));
-
-    if(compression)
-        gzfp = gzopen(filename, "wb");
+    if((ext && !g_ascii_strcasecmp(ext, ".gz")))
+    {
+        ctx.gzfp = gzopen(filename, "wb");
+        ctx.fp = NULL;
+    }
     else
-        fp = fopen(filename, "w");
+    {
+        ctx.gzfp = NULL;
+        ctx.fp = fopen(filename, "w");
+    }
 
-    if(!gzfp && !fp)
+    if(!ctx.gzfp && !ctx.fp)
     {
         ret = g_malloc0(sizeof(log_save_error_t));
         return ret;
     }
+
+    ctx.wrote = 0;
+    ctx.length = 0;
 
     ctx.gen = yajl_gen_alloc(NULL);
     ctx.strip_signals = strip_signals;
@@ -506,26 +512,19 @@ log_save(gchar       *filename,
     }
 
     yajl_gen_map_close(ctx.gen);
-    yajl_gen_get_buf(ctx.gen, &json_string, &json_length);
-
-    if(compression)
-    {
-        wrote = gzwrite(gzfp, json_string, json_length);
-        gzclose(gzfp);
-    }
-    else
-    {
-        wrote = (gint)fwrite(json_string, sizeof(gchar), json_length, fp);
-        fclose(fp);
-    }
-
+    log_save_write(&ctx);
     yajl_gen_free(ctx.gen);
 
-    if(json_length != wrote)
+    if(ctx.gzfp)
+        gzclose(ctx.gzfp);
+    else
+        fclose(ctx.fp);
+
+    if(ctx.length != ctx.wrote)
     {
         ret = g_malloc(sizeof(log_save_error_t));
-        ret->wrote = wrote;
-        ret->length = json_length;
+        ret->wrote = ctx.wrote;
+        ret->length = ctx.length;
         return ret;
     }
 
@@ -682,5 +681,27 @@ log_save_foreach(GtkTreeModel *store,
        so set it to NULL before freeing the struct */
     net.signals = NULL;
     network_free(&net);
-    return FALSE;
+
+    return !log_save_write(ctx);
+}
+
+static gboolean
+log_save_write(save_ctx_t *ctx)
+{
+    const guchar *json_string;
+    size_t json_length;
+    size_t wrote;
+
+    yajl_gen_get_buf(ctx->gen, &json_string, &json_length);
+
+    if(ctx->gzfp)
+        wrote = (size_t)gzwrite(ctx->gzfp, json_string, (gint)json_length);
+    else
+        wrote = fwrite(json_string, sizeof(gchar), json_length, ctx->fp);
+
+    yajl_gen_clear(ctx->gen);
+
+    ctx->wrote += wrote;
+    ctx->length += json_length;
+    return (json_length == wrote);
 }
