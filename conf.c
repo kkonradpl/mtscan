@@ -20,18 +20,17 @@
 #include "conf.h"
 #include "ui-view.h"
 #include "misc.h"
-#include "conf-profile.h"
 
 #define CONF_DIR  "mtscan"
 #define CONF_FILE "mtscan.conf"
 
-#define CONF_DEFAULT_WINDOW_X         -1
-#define CONF_DEFAULT_WINDOW_Y         -1
+#define CONF_DEFAULT_WINDOW_X         (-1)
+#define CONF_DEFAULT_WINDOW_Y         (-1)
 #define CONF_DEFAULT_WINDOW_WIDTH     1000
 #define CONF_DEFAULT_WINDOW_HEIGHT    500
 #define CONF_DEFAULT_WINDOW_MAXIMIZED FALSE
 
-#define CONF_DEFAULT_INTERFACE_LAST_PROFILE  -1
+#define CONF_DEFAULT_INTERFACE_LAST_PROFILE  (-1)
 #define CONF_DEFAULT_INTERFACE_SOUND         FALSE
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
 #define CONF_DEFAULT_INTERFACE_AUTOSAVE      FALSE
@@ -58,9 +57,6 @@
 #define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
 #define CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL      5
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
-#define CONF_DEFAULT_PREFERENCES_NOISE_COLUMN           FALSE
-#define CONF_DEFAULT_PREFERENCES_LATLON_COLUMN          FALSE
-#define CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN         FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
@@ -124,10 +120,10 @@ typedef struct conf
     gint      preferences_icon_size;
     gint      preferences_autosave_interval;
     gint      preferences_search_column;
-    gboolean  preferences_noise_column;
-    gboolean  preferences_latlon_column;
-    gboolean  preferences_azimuth_column;
     gboolean  preferences_signals;
+
+    gchar   **preferences_view_cols_order;
+    gchar   **preferences_view_cols_hidden;
 
     gboolean  preferences_sounds_new_network;
     gboolean  preferences_sounds_new_network_hi;
@@ -167,6 +163,8 @@ static gboolean        conf_read_boolean(const gchar*, const gchar*, gboolean);
 static gint            conf_read_integer(const gchar*, const gchar*, gint);
 static gdouble         conf_read_double(const gchar*, const gchar*, gdouble);
 static gchar*          conf_read_string(const gchar*, const gchar*, const gchar*);
+static gchar**         conf_read_string_list(GKeyFile*, const gchar*, const gchar*, const gchar* const*);
+static gchar**         conf_read_columns(GKeyFile*, const gchar*, const gchar*);
 static void            conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
 static GtkListStore*   conf_read_profiles(void);
 static conf_profile_t* conf_read_profile(const gchar*);
@@ -239,10 +237,10 @@ conf_read(void)
     conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
     conf.preferences_autosave_interval = conf_read_integer("preferences", "autosave_interval", CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
-    conf.preferences_noise_column = conf_read_boolean("preferences", "noise_column", CONF_DEFAULT_PREFERENCES_NOISE_COLUMN);
-    conf.preferences_latlon_column = conf_read_boolean("preferences", "latlon_column", CONF_DEFAULT_PREFERENCES_LATLON_COLUMN);
-    conf.preferences_azimuth_column = conf_read_boolean("preferences", "azimuth_column", CONF_DEFAULT_PREFERENCES_AZIMUTH_COLUMN);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
+
+    conf.preferences_view_cols_order = conf_read_columns(conf.keyfile, "preferences", "view_cols_order");
+    conf.preferences_view_cols_hidden = conf_read_string_list(conf.keyfile, "preferences", "view_cols_hidden", NULL);
 
     conf.preferences_sounds_new_network = conf_read_boolean("preferences", "sounds_new_network", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK);
     conf.preferences_sounds_new_network_hi = conf_read_boolean("preferences", "sounds_new_network_hi", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI);
@@ -346,6 +344,73 @@ conf_read_string(const gchar *group_name,
     return value;
 }
 
+static gchar**
+conf_read_string_list(GKeyFile           *keyfile,
+                      const gchar        *group_name,
+                      const gchar        *key,
+                      const gchar *const *default_value)
+{
+    gchar **values;
+    gsize length;
+
+    values = g_key_file_get_string_list(keyfile, group_name, key, &length, NULL);
+    if(!values)
+    {
+        if(!default_value)
+            values = g_malloc0(sizeof(gchar*));
+        else
+            values = g_strdupv((gchar**)default_value);
+    }
+    return values;
+}
+
+static gchar**
+conf_read_columns(GKeyFile    *keyfile,
+                  const gchar *group_name,
+                  const gchar *key)
+{
+    gchar **values;
+    gchar **new_values;
+    const gchar *name;
+    gsize len;
+    guint i, j, missing;
+
+    values = g_key_file_get_string_list(keyfile, group_name, key, &len, NULL);
+    if(!values)
+    {
+        /* Create default order */
+        values = g_new(gchar*, MTSCAN_VIEW_COLS+1);
+        for(i=0; i<MTSCAN_VIEW_COLS; i++)
+            values[i] = g_strdup(ui_view_get_column_name(i));
+        values[i] = NULL;
+    }
+
+    /* Make sure that all columns are included */
+    missing = 0;
+    for(i=0; i<MTSCAN_VIEW_COLS; i++)
+        if(!g_strv_contains((const gchar* const*)values, ui_view_get_column_name(i)))
+            missing++;
+
+    if(!missing)
+        return values;
+
+    len = g_strv_length(values);
+    new_values = g_new(gchar*, len+missing+1);
+
+    for(i=0; i<len; i++)
+        new_values[i] = g_strdup(values[i]);
+
+    for(j=0; j<MTSCAN_VIEW_COLS; j++)
+    {
+        name = ui_view_get_column_name(j);
+        if(!g_strv_contains((const gchar * const *)values, ui_view_get_column_name(j)))
+            new_values[i++] = g_strdup(name);
+    }
+
+    g_strfreev(values);
+    new_values[i] = NULL;
+    return new_values;
+}
 
 static GtkListStore*
 conf_read_profiles(void)
@@ -445,10 +510,12 @@ conf_save(void)
     g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
     g_key_file_set_integer(conf.keyfile, "preferences", "autosave_interval", conf.preferences_autosave_interval);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
-    g_key_file_set_boolean(conf.keyfile, "preferences", "noise_column", conf.preferences_noise_column);
-    g_key_file_set_boolean(conf.keyfile, "preferences", "latlon_column", conf.preferences_latlon_column);
-    g_key_file_set_boolean(conf.keyfile, "preferences", "azimuth_column", conf.preferences_azimuth_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
+
+    g_key_file_set_string_list(conf.keyfile, "preferences", "view_cols_order",
+                               (const gchar * const *)conf.preferences_view_cols_order, g_strv_length(conf.preferences_view_cols_order));
+    g_key_file_set_string_list(conf.keyfile, "preferences", "view_cols_hidden",
+                               (const gchar * const *)conf.preferences_view_cols_hidden, g_strv_length(conf.preferences_view_cols_hidden));
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network", conf.preferences_sounds_new_network);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_hi", conf.preferences_sounds_new_network_hi);
@@ -858,42 +925,6 @@ conf_set_preferences_search_column(gint value)
 }
 
 gboolean
-conf_get_preferences_noise_column(void)
-{
-    return conf.preferences_noise_column;
-}
-
-void
-conf_set_preferences_noise_column(gboolean value)
-{
-    conf.preferences_noise_column = value;
-}
-
-gboolean
-conf_get_preferences_latlon_column(void)
-{
-    return conf.preferences_latlon_column;
-}
-
-void
-conf_set_preferences_latlon_column(gboolean value)
-{
-    conf.preferences_latlon_column = value;
-}
-
-gboolean
-conf_get_preferences_azimuth_column(void)
-{
-    return conf.preferences_azimuth_column;
-}
-
-void
-conf_set_preferences_azimuth_column(gboolean value)
-{
-    conf.preferences_azimuth_column = value;
-}
-
-gboolean
 conf_get_preferences_signals(void)
 {
     return conf.preferences_signals;
@@ -903,6 +934,32 @@ void
 conf_set_preferences_signals(gboolean value)
 {
     conf.preferences_signals = value;
+}
+
+const gchar* const*
+conf_get_preferences_view_cols_order(void)
+{
+    return (const gchar* const*)conf.preferences_view_cols_order;
+}
+
+void
+conf_set_preferences_view_cols_order(const gchar* const* value)
+{
+    g_strfreev(conf.preferences_view_cols_order);
+    conf.preferences_view_cols_order = g_strdupv((gchar**)value);
+}
+
+const gchar* const*
+conf_get_preferences_view_cols_hidden(void)
+{
+    return (const gchar* const*)conf.preferences_view_cols_hidden;
+}
+
+void
+conf_set_preferences_view_cols_hidden(const gchar* const* value)
+{
+    g_strfreev(conf.preferences_view_cols_hidden);
+    conf.preferences_view_cols_hidden = g_strdupv((gchar**)value);
 }
 
 gboolean

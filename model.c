@@ -70,8 +70,8 @@ mtscan_model_new(void)
                                       G_TYPE_BOOLEAN,  /* COL_WDS       */
                                       G_TYPE_BOOLEAN,  /* COL_BRIDGE    */
                                       G_TYPE_STRING,   /* COL_ROS_VER   */
-                                      G_TYPE_INT64,    /* COL_FIRSTSEEN */
-                                      G_TYPE_INT64,    /* COL_LASTSEEN  */
+                                      G_TYPE_INT64,    /* COL_FIRSTLOG  */
+                                      G_TYPE_INT64,    /* COL_LASTLOG   */
                                       G_TYPE_DOUBLE,   /* COL_LATITUDE  */
                                       G_TYPE_DOUBLE,   /* COL_LONGITUDE */
                                       G_TYPE_FLOAT,    /* COL_AZIMUTH   */
@@ -136,13 +136,13 @@ model_sort_rssi(GtkTreeModel *model,
     gtk_tree_model_get(model, a,
                        COL_STATE, &state,
                        COL_RSSI, &rssi,
-                       COL_LASTSEEN, &lastseen,
+                       COL_LASTLOG, &lastseen,
                        -1);
 
     gtk_tree_model_get(model, b,
                        COL_STATE, &state2,
                        COL_RSSI, &rssi2,
-                       COL_LASTSEEN, &lastseen2,
+                       COL_LASTLOG, &lastseen2,
                        -1);
 
     if(state == MODEL_STATE_INACTIVE && state2 == MODEL_STATE_INACTIVE)
@@ -334,8 +334,8 @@ model_clear_active_foreach(gpointer key,
                        COL_STATE, &state,
                        COL_PRIVACY, &privacy,
                        COL_RSSI, &rssi,
-                       COL_FIRSTSEEN, &firstseen,
-                       COL_LASTSEEN, &lastseen,
+                       COL_FIRSTLOG, &firstseen,
+                       COL_LASTLOG, &lastseen,
                        -1);
 
     if(model->clear_active_all ||
@@ -534,7 +534,7 @@ model_update_network(mtscan_model_t *model,
                                COL_WDS, net->flags.wds,
                                COL_BRIDGE, net->flags.bridge,
                                COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
-                               COL_LASTSEEN, net->firstseen,
+                               COL_LASTLOG, net->firstseen,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
                                COL_AZIMUTH, net->azimuth,
@@ -558,7 +558,7 @@ model_update_network(mtscan_model_t *model,
                                COL_WDS, net->flags.wds,
                                COL_BRIDGE, net->flags.bridge,
                                COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
-                               COL_LASTSEEN, net->firstseen,
+                               COL_LASTLOG, net->firstseen,
                                -1);
         }
 
@@ -591,8 +591,8 @@ model_update_network(mtscan_model_t *model,
                                           COL_WDS, net->flags.wds,
                                           COL_BRIDGE, net->flags.bridge,
                                           COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
-                                          COL_FIRSTSEEN, net->firstseen,
-                                          COL_LASTSEEN, net->firstseen,
+                                          COL_FIRSTLOG, net->firstseen,
+                                          COL_LASTLOG, net->firstseen,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
                                           COL_AZIMUTH, net->azimuth,
@@ -636,8 +636,8 @@ mtscan_model_add(mtscan_model_t *model,
         /* Merge a network, check current values first */
         gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter_merge,
                            COL_MAXRSSI, &current_maxrssi,
-                           COL_FIRSTSEEN, &current_firstseen,
-                           COL_LASTSEEN, &current_lastseen,
+                           COL_FIRSTLOG, &current_firstseen,
+                           COL_LASTLOG, &current_lastseen,
                            COL_SIGNALS, &current_signals,
                            -1);
 
@@ -648,7 +648,7 @@ mtscan_model_add(mtscan_model_t *model,
         if(net->firstseen < current_firstseen)
         {
             gtk_list_store_set(model->store, iter_merge,
-                               COL_FIRSTSEEN, net->firstseen,
+                               COL_FIRSTLOG, net->firstseen,
                                -1);
         }
 
@@ -668,7 +668,7 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_WDS, net->flags.wds,
                                COL_BRIDGE, net->flags.bridge,
                                COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
-                               COL_LASTSEEN, net->lastseen,
+                               COL_LASTLOG, net->lastseen,
                                -1);
         }
 
@@ -704,8 +704,8 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_WDS, net->flags.wds,
                                           COL_BRIDGE, net->flags.bridge,
                                           COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
-                                          COL_FIRSTSEEN, net->firstseen,
-                                          COL_LASTSEEN, net->lastseen,
+                                          COL_FIRSTLOG, net->firstseen,
+                                          COL_LASTLOG, net->lastseen,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
                                           COL_AZIMUTH, net->azimuth,

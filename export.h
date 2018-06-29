@@ -17,7 +17,7 @@
 #define MTSCAN_EXPORT_H_
 #include "model.h"
 
-gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, gboolean, gboolean, gboolean);
+gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, const gchar* const*, const gchar* const*);
 
 #endif
 

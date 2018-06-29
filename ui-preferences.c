@@ -22,6 +22,14 @@
 #include "ui-dialogs.h"
 #include "misc.h"
 
+enum
+{
+    VIEW_MODEL_NAME,
+    VIEW_MODEL_TITLE,
+    VIEW_MODEL_HIDDEN,
+    VIEW_MODEL_COLS
+};
+
 typedef struct ui_preferences_list
 {
     GtkWidget *page;
@@ -56,10 +64,11 @@ typedef struct ui_preferences
     GtkWidget *c_general_screenshot_directory;
     GtkWidget *l_general_search_column;
     GtkWidget *c_general_search_column;
-    GtkWidget *x_general_noise_column;
-    GtkWidget *x_general_latlon_column;
-    GtkWidget *x_general_azimuth_column;
     GtkWidget *x_general_signals;
+
+    GtkWidget *page_view;
+    GtkWidget *v_view;
+    GtkWidget *s_view;
 
     GtkWidget *page_sounds;
     GtkWidget *table_sounds;
@@ -88,6 +97,7 @@ typedef struct ui_preferences
 } ui_preferences_t;
 
 
+static void ui_preferences_view_toggled(GtkCellRendererToggle*, gchar*, gpointer);
 static void ui_preferences_list_create(ui_preferences_list_t*, GtkWidget*, const gchar*, const gchar*, const gchar*);
 static void ui_preferences_list_format(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 
@@ -98,13 +108,17 @@ static void ui_preferences_list_add(GtkWidget*, gpointer);
 static void ui_preferences_list_remove(GtkWidget*, gpointer);
 static void ui_preferences_list_clear(GtkWidget*, gpointer);
 static void ui_preferences_load(ui_preferences_t*);
+static void ui_preferences_load_view(ui_preferences_t*, const gchar* const*, const gchar* const*);
 static void ui_preferences_apply(GtkWidget*, gpointer);
+static void ui_preferences_apply_view(ui_preferences_t*);
 
 void
 ui_preferences_dialog(void)
 {
     static ui_preferences_t p;
     guint row;
+    GtkTreeViewColumn *column;
+    GtkCellRenderer *renderer;
 
     p.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_modal(GTK_WINDOW(p.window), TRUE);
@@ -129,7 +143,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(10, 3, TRUE);
+    p.table_general = gtk_table_new(6, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
@@ -178,23 +192,38 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_general), p.c_general_search_column, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
-    p.x_general_noise_column = gtk_check_button_new_with_label("Show noise floor column");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_noise_column, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
-    p.x_general_latlon_column = gtk_check_button_new_with_label("Show latitude & longitude column");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_latlon_column, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
-    p.x_general_azimuth_column = gtk_check_button_new_with_label("Show azimuth column");
-    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_azimuth_column, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
-    gtk_table_attach(GTK_TABLE(p.table_general), gtk_hseparator_new(), 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
     p.x_general_signals = gtk_check_button_new_with_label("Record all signal samples");
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_signals, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+
+    /* View */
+    p.page_view = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(p.page_view), 4);
+    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_view, gtk_label_new("View"));
+    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_view, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
+
+    p.v_view = gtk_tree_view_new();
+    gtk_tree_view_set_reorderable(GTK_TREE_VIEW(p.v_view), TRUE);
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Column name", renderer, "text", 0, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_view), column);
+
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_column_new_with_attributes("Title", renderer, "text", 1, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_view), column);
+
+    renderer = gtk_cell_renderer_toggle_new();
+    //gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
+    g_signal_connect(renderer, "toggled", G_CALLBACK(ui_preferences_view_toggled), p.v_view);
+    column = gtk_tree_view_column_new_with_attributes("Hidden", renderer, "active", 2, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_view), column);
+
+    p.s_view = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(p.s_view), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(p.s_view), p.v_view);
+    gtk_widget_set_size_request(p.s_view, -1, 150);
+    gtk_container_add(GTK_CONTAINER(p.page_view), p.s_view);
 
 
     /* Sounds */
@@ -288,6 +317,23 @@ ui_preferences_dialog(void)
 }
 
 static void
+ui_preferences_view_toggled(GtkCellRendererToggle *cell,
+                            gchar                 *path_str,
+                            gpointer               data)
+{
+    GtkTreeView *view = GTK_TREE_VIEW(data);
+    GtkTreeModel *model = gtk_tree_view_get_model(view);
+    GtkTreePath *path = gtk_tree_path_new_from_string(path_str);
+    GtkTreeIter iter;
+    gboolean state;
+
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_tree_model_get(model, &iter, VIEW_MODEL_HIDDEN, &state, -1);
+    gtk_list_store_set(GTK_LIST_STORE(model), &iter, VIEW_MODEL_HIDDEN, !state, -1);
+    gtk_tree_path_free(path);
+}
+
+static void
 ui_preferences_list_create(ui_preferences_list_t *l,
                            GtkWidget             *notebook,
                            const gchar           *title,
@@ -331,7 +377,7 @@ ui_preferences_list_create(ui_preferences_list_t *l,
     l->scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(l->scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
     gtk_container_add(GTK_CONTAINER(l->scroll), l->view);
-    gtk_widget_set_size_request(l->scroll, -1, 150);
+    gtk_widget_set_size_request(l->scroll, -1, 200);
     gtk_box_pack_start(GTK_BOX(l->box), l->scroll, TRUE, TRUE, 0);
 
     l->box_buttons = gtk_hbox_new(TRUE, 0);
@@ -516,10 +562,10 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_autosave_directory), conf_get_path_autosave());
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory), conf_get_path_screenshot());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_noise_column), conf_get_preferences_noise_column());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_latlon_column), conf_get_preferences_latlon_column());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_azimuth_column), conf_get_preferences_azimuth_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_signals), conf_get_preferences_signals());
+
+    /* View */
+    ui_preferences_load_view(p, conf_get_preferences_view_cols_order(), conf_get_preferences_view_cols_hidden());
 
     /* Sounds */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network), conf_get_preferences_sounds_new_network());
@@ -556,6 +602,34 @@ ui_preferences_load(ui_preferences_t *p)
 }
 
 static void
+ui_preferences_load_view(ui_preferences_t   *p,
+                         const gchar *const *order,
+                         const gchar *const *hidden)
+{
+    GtkListStore *model;
+    const gchar *const *ptr;
+    const gchar *title;
+
+    model = gtk_list_store_new(3,
+                               G_TYPE_STRING,
+                               G_TYPE_STRING,
+                               G_TYPE_BOOLEAN);
+
+    for(ptr=order; *ptr; ptr++)
+    {
+        title = ui_view_get_column_title(ui_view_get_column_id(*ptr));
+        gtk_list_store_insert_with_values(model, NULL, -1,
+                                          VIEW_MODEL_NAME, *ptr,
+                                          VIEW_MODEL_TITLE, title,
+                                          VIEW_MODEL_HIDDEN, g_strv_contains(hidden, *ptr),
+                                          -1);
+    }
+
+    gtk_tree_view_set_model(GTK_TREE_VIEW(p->v_view), GTK_TREE_MODEL(model));
+    g_object_unref(model);
+}
+
+static void
 ui_preferences_apply(GtkWidget *widget,
                      gpointer   data)
 {
@@ -564,9 +638,6 @@ ui_preferences_apply(GtkWidget *widget,
     gchar *new_autosave_directory;
     gchar *new_screenshot_directory;
     gint new_search_column;
-    gboolean new_noise_column;
-    gboolean new_latlon_column;
-    gboolean new_azimuth_column;
     const gchar *new_gps_hostname;
     gint new_gps_tcp_port;
 
@@ -595,28 +666,10 @@ ui_preferences_apply(GtkWidget *widget,
         ui_view_configure(ui.treeview);
     }
 
-    new_noise_column = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_noise_column));
-    if(new_noise_column != conf_get_preferences_noise_column())
-    {
-        conf_set_preferences_noise_column(new_noise_column);
-        ui_view_noise_column(ui.treeview, new_noise_column);
-    }
-
-    new_latlon_column = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_latlon_column));
-    if(new_latlon_column != conf_get_preferences_latlon_column())
-    {
-        conf_set_preferences_latlon_column(new_latlon_column);
-        ui_view_latlon_column(ui.treeview, new_latlon_column);
-    }
-
-    new_azimuth_column = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_azimuth_column));
-    if(new_azimuth_column != conf_get_preferences_azimuth_column())
-    {
-        conf_set_preferences_azimuth_column(new_azimuth_column);
-        ui_view_azimuth_column(ui.treeview, new_azimuth_column);
-    }
-
     conf_set_preferences_signals(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_signals)));
+
+    /* View */
+    ui_preferences_apply_view(p);
 
     /* Sounds */
     conf_set_preferences_sounds_new_network(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network)));
@@ -658,4 +711,64 @@ ui_preferences_apply(GtkWidget *widget,
 
     /* --- */
     gtk_widget_destroy(p->window);
+}
+
+
+static void
+ui_preferences_apply_view(ui_preferences_t *p)
+{
+    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(p->v_view));
+    gchar **order;
+    gchar **hidden;
+    GtkTreeIter iter;
+    gint length, i;
+    gchar *name;
+    gboolean is_hidden;
+    gint hidden_count;
+
+    length = gtk_tree_model_iter_n_children(model, NULL);
+
+    order = g_new(gchar*, length+1);
+    i = 0;
+    hidden_count = 0;
+    if(gtk_tree_model_get_iter_first(model, &iter))
+    {
+        do
+        {
+            gtk_tree_model_get(model, &iter,
+                               0, &name,
+                               2, &is_hidden,
+                               -1);
+            order[i++] = name;
+            hidden_count += (gint)is_hidden;
+        } while(gtk_tree_model_iter_next(model, &iter));
+    }
+    order[i] = NULL;
+    conf_set_preferences_view_cols_order((const gchar* const*)order);
+    ui_view_set_columns_order(ui.treeview, (const gchar* const*)order);
+    g_strfreev(order);
+
+    hidden = g_new(gchar*, hidden_count+1);
+    i = 0;
+    if(gtk_tree_model_get_iter_first(model, &iter))
+    {
+        do
+        {
+            gtk_tree_model_get(model, &iter,
+                               0, &name,
+                               2, &is_hidden,
+                               -1);
+            if(!is_hidden)
+            {
+                g_free(name);
+                continue;
+            }
+
+            hidden[i++] = name;
+        } while(gtk_tree_model_iter_next(model, &iter));
+    }
+    hidden[i] = NULL;
+    conf_set_preferences_view_cols_hidden((const gchar* const*)hidden);
+    ui_view_set_columns_hidden(ui.treeview, (const gchar* const*)hidden);
+    g_strfreev(hidden);
 }

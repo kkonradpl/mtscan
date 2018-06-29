@@ -14,17 +14,17 @@
  */
 
 #include <string.h>
+#include <glib/gstdio.h>
 #include "export.h"
 #include "model.h"
 #include "mtscan.h"
 #include "ui-icons.h"
+#include "ui-view.h"
 
 typedef struct mtscan_export
 {
     FILE *fp;
-    gboolean icon;
-    gboolean latlon;
-    gboolean azimuth;
+    GSList *cols;
 } mtscan_export_t;
 
 static const gchar *html_header =
@@ -112,25 +112,25 @@ static gboolean export_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpoint
 
 
 gboolean
-export_html(const gchar    *filename,
-            const gchar    *name,
-            mtscan_model_t *model,
-            gboolean        icon,
-            gboolean        latlon,
-            gboolean        azimuth)
+export_html(const gchar        *filename,
+            const gchar        *name,
+            mtscan_model_t     *model,
+            const gchar* const *order,
+            const gchar* const *hidden)
 {
     mtscan_export_t e;
     gchar *string;
     gchar *date;
     gchar *title;
     GDateTime *now;
+    const gchar *const *it;
+    gint col;
 
-    if(!(e.fp = fopen(filename, "w")))
+    if(!(e.fp = g_fopen(filename, "w")))
         return FALSE;
 
-    e.icon = icon;
-    e.latlon = latlon;
-    e.azimuth = azimuth;
+    e.cols = NULL;
+
     now = g_date_time_new_now_local();
     date = g_date_time_format(now, "%Y-%m-%d %H:%M:%S");
 
@@ -142,7 +142,7 @@ export_html(const gchar    *filename,
     g_free(string);
     g_date_time_unref(now);
 
-    if(e.icon)
+    if(!g_strv_contains(hidden, ui_view_get_column_name(MTSCAN_VIEW_COL_ACTIVITY)))
     {
         export_write(&e, css_svg_priv);
         export_write_css(&e, "marginal", SIGNAL_ICON_MARGINAL);
@@ -157,33 +157,22 @@ export_html(const gchar    *filename,
     export_write(&e, "<table class=\"networks\">\n");
     export_write(&e, "<thead><tr>");
 
-    if(e.icon)
-        export_write(&e, "<th>" MODEL_TEXT_ICON "</th>");
-
-    export_write(&e, "<th>" MODEL_TEXT_ADDRESS "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_FREQUENCY "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_MODE "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_CHANNEL "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_SSID "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_RADIONAME "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_MAXRSSI "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_ROUTEROS "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_NSTREME "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_TDMA "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_WDS "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_BRIDGE "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_ROUTEROS_VER "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_FIRSTSEEN "</th>");
-    export_write(&e, "<th>" MODEL_TEXT_LASTSEEN "</th>");
-
-    if(e.latlon)
+    for(it = order; *it; it++)
     {
-        export_write(&e, "<th>" MODEL_TEXT_LATITUDE "</th>");
-        export_write(&e, "<th>" MODEL_TEXT_LONGITUDE "</th>");
-    }
+        if(g_strv_contains(hidden, *it))
+            continue;
 
-    if(e.azimuth)
-        export_write(&e, "<th>" MODEL_TEXT_AZIMUTH "</th>");
+        col = ui_view_get_column_id(*it);
+        if(col == MTSCAN_VIEW_COL_INVALID ||
+           col == MTSCAN_VIEW_COL_RSSI ||
+           col == MTSCAN_VIEW_COL_NOISE)
+            continue;
+
+        e.cols = g_slist_append(e.cols, GINT_TO_POINTER(col));
+        export_write(&e, "<th>");
+        export_write(&e, ui_view_get_column_title(col));
+        export_write(&e, "</th>");
+    }
 
     export_write(&e, "</tr></thead>\n");
     export_write(&e, "<tbody>\n");
@@ -192,6 +181,7 @@ export_html(const gchar    *filename,
     export_write(&e, "</table>\n");
     export_write(&e, html_footer);
 
+    g_slist_free(e.cols);
     fclose(e.fp);
     return TRUE;
 }
@@ -200,7 +190,7 @@ static gboolean
 export_write(mtscan_export_t *e,
              const gchar     *str)
 {
-    gint length = strlen(str);
+    size_t length = strlen(str);
     return (fwrite(str, sizeof(char), length, e->fp) == length);
 }
 
@@ -224,8 +214,10 @@ export_foreach(GtkTreeModel *store,
     mtscan_export_t *e = (mtscan_export_t*)data;
     network_t net;
     GDateTime *date;
-    gchar *firstseen, *lastseen, *cstr;
+    gchar *cstr;
     GString *str;
+    GSList *it;
+    gint col;
 
     network_init(&net);
     gtk_tree_model_get(store, iter,
@@ -243,75 +235,74 @@ export_foreach(GtkTreeModel *store,
                        COL_WDS, &net.flags.wds,
                        COL_BRIDGE, &net.flags.bridge,
                        COL_ROUTEROS_VER, &net.routeros_ver,
-                       COL_FIRSTSEEN, &net.firstseen,
-                       COL_LASTSEEN, &net.lastseen,
+                       COL_FIRSTLOG, &net.firstseen,
+                       COL_LASTLOG, &net.lastseen,
                        COL_LATITUDE, &net.latitude,
                        COL_LONGITUDE, &net.longitude,
                        COL_AZIMUTH, &net.azimuth,
                        -1);
 
-    date = g_date_time_new_from_unix_local(net.firstseen);
-    firstseen = g_date_time_format(date, "%Y-%m-%d %H:%M:%S");
-    g_date_time_unref(date);
-
-    date = g_date_time_new_from_unix_local(net.lastseen);
-    lastseen = g_date_time_format(date, "%Y-%m-%d %H:%M:%S");
-    g_date_time_unref(date);
-
     str = g_string_new("<tr>");
-
-    if(e->icon)
+    for(it = e->cols; it; it=it->next)
     {
-        g_string_append_printf(str, "<td><div class=\"icon %s\">%s</div></td>",
-                                    ui_icon_string(net.rssi),
-                                    (net.flags.privacy ? "<div class=\"priv\"></div>" : ""));
+        col = GPOINTER_TO_INT(it->data);
+        cstr = NULL;
 
+        if(col == MTSCAN_VIEW_COL_ACTIVITY)
+            g_string_append_printf(str, "<td><div class=\"icon %s\">%s</div></td>", ui_icon_string(net.rssi), (net.flags.privacy ? "<div class=\"priv\"></div>" : ""));
+        else if(col == MTSCAN_VIEW_COL_ADDRESS)
+            g_string_append_printf(str, "<td class=\"mono\">%s</td>", model_format_address(net.address, FALSE));
+        else if(col == MTSCAN_VIEW_COL_FREQUENCY)
+            g_string_append_printf(str, "<td>%s</td>", model_format_frequency(net.frequency));
+        else if(col == MTSCAN_VIEW_COL_MODE)
+            cstr = g_markup_printf_escaped("%s", net.mode);
+        else if(col == MTSCAN_VIEW_COL_CHANNEL)
+            cstr = g_markup_printf_escaped("%s", net.channel);
+        else if(col == MTSCAN_VIEW_COL_SSID)
+            cstr = g_markup_printf_escaped("%s", net.ssid);
+        else if(col == MTSCAN_VIEW_COL_RADIO_NAME)
+            cstr = g_markup_printf_escaped("%s", net.radioname);
+        else if(col == MTSCAN_VIEW_COL_MAX_RSSI)
+            g_string_append_printf(str, "<td>%d</td>", net.rssi);
+        else if(col == MTSCAN_VIEW_COL_PRIVACY)
+            g_string_append_printf(str, "<td>%s</td>", (net.flags.privacy ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_ROUTEROS)
+            g_string_append_printf(str, "<td>%s</td>", (net.flags.routeros ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_NSTREME)
+            g_string_append_printf(str, "<td>%s</td>", (net.flags.nstreme ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_TDMA)
+            g_string_append_printf(str, "<td>%s</td>", (net.flags.tdma ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_WDS)
+            g_string_append_printf(str, "<td>%s</td>", (net.flags.wds ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_BRIDGE)
+            g_string_append_printf(str, "<td>%s</td>", (net.flags.bridge ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_ROUTEROS_VER)
+            cstr = g_markup_printf_escaped("%s", net.routeros_ver);
+        else if(col == MTSCAN_VIEW_COL_FIRST_LOG)
+        {
+            date = g_date_time_new_from_unix_local(net.firstseen);
+            cstr = g_date_time_format(date, "%Y-%m-%d %H:%M:%S");
+            g_date_time_unref(date);
+        }
+        else if(col == MTSCAN_VIEW_COL_LAST_LOG)
+        {
+            date = g_date_time_new_from_unix_local(net.lastseen);
+            cstr = g_date_time_format(date, "%Y-%m-%d %H:%M:%S");
+            g_date_time_unref(date);
+        }
+        else if(col == MTSCAN_VIEW_COL_LATITUDE)
+            g_string_append_printf(str, "<td>%s</td>", model_format_gps(net.latitude, FALSE));
+        else if(col == MTSCAN_VIEW_COL_LONGITUDE)
+            g_string_append_printf(str, "<td>%s</td>", model_format_gps(net.longitude, FALSE));
+        else if(col == MTSCAN_VIEW_COL_AZIMUTH)
+            g_string_append_printf(str, "<td>%s</td>", model_format_azimuth(net.azimuth, TRUE));
+
+        if(cstr)
+        {
+            g_string_append_printf(str, "<td>%s</td>", cstr);
+            g_free(cstr);
+        }
     }
-
-    cstr = g_markup_printf_escaped("<td class=\"mono\">%s</td>" /* COL_ADDRESS (formatted) */
-                                   "<td>%s</td>" /* COL_FREQ (formatted) */
-                                   "<td>%s</td>" /* COL_MODE */
-                                   "<td>%s</td>" /* COL_CHANNEL */
-                                   "<td>%s</td>" /* COL_SSID */
-                                   "<td>%s</td>" /* COL_RADIONAME */
-                                   "<td>%d</td>" /* COL_MAXSIG */
-                                   "<td>%s</td>" /* COL_ROUTEROS */
-                                   "<td>%s</td>" /* COL_NSTREME */
-                                   "<td>%s</td>" /* COL_TDMA */
-                                   "<td>%s</td>" /* COL_WDS */
-                                   "<td>%s</td>" /* COL_BRIDGE */
-                                   "<td>%s</td>" /* COL_ROUTEROS_VER */
-                                   "<td>%s</td>" /* COL_FIRSTSEEN */
-                                   "<td>%s</td>", /* COL_LASTSEEN */
-                                   model_format_address(net.address, FALSE),
-                                   model_format_frequency(net.frequency),
-                                   net.mode,
-                                   net.channel,
-                                   net.ssid,
-                                   net.radioname,
-                                   net.rssi,
-                                   (net.flags.routeros ? MODEL_TEXT_ROUTEROS : ""),
-                                   (net.flags.nstreme ? MODEL_TEXT_NSTREME : ""),
-                                   (net.flags.tdma ? MODEL_TEXT_TDMA : ""),
-                                   (net.flags.wds ? MODEL_TEXT_WDS : ""),
-                                   (net.flags.bridge ? MODEL_TEXT_BRIDGE : ""),
-                                   net.routeros_ver,
-                                   firstseen,
-                                   lastseen);
-    g_free(firstseen);
-    g_free(lastseen);
-    g_string_append_printf(str, cstr);
-    g_free(cstr);
-
-    if(e->latlon)
-    {
-        g_string_append_printf(str, "<td>%s</td>", model_format_gps(net.latitude, FALSE));
-        g_string_append_printf(str, "<td>%s</td>", model_format_gps(net.longitude, FALSE));
-    }
-
-    if(e->azimuth)
-        g_string_append_printf(str, "<td>%s</td>", model_format_azimuth(net.azimuth, TRUE));
-
     g_string_append_printf(str, "</tr>\n");
 
     cstr = g_string_free(str, FALSE);

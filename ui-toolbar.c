@@ -424,9 +424,8 @@ ui_toolbar_export(GtkWidget *widget,
         if(!export_html(filename,
                         ui.name,
                         ui.model,
-                        TRUE,
-                        conf_get_preferences_latlon_column(),
-                        conf_get_preferences_azimuth_column()))
+                        conf_get_preferences_view_cols_order(),
+                        conf_get_preferences_view_cols_hidden()))
         {
             ui_dialog(GTK_WINDOW(ui.window),
                       GTK_MESSAGE_ERROR,

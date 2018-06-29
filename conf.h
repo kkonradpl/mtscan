@@ -87,17 +87,14 @@ void conf_set_preferences_autosave_interval(gint);
 gint conf_get_preferences_search_column(void);
 void conf_set_preferences_search_column(gint);
 
-gboolean conf_get_preferences_noise_column(void);
-void conf_set_preferences_noise_column(gboolean);
-
-gboolean conf_get_preferences_latlon_column(void);
-void conf_set_preferences_latlon_column(gboolean);
-
-gboolean conf_get_preferences_azimuth_column(void);
-void conf_set_preferences_azimuth_column(gboolean);
-
 gboolean conf_get_preferences_signals(void);
 void conf_set_preferences_signals(gboolean);
+
+const gchar* const* conf_get_preferences_view_cols_order(void);
+void conf_set_preferences_view_cols_order(const gchar* const*);
+
+const gchar* const* conf_get_preferences_view_cols_hidden(void);
+void conf_set_preferences_view_cols_hidden(const gchar* const*);
 
 gboolean conf_get_preferences_sounds_new_network(void);
 void conf_set_preferences_sounds_new_network(gboolean);

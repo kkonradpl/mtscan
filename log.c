@@ -15,6 +15,7 @@
 
 #include <yajl/yajl_parse.h>
 #include <yajl/yajl_gen.h>
+#include <glib/gstdio.h>
 #include <string.h>
 #include <math.h>
 #include <zlib.h>
@@ -482,7 +483,7 @@ log_save(gchar       *filename,
     else
     {
         ctx.gzfp = NULL;
-        ctx.fp = fopen(filename, "w");
+        ctx.fp = g_fopen(filename, "w");
     }
 
     if(!ctx.gzfp && !ctx.fp)
@@ -558,8 +559,8 @@ log_save_foreach(GtkTreeModel *store,
                        COL_WDS, &net.flags.wds,
                        COL_BRIDGE, &net.flags.bridge,
                        COL_ROUTEROS_VER, &net.routeros_ver,
-                       COL_FIRSTSEEN, &net.firstseen,
-                       COL_LASTSEEN, &net.lastseen,
+                       COL_FIRSTLOG, &net.firstseen,
+                       COL_LASTLOG, &net.lastseen,
                        COL_LATITUDE, &net.latitude,
                        COL_LONGITUDE, &net.longitude,
                        COL_AZIMUTH, &net.azimuth,

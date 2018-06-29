@@ -168,14 +168,8 @@ ui_restore(void)
     if(conf_get_interface_gps())
         g_signal_emit_by_name(ui.b_gps, "clicked");
 
-    if(!conf_get_preferences_noise_column())
-        ui_view_noise_column(ui.treeview, FALSE);
-
-    if(!conf_get_preferences_latlon_column())
-        ui_view_latlon_column(ui.treeview, FALSE);
-
-    if(!conf_get_preferences_azimuth_column())
-        ui_view_azimuth_column(ui.treeview, FALSE);
+    ui_view_set_columns_order(ui.treeview, conf_get_preferences_view_cols_order());
+    ui_view_set_columns_hidden(ui.treeview, conf_get_preferences_view_cols_hidden());
 }
 
 static gboolean

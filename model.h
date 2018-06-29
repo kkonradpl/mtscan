@@ -74,37 +74,14 @@ enum
     COL_WDS,
     COL_BRIDGE,
     COL_ROUTEROS_VER,
-    COL_FIRSTSEEN,
-    COL_LASTSEEN,
+    COL_FIRSTLOG,
+    COL_LASTLOG,
     COL_LATITUDE,
     COL_LONGITUDE,
     COL_AZIMUTH,
     COL_SIGNALS,
     COL_COUNT
 };
-
-#define MODEL_TEXT_ICON         ""
-#define MODEL_TEXT_ADDRESS      "Address"
-#define MODEL_TEXT_FREQUENCY    "Freq"
-#define MODEL_TEXT_CHANNEL      "Channel"
-#define MODEL_TEXT_MODE         "M"
-#define MODEL_TEXT_SSID         "SSID"
-#define MODEL_TEXT_RADIONAME    "Radio name"
-#define MODEL_TEXT_MAXRSSI      "S↑"
-#define MODEL_TEXT_RSSI         "S"
-#define MODEL_TEXT_NOISE        "NF"
-#define MODEL_TEXT_PRIVACY      "P"
-#define MODEL_TEXT_ROUTEROS     "R"
-#define MODEL_TEXT_NSTREME      "N"
-#define MODEL_TEXT_TDMA         "T"
-#define MODEL_TEXT_WDS          "W"
-#define MODEL_TEXT_BRIDGE       "B"
-#define MODEL_TEXT_ROUTEROS_VER "ROS"
-#define MODEL_TEXT_FIRSTSEEN    "First log"
-#define MODEL_TEXT_LASTSEEN     "Last log"
-#define MODEL_TEXT_LATITUDE     "Latitude"
-#define MODEL_TEXT_LONGITUDE    "Longitude"
-#define MODEL_TEXT_AZIMUTH      "Az"
 
 mtscan_model_t* mtscan_model_new(void);
 void mtscan_model_free(mtscan_model_t*);
