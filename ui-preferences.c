@@ -65,6 +65,7 @@ typedef struct ui_preferences
     GtkWidget *l_general_search_column;
     GtkWidget *c_general_search_column;
     GtkWidget *x_general_signals;
+    GtkWidget *x_general_display_time_only;
 
     GtkWidget *page_view;
     GtkWidget *v_view;
@@ -143,7 +144,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(6, 3, TRUE);
+    p.table_general = gtk_table_new(7, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
@@ -194,6 +195,10 @@ ui_preferences_dialog(void)
     row++;
     p.x_general_signals = gtk_check_button_new_with_label("Record all signal samples");
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_signals, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_general_display_time_only = gtk_check_button_new_with_label("Display time only");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_display_time_only, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
 
     /* View */
@@ -563,6 +568,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory), conf_get_path_screenshot());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_signals), conf_get_preferences_signals());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only), conf_get_preferences_display_time_only());
 
     /* View */
     ui_preferences_load_view(p, conf_get_preferences_view_cols_order(), conf_get_preferences_view_cols_hidden());
@@ -667,6 +673,7 @@ ui_preferences_apply(GtkWidget *widget,
     }
 
     conf_set_preferences_signals(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_signals)));
+    conf_set_preferences_display_time_only(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only)));
 
     /* View */
     ui_preferences_apply_view(p);

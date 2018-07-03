@@ -834,9 +834,10 @@ model_format_date(gint64 value)
     tm = localtime(&ts_val);
 #endif
 
-    if(tm->tm_mday == day_now &&
+    if(conf_get_preferences_display_time_only() ||
+       (tm->tm_mday == day_now &&
        tm->tm_mon == month_now &&
-       tm->tm_year == year_now)
+       tm->tm_year == year_now))
     {
         strftime(output, sizeof(output), "%H:%M:%S", tm);
     }

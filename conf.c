@@ -58,6 +58,7 @@
 #define CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL      5
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
+#define CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY      FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
@@ -121,6 +122,7 @@ typedef struct conf
     gint      preferences_autosave_interval;
     gint      preferences_search_column;
     gboolean  preferences_signals;
+    gboolean  preferences_display_time_only;
 
     gchar   **preferences_view_cols_order;
     gchar   **preferences_view_cols_hidden;
@@ -238,6 +240,7 @@ conf_read(void)
     conf.preferences_autosave_interval = conf_read_integer("preferences", "autosave_interval", CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
+    conf.preferences_display_time_only = conf_read_boolean("preferences", "display_time_only", CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY);
 
     conf.preferences_view_cols_order = conf_read_columns(conf.keyfile, "preferences", "view_cols_order");
     conf.preferences_view_cols_hidden = conf_read_string_list(conf.keyfile, "preferences", "view_cols_hidden", NULL);
@@ -511,6 +514,7 @@ conf_save(void)
     g_key_file_set_integer(conf.keyfile, "preferences", "autosave_interval", conf.preferences_autosave_interval);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "display_time_only", conf.preferences_display_time_only);
 
     g_key_file_set_string_list(conf.keyfile, "preferences", "view_cols_order",
                                (const gchar * const *)conf.preferences_view_cols_order, g_strv_length(conf.preferences_view_cols_order));
@@ -934,6 +938,18 @@ void
 conf_set_preferences_signals(gboolean value)
 {
     conf.preferences_signals = value;
+}
+
+gboolean
+conf_get_preferences_display_time_only(void)
+{
+    return conf.preferences_display_time_only;
+}
+
+void
+conf_set_preferences_display_time_only(gboolean value)
+{
+    conf.preferences_display_time_only = value;
 }
 
 const gchar* const*
