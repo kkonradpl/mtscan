@@ -26,7 +26,7 @@ enum
 {
     VIEW_MODEL_NAME,
     VIEW_MODEL_TITLE,
-    VIEW_MODEL_HIDDEN,
+    VIEW_MODEL_SHOW,
     VIEW_MODEL_COLS
 };
 
@@ -211,17 +211,18 @@ ui_preferences_dialog(void)
     gtk_tree_view_set_reorderable(GTK_TREE_VIEW(p.v_view), TRUE);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Column name", renderer, "text", 0, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Column name", renderer, "text", VIEW_MODEL_NAME, NULL);
+    gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_view), column);
 
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("Title", renderer, "text", 1, NULL);
+    column = gtk_tree_view_column_new_with_attributes("Title", renderer, "text", VIEW_MODEL_TITLE, NULL);
+    gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_view), column);
 
     renderer = gtk_cell_renderer_toggle_new();
-    //gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
     g_signal_connect(renderer, "toggled", G_CALLBACK(ui_preferences_view_toggled), p.v_view);
-    column = gtk_tree_view_column_new_with_attributes("Hidden", renderer, "active", 2, NULL);
+    column = gtk_tree_view_column_new_with_attributes("", renderer, "active", VIEW_MODEL_SHOW, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_view), column);
 
     p.s_view = gtk_scrolled_window_new(NULL, NULL);
@@ -333,8 +334,8 @@ ui_preferences_view_toggled(GtkCellRendererToggle *cell,
     gboolean state;
 
     gtk_tree_model_get_iter(model, &iter, path);
-    gtk_tree_model_get(model, &iter, VIEW_MODEL_HIDDEN, &state, -1);
-    gtk_list_store_set(GTK_LIST_STORE(model), &iter, VIEW_MODEL_HIDDEN, !state, -1);
+    gtk_tree_model_get(model, &iter, VIEW_MODEL_SHOW, &state, -1);
+    gtk_list_store_set(GTK_LIST_STORE(model), &iter, VIEW_MODEL_SHOW, !state, -1);
     gtk_tree_path_free(path);
 }
 
@@ -616,7 +617,7 @@ ui_preferences_load_view(ui_preferences_t   *p,
     const gchar *const *ptr;
     const gchar *title;
 
-    model = gtk_list_store_new(3,
+    model = gtk_list_store_new(VIEW_MODEL_COLS,
                                G_TYPE_STRING,
                                G_TYPE_STRING,
                                G_TYPE_BOOLEAN);
@@ -627,7 +628,7 @@ ui_preferences_load_view(ui_preferences_t   *p,
         gtk_list_store_insert_with_values(model, NULL, -1,
                                           VIEW_MODEL_NAME, *ptr,
                                           VIEW_MODEL_TITLE, title,
-                                          VIEW_MODEL_HIDDEN, g_strv_contains(hidden, *ptr),
+                                          VIEW_MODEL_SHOW, !g_strv_contains(hidden, *ptr),
                                           -1);
     }
 
@@ -730,24 +731,24 @@ ui_preferences_apply_view(ui_preferences_t *p)
     GtkTreeIter iter;
     gint length, i;
     gchar *name;
-    gboolean is_hidden;
+    gboolean is_visible;
     gint hidden_count;
 
     length = gtk_tree_model_iter_n_children(model, NULL);
 
     order = g_new(gchar*, length+1);
     i = 0;
-    hidden_count = 0;
+    hidden_count = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(model), NULL);
     if(gtk_tree_model_get_iter_first(model, &iter))
     {
         do
         {
             gtk_tree_model_get(model, &iter,
-                               0, &name,
-                               2, &is_hidden,
+                               VIEW_MODEL_NAME, &name,
+                               VIEW_MODEL_SHOW, &is_visible,
                                -1);
             order[i++] = name;
-            hidden_count += (gint)is_hidden;
+            hidden_count -= (gint)is_visible;
         } while(gtk_tree_model_iter_next(model, &iter));
     }
     order[i] = NULL;
@@ -762,10 +763,10 @@ ui_preferences_apply_view(ui_preferences_t *p)
         do
         {
             gtk_tree_model_get(model, &iter,
-                               0, &name,
-                               2, &is_hidden,
+                               VIEW_MODEL_NAME, &name,
+                               VIEW_MODEL_SHOW, &is_visible,
                                -1);
-            if(!is_hidden)
+            if(is_visible)
             {
                 g_free(name);
                 continue;
