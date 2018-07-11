@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -13,12 +13,22 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_SCANLIST_H_
-#define MTSCAN_SCANLIST_H_
+#ifndef MTSCAN_UI_SCANLIST_H_
+#define MTSCAN_UI_SCANLIST_H_
 
-void scanlist_dialog(void);
-void scanlist_add(gint);
-void scanlist_current(const gchar*);
+typedef struct ui_scanlist ui_scanlist_t;
+
+typedef enum ui_scanlist_page
+{
+    UI_SCANLIST_PAGE_2_GHZ,
+    UI_SCANLIST_PAGE_5_GHZ
+} ui_scanlist_page_t;
+
+ui_scanlist_t* ui_scanlist(GtkWidget*, ui_scanlist_page_t);
+void ui_scanlist_free(ui_scanlist_t*);
+void ui_scanlist_show(ui_scanlist_t*);
+void ui_scanlist_current(ui_scanlist_t*, const gchar*);
+void ui_scanlist_add(ui_scanlist_t*, const gchar*);
 
 #endif
 

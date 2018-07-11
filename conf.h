@@ -58,8 +58,9 @@ const conf_profile_t* conf_get_profile_default();
 void conf_set_profile_default(conf_profile_t*);
 
 GtkListStore* conf_get_profiles(void);
-GtkTreeIter conf_profile_add(const conf_profile_t*);
-conf_profile_t* conf_profile_get(GtkTreeIter*);
+
+/* Scan-lists */
+GtkListStore* conf_get_scanlists(void);
 
 /* Configuration [path] */
 const gchar* conf_get_path_log_open(void);
@@ -175,9 +176,6 @@ void conf_set_preferences_highlightlist_from_liststore(GtkListStore*);
 
 gboolean conf_get_preferences_alarmlist_enabled(void);
 void conf_set_preferences_alarmlist_enabled(gboolean);
-
-gboolean conf_get_preferences_alarmlist_inverted(void);
-void conf_set_preferences_alarmlist_inverted(gboolean);
 
 gboolean conf_get_preferences_alarmlist(gint64);
 void conf_set_preferences_alarmlist(gint64);

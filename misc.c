@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -69,50 +69,87 @@ remove_char(gchar *str,
 }
 
 gchar*
-str_scanlist_compress(const gchar *ptr)
+str_scanlist_compress(const gchar *input)
 {
     GString *output;
+    gchar **channels;
+    gchar **ch;
+    gchar *endptr;
     gint prev, curr, last_written;
 
-    if(!ptr)
+    if(!input)
         return NULL;
 
     output = g_string_new(NULL);
 
+    /* Reset buffers */
     prev = 0;
     last_written = 0;
-    while(ptr)
+
+    channels = g_strsplit(input, ",", -1);
+    for(ch = channels; *ch; ch++)
     {
-        curr = 0;
-        sscanf(ptr, "%d", &curr);
-        if(curr)
+        if(!strlen(*ch))
+            continue;
+
+        curr = (gint)g_ascii_strtoull(*ch, &endptr, 10);
+        if(curr && *endptr == '\0')
         {
+            /* The frequency was successfully parsed as integer */
             if(!prev)
             {
-                g_string_append_printf(output, "%d", curr);
+                /* There is no buffered frequency */
+                g_string_append_printf(output, "%s%s", (output->len ? "," : ""), *ch);
+
+                /* Save current frequency for further processing */
                 prev = curr;
                 last_written = curr;
             }
             else
             {
-                if(prev != curr-5)
+                /* There is a previous frequency */
+                if(prev != curr-5 ||
+                   (curr % 5 != 0))
                 {
+                    /* Current frequency is not greater by 5 MHz than previous */
+                    /* Also it isn't a multiple of 5 (compress only 5 GHz band ranges) */
                     if(last_written != prev)
+                    {
+                        /* There's something buffered, flush it */
                         g_string_append_printf(output, "-%d", prev);
+                    }
+
                     g_string_append_printf(output, ",%d", curr);
                     last_written = curr;
                 }
+
+                /* Buffer current frequency */
                 prev = curr;
             }
         }
+        else
+        {
+            if(last_written != prev)
+            {
+                /* There's something buffered, flush it */
+                g_string_append_printf(output, "-%d", prev);
+            }
 
-        ptr = strchr(ptr, ',');
-        ptr = (ptr ? ptr + 1 : NULL);
+            g_string_append_printf(output, "%s%s", (output->len ? "," : ""), *ch);
+
+            /* Reset buffers */
+            prev = 0;
+            last_written = 0;
+        }
     }
 
     if(last_written != prev)
+    {
+        /* There's something buffered, flush it */
         g_string_append_printf(output, "-%d", prev);
+    }
 
+    g_strfreev(channels);
     return g_string_free(output, FALSE);
 }
 

@@ -20,6 +20,7 @@
 #include "conf.h"
 #include "ui-view.h"
 #include "misc.h"
+#include "conf-scanlist.h"
 
 #define CONF_DIR  "mtscan"
 #define CONF_FILE "mtscan.conf"
@@ -30,12 +31,12 @@
 #define CONF_DEFAULT_WINDOW_HEIGHT    500
 #define CONF_DEFAULT_WINDOW_MAXIMIZED FALSE
 
-#define CONF_DEFAULT_INTERFACE_LAST_PROFILE  (-1)
 #define CONF_DEFAULT_INTERFACE_SOUND         FALSE
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
 #define CONF_DEFAULT_INTERFACE_AUTOSAVE      FALSE
 #define CONF_DEFAULT_INTERFACE_GPS           FALSE
 #define CONF_DEFAULT_INTERFACE_ROTATOR       FALSE
+#define CONF_DEFAULT_INTERFACE_LAST_PROFILE  (-1)
 
 #define CONF_DEFAULT_PROFILE_NAME           "unnamed"
 #define CONF_DEFAULT_PROFILE_HOST           ""
@@ -47,6 +48,9 @@
 #define CONF_DEFAULT_PROFILE_DURATION       FALSE
 #define CONF_DEFAULT_PROFILE_REMOTE         FALSE
 #define CONF_DEFAULT_PROFILE_BACKGROUND     FALSE
+
+#define CONF_DEFAULT_SCANLIST_NAME          "unnamed"
+#define CONF_DEFAULT_SCANLIST_DATA          "default"
 
 #define CONF_DEFAULT_PATH_LOG_OPEN   ""
 #define CONF_DEFAULT_PATH_LOG_SAVE   ""
@@ -83,6 +87,7 @@
 
 #define CONF_PROFILE_GROUP_PREFIX  "profile_"
 #define CONF_PROFILE_GROUP_DEFAULT "profile"
+#define CONF_SCANLIST_GROUP_PREFIX "scanlist_"
 
 typedef struct conf
 {
@@ -101,14 +106,17 @@ typedef struct conf
     gboolean interface_dark_mode;
     gboolean interface_autosave;
     gboolean interface_gps;
-    gint     interface_last_profile;
     gboolean interface_rotator;
+    gint     interface_last_profile;
 
     /* [profile] */
     conf_profile_t *profile_default;
 
     /* [profile_x] */
     GtkListStore *profiles;
+
+    /* [scanlist_x] */
+    GtkListStore *scanlists;
 
     /* [path] */
     gchar *path_log_open;
@@ -160,24 +168,30 @@ typedef struct conf
 
 static conf_t conf;
 
-static void            conf_read(void);
-static gboolean        conf_read_boolean(const gchar*, const gchar*, gboolean);
-static gint            conf_read_integer(const gchar*, const gchar*, gint);
-static gdouble         conf_read_double(const gchar*, const gchar*, gdouble);
-static gchar*          conf_read_string(const gchar*, const gchar*, const gchar*);
-static gchar**         conf_read_string_list(GKeyFile*, const gchar*, const gchar*, const gchar* const*);
-static gchar**         conf_read_columns(GKeyFile*, const gchar*, const gchar*);
-static void            conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
-static GtkListStore*   conf_read_profiles(void);
-static conf_profile_t* conf_read_profile(const gchar*);
+static void             conf_read(void);
+static gboolean         conf_read_boolean(const gchar*, const gchar*, gboolean);
+static gint             conf_read_integer(const gchar*, const gchar*, gint);
+static gdouble          conf_read_double(const gchar*, const gchar*, gdouble);
+static gchar*           conf_read_string(const gchar*, const gchar*, const gchar*);
+static gchar**          conf_read_string_list(GKeyFile*, const gchar*, const gchar*, const gchar* const*);
+static gchar**          conf_read_columns(GKeyFile*, const gchar*, const gchar*);
+static void             conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static void             conf_read_list(GtkListStore*, const gchar*, void (*)(GtkListStore*, const gchar*));
+static void             conf_read_profile_callback(GtkListStore*, const gchar*);
+static conf_profile_t*  conf_read_profile(const gchar*);
+static void             conf_read_scanlist_callback(GtkListStore*, const gchar*);
+static conf_scanlist_t* conf_read_scanlist(const gchar*);
 
-static void            conf_save_profiles(GtkListStore*);
-static gboolean        conf_save_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
-static void            conf_save_profile(GKeyFile*, const gchar*, conf_profile_t*);
-static void            conf_save_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
-static gboolean        conf_save_gint64_tree_foreach(gpointer, gpointer, gpointer);
 
-static void            conf_change_string(gchar**, const gchar*);
+static void             conf_save_list(GtkListStore*, GtkTreeModelForeachFunc);
+static gboolean         conf_save_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static void             conf_save_profile(GKeyFile*, const gchar*, const conf_profile_t*);
+static gboolean         conf_save_scanlists_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static void             conf_save_scanlist(GKeyFile*, const gchar*, const conf_scanlist_t*);
+static void             conf_save_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+static gboolean         conf_save_gint64_tree_foreach(gpointer, gpointer, gpointer);
+
+static void             conf_change_string(gchar**, const gchar*);
 
 void
 conf_init(const gchar *custom_path)
@@ -224,11 +238,15 @@ conf_read(void)
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_autosave = conf_read_boolean("interface", "autosave", CONF_DEFAULT_INTERFACE_AUTOSAVE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
-    conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
     conf.interface_rotator = conf_read_boolean("interface", "rotator", CONF_DEFAULT_INTERFACE_ROTATOR);
+    conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
 
     conf.profile_default = conf_read_profile(CONF_PROFILE_GROUP_DEFAULT);
-    conf.profiles = conf_read_profiles();
+    conf.profiles = conf_profile_list_new();
+    conf_read_list(conf.profiles, CONF_PROFILE_GROUP_PREFIX, conf_read_profile_callback);
+
+    conf.scanlists = conf_scanlist_list_new();
+    conf_read_list(conf.scanlists, CONF_SCANLIST_GROUP_PREFIX, conf_read_scanlist_callback);
 
     conf.path_log_open = conf_read_string("path", "log_open", CONF_DEFAULT_PATH_LOG_OPEN);
     conf.path_log_save = conf_read_string("path", "log_save", CONF_DEFAULT_PATH_LOG_SAVE);
@@ -415,28 +433,34 @@ conf_read_columns(GKeyFile    *keyfile,
     return new_values;
 }
 
-static GtkListStore*
-conf_read_profiles(void)
+static void
+conf_read_list(GtkListStore  *model,
+               const gchar   *prefix,
+               void         (*callback)(GtkListStore*, const gchar*))
 {
     gchar **groups = g_key_file_get_groups(conf.keyfile, NULL);
     gchar **group;
-    GtkListStore *model;
-    conf_profile_t *p;
 
-    model = conf_profile_list_new();
     for(group=groups; *group; ++group)
     {
-        if(!strncmp(*group, CONF_PROFILE_GROUP_PREFIX, strlen(CONF_PROFILE_GROUP_PREFIX)))
+        if(strncmp(*group, prefix, strlen(prefix)) == 0)
         {
-            p = conf_read_profile(*group);
-            conf_profile_list_add(model, p);
-            conf_profile_free(p);
+            callback(model, *group);
             g_key_file_remove_group(conf.keyfile, *group, NULL);
         }
     }
 
     g_strfreev(groups);
-    return model;
+}
+
+
+static void
+conf_read_profile_callback(GtkListStore *model,
+                           const gchar  *group_name)
+{
+    conf_profile_t *p = conf_read_profile(group_name);
+    conf_profile_list_add(model, p);
+    conf_profile_free(p);
 }
 
 static conf_profile_t*
@@ -454,6 +478,26 @@ conf_read_profile(const gchar *group_name)
                          conf_read_boolean(group_name, "remote", CONF_DEFAULT_PROFILE_REMOTE),
                          conf_read_boolean(group_name, "background", CONF_DEFAULT_PROFILE_BACKGROUND));
     return p;
+}
+
+static void
+conf_read_scanlist_callback(GtkListStore *model,
+                            const gchar  *group_name)
+{
+    conf_scanlist_t *sl = conf_read_scanlist(group_name);
+    conf_scanlist_list_add(model, sl);
+    conf_scanlist_free(sl);
+}
+
+static conf_scanlist_t*
+conf_read_scanlist(const gchar *group_name)
+{
+    conf_scanlist_t *sl;
+    sl = conf_scanlist_new(conf_read_string(group_name, "name", CONF_DEFAULT_SCANLIST_NAME),
+                           conf_read_string(group_name, "data", CONF_DEFAULT_SCANLIST_DATA),
+                           conf_read_boolean(group_name, "main", FALSE));
+
+    return sl;
 }
 
 static void
@@ -502,7 +546,8 @@ conf_save(void)
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
     conf_save_profile(conf.keyfile, CONF_PROFILE_GROUP_DEFAULT, conf.profile_default);
-    conf_save_profiles(conf.profiles);
+    conf_save_list(conf.profiles, conf_save_profiles_foreach);
+    conf_save_list(conf.scanlists, conf_save_scanlists_foreach);
 
     g_key_file_set_string(conf.keyfile, "path", "log_open", conf.path_log_open);
     g_key_file_set_string(conf.keyfile, "path", "log_save", conf.path_log_save);
@@ -562,7 +607,7 @@ conf_save(void)
         err = NULL;
     }
 
-    if((fp = fopen(conf.path, "w")) == NULL)
+    if((fp = g_fopen(conf.path, "w")) == NULL)
     {
         ui_dialog(NULL,
                   GTK_MESSAGE_ERROR,
@@ -587,10 +632,11 @@ conf_save(void)
 }
 
 static void
-conf_save_profiles(GtkListStore *model)
+conf_save_list(GtkListStore            *model,
+               GtkTreeModelForeachFunc  func)
 {
     gint number = 0;
-    gtk_tree_model_foreach(GTK_TREE_MODEL(model), conf_save_profiles_foreach, &number);
+    gtk_tree_model_foreach(GTK_TREE_MODEL(model), func, &number);
 }
 
 static gboolean
@@ -603,7 +649,7 @@ conf_save_profiles_foreach(GtkTreeModel *store,
     conf_profile_t *p;
     gchar *group_name;
 
-    p = conf_profile_get(iter);
+    p = conf_profile_list_get(GTK_LIST_STORE(store), iter);
     group_name = g_strdup_printf("%s%d", CONF_PROFILE_GROUP_PREFIX, (*number)++);
     conf_save_profile(conf.keyfile, group_name, p);
     g_free(group_name);
@@ -612,9 +658,9 @@ conf_save_profiles_foreach(GtkTreeModel *store,
 }
 
 static void
-conf_save_profile(GKeyFile       *keyfile,
-                  const gchar    *group_name,
-                  conf_profile_t *p)
+conf_save_profile(GKeyFile             *keyfile,
+                  const gchar          *group_name,
+                  const conf_profile_t *p)
 {
     g_key_file_set_string(keyfile, group_name, "name", conf_profile_get_name(p));
     g_key_file_set_string(keyfile, group_name, "host", conf_profile_get_host(p));
@@ -626,6 +672,34 @@ conf_save_profile(GKeyFile       *keyfile,
     g_key_file_set_boolean(keyfile, group_name, "duration", conf_profile_get_duration(p));
     g_key_file_set_boolean(keyfile, group_name, "remote", conf_profile_get_remote(p));
     g_key_file_set_boolean(keyfile, group_name, "background", conf_profile_get_background(p));
+}
+
+static gboolean
+conf_save_scanlists_foreach(GtkTreeModel *store,
+                            GtkTreePath  *path,
+                            GtkTreeIter  *iter,
+                            gpointer     data)
+{
+    gint *number = (gint*)data;
+    conf_scanlist_t *sl;
+    gchar *group_name;
+
+    sl = conf_scanlist_list_get(GTK_LIST_STORE(store), iter);
+    group_name = g_strdup_printf("%s%d", CONF_SCANLIST_GROUP_PREFIX, (*number)++);
+    conf_save_scanlist(conf.keyfile, group_name, sl);
+    g_free(group_name);
+    conf_scanlist_free(sl);
+    return FALSE;
+}
+
+static void
+conf_save_scanlist(GKeyFile              *keyfile,
+                   const gchar           *group_name,
+                   const conf_scanlist_t *sl)
+{
+    g_key_file_set_string(keyfile, group_name, "name", conf_scanlist_get_name(sl));
+    g_key_file_set_string(keyfile, group_name, "data", conf_scanlist_get_data(sl));
+    g_key_file_set_boolean(keyfile, group_name, "main", conf_scanlist_get_main(sl));
 }
 
 static void
@@ -820,16 +894,10 @@ conf_get_profiles(void)
     return conf.profiles;
 }
 
-GtkTreeIter
-conf_profile_add(const conf_profile_t *p)
+GtkListStore*
+conf_get_scanlists(void)
 {
-    return conf_profile_list_add(conf.profiles, p);
-}
-
-conf_profile_t*
-conf_profile_get(GtkTreeIter *iter)
-{
-    return conf_profile_list_get(conf.profiles, iter);
+    return conf.scanlists;
 }
 
 const gchar*

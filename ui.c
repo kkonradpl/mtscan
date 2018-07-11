@@ -126,6 +126,8 @@ ui_init(void)
     g_timeout_add(1000, ui_idle_timeout_autosave, &ui);
     gps_set_callback(ui_gps, &ui);
 
+    ui.scanlist = ui_scanlist(ui.window, UI_SCANLIST_PAGE_5_GHZ);
+
     gtk_drag_dest_set(ui.window, GTK_DEST_DEFAULT_ALL, drop_types, n_drop_types, GDK_ACTION_COPY);
     g_signal_connect(ui.window, "drag-data-received", G_CALLBACK(ui_drag_data_received), NULL);
     g_signal_connect(ui.window, "destroy", gtk_main_quit, NULL);

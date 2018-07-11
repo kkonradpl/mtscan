@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -14,6 +14,7 @@
  */
 
 #include <string.h>
+#include <gdk/gdkkeysyms.h>
 #include "ui-dialogs.h"
 #include "conf.h"
 #include "mtscan.h"
@@ -25,6 +26,7 @@ static const gchar* filetype_default = APP_NAME " file";
 
 static void ui_dialog_save_response(GtkWidget*, gint, gpointer);
 static void ui_dialog_export_response(GtkWidget*, gint, gpointer);
+static gboolean ui_dialog_scanlist_name_key(GtkWidget*, GdkEventKey*, gpointer);
 static gboolean str_has_suffix(const gchar*, const gchar*);
 
 void
@@ -438,7 +440,7 @@ ui_dialog_about(GtkWindow *window)
     gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dialog), APP_NAME);
     gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dialog), APP_VERSION);
     gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dialog), APP_ICON);
-    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2017  Konrad Kosmatka");
+    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2018  Konrad Kosmatka");
     gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(dialog), "Mikrotik RouterOS wireless scanner");
     gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dialog), "http://fmdx.pl/mtscan");
     gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(dialog), APP_LICENCE);
@@ -447,6 +449,148 @@ ui_dialog_about(GtkWindow *window)
 #endif
     gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
+}
+gboolean
+ui_dialog_scanlist_warn(GtkWindow   *window,
+                        const gchar *name,
+                        const gchar *value)
+{
+    static const gchar msg[] = "<big>Name: <b>%s</b>\n<b>%s%s</b></big>\n\nAre you sure to set the scan-list to the custom range?\n\n"
+                               "<b>Warning:</b> Using an antenna with poor SWR may lead to PA failure during active scanning. "
+                               "If unsure, set tx-power to low value before continuing.";
+    GtkWidget *dialog;
+    gchar *scanlist = NULL;
+    gboolean ret;
+
+    if(strlen(value) > 50)
+        scanlist = g_utf8_substring(value, 0, 50);
+
+    dialog = gtk_message_dialog_new_with_markup(window,
+                                                GTK_DIALOG_MODAL,
+                                                GTK_MESSAGE_WARNING,
+                                                GTK_BUTTONS_YES_NO,
+                                                msg,
+                                                name,
+                                                (scanlist ? scanlist : value),
+                                                (scanlist ? "..." : ""));
+
+    gtk_window_set_title(GTK_WINDOW(dialog), "Scan-list manager");
+
+    ret = (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES);
+    gtk_widget_destroy(dialog);
+    g_free(scanlist);
+    return ret;
+}
+
+ui_dialog_scanlist_t*
+ui_dialog_scanlist(GtkWindow *window,
+                   gboolean   full)
+{
+    GtkWidget *dialog;
+    GtkWidget *content;
+    GtkWidget *box;
+    GtkWidget *l_name;
+    GtkWidget *e_name;
+    GtkWidget *l_value;
+    GtkWidget *e_value = NULL;
+    GtkWidget *l_status;
+    const gchar *name = NULL;
+    const gchar *value = NULL;
+    ui_dialog_scanlist_t *ret = NULL;
+
+    dialog = gtk_message_dialog_new_with_markup(window,
+                                                GTK_DIALOG_MODAL,
+                                                GTK_MESSAGE_QUESTION,
+                                                GTK_BUTTONS_OK_CANCEL,
+                                                "<big>New scan-list</big>");
+
+    gtk_window_set_title(GTK_WINDOW(dialog), "Scan-list manager");
+    content = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog));
+
+    box = gtk_vbox_new(FALSE, 2);
+    gtk_container_add(GTK_CONTAINER(content), box);
+
+    l_name = gtk_label_new("Name:");
+    gtk_misc_set_alignment(GTK_MISC(l_name), 0.0, 0.5);
+    gtk_box_pack_start(GTK_BOX(box), l_name, TRUE, TRUE, 0);
+
+    e_name = gtk_entry_new();
+    gtk_entry_set_max_length(GTK_ENTRY(e_name), 50);
+    gtk_box_pack_start(GTK_BOX(box), e_name, TRUE, TRUE, 3);
+    g_signal_connect(e_name, "key-press-event", G_CALLBACK(ui_dialog_scanlist_name_key), dialog);
+
+    if(full)
+    {
+        l_value = gtk_label_new("Scan-list:");
+        gtk_misc_set_alignment(GTK_MISC(l_value), 0.0, 0.5);
+        gtk_box_pack_start(GTK_BOX(box), l_value, TRUE, TRUE, 0);
+
+        e_value = gtk_entry_new();
+        gtk_box_pack_start(GTK_BOX(box), e_value, TRUE, TRUE, 3);
+        g_signal_connect(e_value, "key-press-event", G_CALLBACK(ui_dialog_scanlist_name_key), dialog);
+    }
+
+    l_status = gtk_label_new(NULL);
+    gtk_label_set_width_chars(GTK_LABEL(l_status), 30);
+    gtk_misc_set_alignment(GTK_MISC(l_status), 0.0, 0.5);
+    gtk_box_pack_start(GTK_BOX(box), l_status, TRUE, TRUE, 0);
+
+    gtk_widget_show_all(dialog);
+    while(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK)
+    {
+        name = gtk_entry_get_text(GTK_ENTRY(e_name));
+        if(!strlen(name))
+        {
+            gtk_label_set_markup(GTK_LABEL(l_status), "<b>The name is required.</b>");
+            gtk_widget_grab_focus(e_name);
+            continue;
+        }
+
+        if(e_value)
+        {
+            value = gtk_entry_get_text(GTK_ENTRY(e_value));
+            if(!strlen(value))
+            {
+                gtk_label_set_markup(GTK_LABEL(l_status), "<b>The scan-list cannot be empty.</b>");
+                gtk_widget_grab_focus(e_value);
+                continue;
+            }
+        }
+
+        ret = g_malloc(sizeof(ui_dialog_scanlist_t));
+        ret->name = g_strdup(name);
+        ret->value = g_strdup(value);
+        break;
+    }
+
+    gtk_widget_destroy(dialog);
+    return ret;
+}
+
+void
+ui_dialog_scanlist_free(ui_dialog_scanlist_t *context)
+{
+    if(context)
+    {
+        g_free(context->name);
+        g_free(context->value);
+        g_free(context);
+    }
+}
+
+static gboolean
+ui_dialog_scanlist_name_key(GtkWidget   *widget,
+                            GdkEventKey *event,
+                            gpointer     data)
+{
+    GtkDialog *dialog = GTK_DIALOG(data);
+
+    if(event->keyval == GDK_KEY_Return)
+    {
+        gtk_dialog_response(dialog, GTK_RESPONSE_OK);
+        return TRUE;
+    }
+    return FALSE;
 }
 
 static gboolean

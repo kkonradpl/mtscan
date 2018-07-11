@@ -20,6 +20,7 @@
 #include "model.h"
 #include "ui-connection.h"
 #include "mt-ssh.h"
+#include "ui-scanlist.h"
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 
@@ -42,8 +43,8 @@ typedef struct mtscan_gtk
     GtkToolItem *b_sniff;
     GtkToolItem *b_restart;
     GtkToolItem *b_scanlist_default;
-    GtkToolItem *b_scanlist_preset;
     GtkToolItem *b_scanlist;
+    GtkToolItem *b_scanlist_preset;
 
     GtkToolItem *b_new;
     GtkToolItem *b_open;
@@ -77,10 +78,11 @@ typedef struct mtscan_gtk
     gint64 log_ts;
 
     ui_connection_t *conn_dialog;
-    mt_ssh_t *conn;
+    ui_scanlist_t *scanlist;
 
-    gboolean connected;
+    mt_ssh_t *conn;
     gint mode;
+    gboolean connected;
     gint activity;
     gint64 activity_ts;
     guint activity_timeout;

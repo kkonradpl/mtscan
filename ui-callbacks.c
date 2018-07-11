@@ -18,7 +18,7 @@
 #include "ui-toolbar.h"
 #include "ui-view.h"
 #include "gps.h"
-#include "scanlist.h"
+#include "ui-scanlist.h"
 #include "ui-dialogs.h"
 #include "conf.h"
 #include "misc.h"
@@ -157,7 +157,8 @@ ui_callback_heartbeat(const mt_ssh_t *context)
     gtk_widget_freeze_child_notify(ui.treeview);
     ret = mtscan_model_buffer_and_inactive_update(ui.model);
 
-    if(ret & MODEL_UPDATE_NEW_HIGHLIGHT ||
+    if(ret & MODEL_UPDATE_NEW_ALARM ||
+       ret & MODEL_UPDATE_NEW_HIGHLIGHT ||
        ret & MODEL_UPDATE_NEW)
     {
         ui_view_check_position(ui.treeview);
@@ -220,5 +221,8 @@ void
 ui_callback_scanlist(const mt_ssh_t *context,
                      const gchar    *data)
 {
-    scanlist_current(data);
+    if(ui.conn != context)
+        return;
+
+    ui_scanlist_current(ui.scanlist, data);
 }

@@ -193,6 +193,7 @@ ui_view_new(mtscan_model_t *model,
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_RADIO_NAME], renderer, "text", COL_RADIONAME, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_RADIONAME), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_RADIONAME));

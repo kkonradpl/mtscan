@@ -20,23 +20,29 @@
 #include "ui-dialogs.h"
 #include "log.h"
 #include "mt-ssh.h"
-#include "scanlist.h"
+#include "ui-scanlist.h"
+#include "ui-scanlist-manager.h"
 #include "ui-connection.h"
 #include "ui-toolbar.h"
 #include "ui-preferences.h"
 #include "export.h"
 #include "gps.h"
-
-static gchar range_full[] = "4920-6000";
-static gchar range_ext[] = "5330-5490,5720-5785,default,5790-5900,5055-5170,default,4920-5050,5905-6000,default";
+#include "conf-scanlist.h"
 
 static void ui_toolbar_connect(GtkWidget*, gpointer);
 static void ui_toolbar_scan(GtkWidget*, gpointer);
 static void ui_toolbar_sniff(GtkWidget*, gpointer);
 static void ui_toolbar_restart(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist_default(GtkWidget*, gpointer);
-static void ui_toolbar_scanlist_custom(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist(GtkWidget*, gpointer);
+static void ui_toolbar_scanlist_preset(GtkWidget *, gpointer);
+
+static gboolean ui_toolbar_scanlist_preset_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static void ui_toolbar_scanlist_preset_apply(const gchar*, const gchar*);
+static void ui_toolbar_scanlist_menu(GtkWidget*, gpointer);
+static gboolean ui_toolbar_scanlist_menu_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static void ui_toolbar_scanlist_menu_manager(GtkWidget*, gpointer);
+static void ui_toolbar_scanlist_menu_preset(GtkWidget*, gpointer);
 
 static void ui_toolbar_new(GtkWidget*, gpointer);
 static void ui_toolbar_open(GtkWidget*, gpointer);
@@ -112,24 +118,11 @@ ui_toolbar_create(void)
     gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist), "clicked", accel_group, GDK_KEY_l, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     ui.b_scanlist_preset = gtk_menu_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON), "Preset scan-list");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_preset), "Preset scan-list (Ctrl+5)");
-    g_signal_connect(ui.b_scanlist_preset, "clicked", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
-
-    GtkWidget *menu = gtk_menu_new();
-    GtkWidget *item_ext = gtk_image_menu_item_new_with_label("Extended scan-list");
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_ext), gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_MENU));
-    g_signal_connect(item_ext, "activate", G_CALLBACK(ui_toolbar_scanlist_custom), range_ext);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_ext);
-
-    GtkWidget *item_full = gtk_image_menu_item_new_with_label("Full scan-list (4920-6000)");
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_full), gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_MENU));
-    g_signal_connect(item_full, "activate", G_CALLBACK(ui_toolbar_scanlist_custom), range_full);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_full);
-
-    gtk_widget_show_all(menu);
-    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(ui.b_scanlist_preset), menu);
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_scanlist_preset), "Preset scan-list");
+    g_signal_connect(ui.b_scanlist_preset, "clicked", G_CALLBACK(ui_toolbar_scanlist_preset), NULL);
+    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(ui.b_scanlist_preset), gtk_menu_new());
+    g_signal_connect(ui.b_scanlist_preset, "show-menu", G_CALLBACK(ui_toolbar_scanlist_menu), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_scanlist_preset, -1);
-    gtk_widget_add_accelerator(GTK_WIDGET(ui.b_scanlist_preset), "clicked", accel_group, GDK_KEY_5, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
 
@@ -316,39 +309,173 @@ ui_toolbar_scanlist_default(GtkWidget *widget,
 }
 
 static void
-ui_toolbar_scanlist_custom(GtkWidget *widget,
-                           gpointer   data)
-{
-    static gchar msg[] = "Are you sure to set the scan-list to full range: <b>%s</b>?\n\n"
-                         "<b>Warning:</b> Using an antenna with poor SWR may lead to PA failure during active scanning. "
-                         "If unsure, set tx-power to low value before continuing.";
-    static gboolean set_scanlist = FALSE;
-    GtkWidget *dialog;
-    gchar* range = (gchar*)data;
-
-    if(!set_scanlist)
-    {
-        dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(ui.window),
-                                                    GTK_DIALOG_MODAL,
-                                                    GTK_MESSAGE_WARNING,
-                                                    GTK_BUTTONS_YES_NO,
-                                                    msg,
-                                                    range);
-
-        gtk_window_set_title(GTK_WINDOW(dialog), APP_NAME);
-        set_scanlist = (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES);
-        gtk_widget_destroy(dialog);
-    }
-
-    if(set_scanlist && ui.conn)
-        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, range);
-}
-
-static void
 ui_toolbar_scanlist(GtkWidget *widget,
                     gpointer   data)
 {
-    scanlist_dialog();
+    ui_scanlist_show(ui.scanlist);
+}
+
+static void
+ui_toolbar_scanlist_preset(GtkWidget *widget,
+                           gpointer data)
+{
+    GtkListStore *model = conf_get_scanlists();
+    gboolean found = FALSE;
+
+    gtk_tree_model_foreach(GTK_TREE_MODEL(model), ui_toolbar_scanlist_preset_foreach, &found);
+
+    if(!found)
+        ui_scanlist_manager(ui.window, conf_get_scanlists());
+}
+
+static gboolean
+ui_toolbar_scanlist_preset_foreach(GtkTreeModel *store,
+                                   GtkTreePath  *path,
+                                   GtkTreeIter  *iter,
+                                   gpointer      data)
+{
+    gboolean *found = (gboolean*)data;
+    conf_scanlist_t *sl;
+
+    sl = conf_scanlist_list_get(GTK_LIST_STORE(store), iter);
+    if(conf_scanlist_get_main(sl))
+    {
+        ui_toolbar_scanlist_preset_apply(conf_scanlist_get_name(sl),
+                                         conf_scanlist_get_data(sl));
+        *found = TRUE;
+        conf_scanlist_free(sl);
+        return TRUE;
+    }
+
+    conf_scanlist_free(sl);
+    return FALSE;
+}
+
+static void
+ui_toolbar_scanlist_preset_apply(const gchar *name,
+                                 const gchar *value)
+{
+    static gboolean scanlist_set = FALSE;
+
+    if(!scanlist_set)
+        scanlist_set = ui_dialog_scanlist_warn(GTK_WINDOW(ui.window), name, value);
+
+    if(scanlist_set && ui.conn)
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, value);
+}
+
+static void
+ui_toolbar_scanlist_menu(GtkWidget *widget,
+                         gpointer   data)
+{
+    GtkListStore *model = conf_get_scanlists();
+    GtkWidget *menu;
+    GtkWidget *item;
+    gint rows;
+
+    menu = gtk_menu_new();
+    item = gtk_image_menu_item_new_with_label("Scan-list manager");
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item), gtk_image_new_from_stock(GTK_STOCK_PREFERENCES, GTK_ICON_SIZE_MENU));
+    g_signal_connect(item, "activate", G_CALLBACK(ui_toolbar_scanlist_menu_manager), 0);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+
+    item = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+
+    rows = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(model), NULL);
+
+    if(!rows)
+    {
+        item = gtk_image_menu_item_new_with_label("(no saved scanlists)");
+        gtk_widget_set_sensitive(GTK_WIDGET(item), FALSE);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    }
+    else
+    {
+        gtk_tree_model_foreach(GTK_TREE_MODEL(model), ui_toolbar_scanlist_menu_foreach, menu);
+    }
+
+    gtk_widget_show_all(menu);
+    gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(widget), menu);
+}
+
+static gboolean
+ui_toolbar_scanlist_menu_foreach(GtkTreeModel *store,
+                                 GtkTreePath  *path,
+                                 GtkTreeIter  *iter,
+                                 gpointer      data)
+{
+    GtkWidget *menu = GTK_WIDGET(data);
+    conf_scanlist_t *sl;
+    const gchar *name;
+    const gchar *value;
+    GtkWidget *item;
+    GtkWidget *label;
+    gchar *text;
+    gchar *tooltip;
+
+    sl = conf_scanlist_list_get(GTK_LIST_STORE(store), iter);
+    name = conf_scanlist_get_name(sl);
+    value = conf_scanlist_get_data(sl);
+
+    item = gtk_image_menu_item_new();
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item), gtk_image_new_from_stock(GTK_STOCK_APPLY, GTK_ICON_SIZE_MENU));
+    g_object_set_data_full(G_OBJECT(item), "mtscan_scanlist_name", (gpointer)g_strdup(name), g_free);
+    g_object_set_data_full(G_OBJECT(item), "mtscan_scanlist_value", (gpointer)g_strdup(value), g_free);
+
+    if(strlen(value) > 50)
+    {
+        text = g_utf8_substring(value, 0, 50);
+        tooltip = g_strdup_printf("%s…", value);
+        gtk_widget_set_tooltip_text(item, tooltip);
+        g_free(tooltip);
+        g_free(text);
+    }
+    else
+    {
+        gtk_widget_set_tooltip_text(item, value);
+    }
+
+    label = gtk_label_new(NULL);
+    gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+
+    if(conf_scanlist_get_main(sl))
+    {
+        text = g_strdup_printf("<b>%s</b>", name);
+        gtk_label_set_markup(GTK_LABEL(label), text);
+        g_free(text);
+    }
+    else
+    {
+        gtk_label_set_text(GTK_LABEL(label), name);
+    }
+
+    gtk_container_add(GTK_CONTAINER(item), label);
+    gtk_widget_show(label);
+
+    g_signal_connect(item, "activate", G_CALLBACK(ui_toolbar_scanlist_menu_preset), NULL);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+
+    conf_scanlist_free(sl);
+    return FALSE;
+}
+
+static void
+ui_toolbar_scanlist_menu_manager(GtkWidget *widget,
+                                 gpointer   data)
+{
+    ui_scanlist_manager(ui.window, conf_get_scanlists());
+}
+
+static void
+ui_toolbar_scanlist_menu_preset(GtkWidget *widget,
+                                gpointer   data)
+{
+    const gchar *name = (const gchar*)g_object_get_data(G_OBJECT(widget), "mtscan_scanlist_name");
+    const gchar *value = (const gchar*)g_object_get_data(G_OBJECT(widget), "mtscan_scanlist_value");
+
+    if(name && value)
+        ui_toolbar_scanlist_preset_apply(name, value);
 }
 
 static void

@@ -275,11 +275,13 @@ ui_connection_profile_changed(GtkComboBox *widget,
     ui_connection_t *c = (ui_connection_t*)user_data;
     GtkTreeIter iter;
     conf_profile_t *p;
+    GtkTreeModel *model;
 
     if(!gtk_combo_box_get_active_iter(widget, &iter))
         return;
 
-    p = conf_profile_get(&iter);
+    model = gtk_combo_box_get_model(GTK_COMBO_BOX(widget));
+    p = conf_profile_list_get(GTK_LIST_STORE(model), &iter);
     ui_connection_from_profile(c, p);
     conf_profile_free(p);
 }
@@ -395,6 +397,7 @@ ui_connection_profile_add(GtkWidget *widget,
     gchar *default_name;
     conf_profile_t *p;
     GtkTreeIter iter;
+    GtkTreeModel *model;
 
     dialog_profile = gtk_message_dialog_new(GTK_WINDOW(c->dialog),
                                             GTK_DIALOG_MODAL,
@@ -420,7 +423,8 @@ ui_connection_profile_add(GtkWidget *widget,
     if(gtk_dialog_run(GTK_DIALOG(dialog_profile)) == GTK_RESPONSE_OK)
     {
         p = ui_connection_to_profile(c, gtk_entry_get_text(GTK_ENTRY(entry)));
-        iter = conf_profile_add(p);
+        model = gtk_combo_box_get_model(GTK_COMBO_BOX(c->c_profile));
+        iter = conf_profile_list_add(GTK_LIST_STORE(model), p);
         conf_profile_free(p);
 
         g_signal_handlers_block_by_func(G_OBJECT(c->c_profile), GINT_TO_POINTER(ui_connection_profile_changed), NULL);

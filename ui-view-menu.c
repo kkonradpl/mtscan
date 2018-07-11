@@ -18,7 +18,7 @@
 #include "ui.h"
 #include "ui-view.h"
 #include "ui-dialogs.h"
-#include "scanlist.h"
+#include "ui-scanlist.h"
 #include "conf.h"
 #include "misc.h"
 
@@ -416,18 +416,23 @@ ui_view_menu_scanlist(GtkWidget *menuitem,
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
     GList *i;
     gint frequency;
+    gchar *text;
 
     if(!list)
         return;
 
-    scanlist_dialog();
+    ui_scanlist_show(ui.scanlist);
 
     for(i=list; i; i=i->next)
     {
         gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
         gtk_tree_model_get(model, &iter, COL_FREQUENCY, &frequency, -1);
         if(frequency)
-            scanlist_add(frequency/1000);
+        {
+            text = g_strdup_printf("%d", frequency / 1000);
+            ui_scanlist_add(ui.scanlist, text);
+            g_free(text);
+        }
     }
 
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);

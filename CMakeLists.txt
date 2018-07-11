@@ -30,6 +30,8 @@ set(SOURCE_FILES
         callbacks.h
         conf-profile.c
         conf-profile.h
+        conf-scanlist.c
+        conf-scanlist.h
         conf.c
         conf.h
         export.c
@@ -50,8 +52,6 @@ set(SOURCE_FILES
         mtscan.h
         network.c
         network.h
-        scanlist.c
-        scanlist.h
         signals.c
         signals.h
         ui-callbacks.c
@@ -64,6 +64,10 @@ set(SOURCE_FILES
         ui-icons.h
         ui-preferences.c
         ui-preferences.h
+        ui-scanlist.c
+        ui-scanlist.h
+        ui-scanlist-manager.c
+        ui-scanlist-manager.h
         ui-toolbar.c
         ui-toolbar.h
         ui-view-menu.c

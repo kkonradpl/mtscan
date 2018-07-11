@@ -13,22 +13,9 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_MISC_H_
-#define MTSCAN_MISC_H_
+#ifndef MTSCAN_UI_SCANLIST_MANAGER_H_
+#define MTSCAN_UI_SCANLIST_MANAGER_H_
 
-gint gptrcmp(gconstpointer, gconstpointer);
-gint gint64cmp(const gint64*, const gint64*);
-gint64* gint64dup(const gint64*);
-
-void remove_char(gchar*, gchar);
-gchar* str_scanlist_compress(const gchar*);
-
-GtkListStore* create_liststore_from_tree(GTree*);
-void fill_tree_from_liststore(GTree*, GtkListStore*);
-
-gint64 str_addr_to_gint64(const gchar*, gint);
-
-void mtscan_sound(const gchar *);
-gchar* timestamp_to_filename(const gchar*, gint64);
+void ui_scanlist_manager(GtkWidget*, GtkListStore*);
 
 #endif
