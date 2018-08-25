@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -27,6 +27,10 @@
 #include "log.h"
 #include "signals.h"
 #include "misc.h"
+
+#ifdef G_OS_WIN32
+#include "win32.h"
+#endif
 
 #define READ_BUFFER_LEN 100*1024
 
@@ -473,23 +477,42 @@ log_save(gchar       *filename,
     gchar *ext;
     GList *i;
     log_save_error_t *ret;
+    gchar *tmp_name = NULL;
+
+    /* If the file exists, rename it */
+    if(g_file_test(filename, G_FILE_TEST_EXISTS))
+    {
+        tmp_name = g_strdup_printf("%s.old", filename);
+        if(g_rename(filename, tmp_name) < 0)
+        {
+            g_free(tmp_name);
+            tmp_name = NULL;
+        }
+    }
 
     ext = strrchr(filename, '.');
-    if((ext && !g_ascii_strcasecmp(ext, ".gz")))
-    {
-        ctx.gzfp = gzopen(filename, "wb");
-        ctx.fp = NULL;
-    }
-    else
-    {
-        ctx.gzfp = NULL;
-        ctx.fp = g_fopen(filename, "w");
-    }
+    ctx.fp = g_fopen(filename, "w");
 
-    if(!ctx.gzfp && !ctx.fp)
+    if(!ctx.fp)
     {
         ret = g_malloc0(sizeof(log_save_error_t));
+        ret->existing_file = GPOINTER_TO_INT(tmp_name);
+        g_free(tmp_name);
         return ret;
+    }
+
+    ctx.gzfp = NULL;
+    if((ext && !g_ascii_strcasecmp(ext, ".gz")))
+    {
+        ctx.gzfp = gzdopen(dup(fileno(ctx.fp)), "wb");
+        if(!ctx.gzfp)
+        {
+            ret = g_malloc0(sizeof(log_save_error_t));
+            ret->existing_file = GPOINTER_TO_INT(tmp_name);
+            g_free(tmp_name);
+            fclose(ctx.fp);
+            return ret;
+        }
     }
 
     ctx.wrote = 0;
@@ -518,14 +541,21 @@ log_save(gchar       *filename,
 
     if(ctx.gzfp)
         gzclose(ctx.gzfp);
-    else
-        fclose(ctx.fp);
+#ifdef G_OS_WIN32
+    win32_fsync(fileno(ctx.fp));
+#else
+    fsync(fileno(ctx.fp));
+#endif
+    fclose(ctx.fp);
+
 
     if(ctx.length != ctx.wrote)
     {
         ret = g_malloc(sizeof(log_save_error_t));
         ret->wrote = ctx.wrote;
         ret->length = ctx.length;
+        ret->existing_file = GPOINTER_TO_INT(tmp_name);
+        g_free(tmp_name);
         return ret;
     }
 

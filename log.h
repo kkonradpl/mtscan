@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -21,6 +21,7 @@ typedef struct log_save_error
 {
     size_t wrote;
     size_t length;
+    gboolean existing_file;
 } log_save_error_t;
 
 void log_open(GSList*, gboolean);

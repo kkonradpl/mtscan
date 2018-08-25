@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -23,5 +23,6 @@ void win32_uri(const gchar*);
 gboolean win32_uri_signal(GtkWidget*, gchar*, gpointer);
 void win32_play(const gchar*);
 gchar* strsep(gchar**, const gchar*);
+void win32_fsync(gint);
 
 #endif
