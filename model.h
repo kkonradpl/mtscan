@@ -20,7 +20,7 @@
 
 #define MODEL_NO_SIGNAL G_MININT8
 
-#define MODEL_DEFAULT_ACTIVE_TIMEOUT 2
+#define MODEL_DEFAULT_ACTIVE_TIMEOUT 8
 #define MODEL_DEFAULT_NEW_TIMEOUT    2
 
 enum
@@ -62,6 +62,7 @@ enum
     COL_FREQUENCY,
     COL_CHANNEL,
     COL_MODE,
+    COL_STREAMS,
     COL_SSID,
     COL_RADIONAME,
     COL_MAXRSSI,
@@ -74,6 +75,10 @@ enum
     COL_WDS,
     COL_BRIDGE,
     COL_ROUTEROS_VER,
+    COL_AIRMAX,
+    COL_AIRMAX_AC_PTP,
+    COL_AIRMAX_AC_PTMP,
+    COL_AIRMAX_AC_MIXED,
     COL_FIRSTLOG,
     COL_LASTLOG,
     COL_LATITUDE,
@@ -103,6 +108,7 @@ void mtscan_model_enable_sorting(mtscan_model_t*);
 
 const gchar* model_format_address(gint64, gboolean);
 const gchar* model_format_frequency(gint);
+const gchar* model_format_streams(gint8);
 const gchar* model_format_date(gint64);
 const gchar* model_format_gps(gdouble, gboolean);
 const gchar* model_format_azimuth(gfloat, gboolean);

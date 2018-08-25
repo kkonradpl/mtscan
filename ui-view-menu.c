@@ -78,6 +78,7 @@ ui_view_menu(GtkWidget      *treeview,
                                          COL_LATITUDE, &latitude,
                                          COL_LONGITUDE, &longitude,
                                          -1);
+
         if(conf_get_preferences_blacklist_enabled())
             flags |= conf_get_preferences_blacklist(address) ? FLAG_UNBLACKLIST : FLAG_BLACKLIST;
 
@@ -326,6 +327,7 @@ ui_view_menu_lock(GtkWidget *menuitem,
         mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, output);
     }
     g_free(output);
+
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
     g_tree_unref(tree);
@@ -341,6 +343,7 @@ ui_view_menu_lock_foreach(gpointer key,
     g_string_append_printf(str, "%d,", frequency/1000);
     return FALSE;
 }
+
 
 static void
 ui_view_menu_oui(GtkWidget *menuitem,

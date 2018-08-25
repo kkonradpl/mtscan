@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2017  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -13,11 +13,28 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_EXPORT_H_
-#define MTSCAN_EXPORT_H_
-#include "model.h"
+#ifndef MTSCAN_UTILS_H
+#define MTSCAN_UTILS_H
 
-gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, const gchar* const*, const gchar* const*);
+#include <string.h>
+#include <stdlib.h>
+#include "utils.h"
+
+char* tzsp_utils_string(const uint8_t *input,
+                        size_t         maxlen)
+{
+    size_t len;
+    char *output;
+
+    len = strnlen((const char*)input, maxlen);
+    output = malloc(sizeof(char)*(len+1));
+    if(output)
+    {
+        memcpy(output, (const char *)input, len);
+        output[len] = '\0';
+    }
+
+    return output;
+}
 
 #endif
-

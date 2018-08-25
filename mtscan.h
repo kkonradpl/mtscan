@@ -18,7 +18,7 @@
 #include <glib.h>
 
 #define APP_NAME          "MTscan"
-#define APP_VERSION       "0.2-git"
+#define APP_VERSION       "0.3-git"
 #define APP_ICON          "mtscan"
 #define APP_FILE_EXT      ".mtscan"
 #define APP_FILE_COMPRESS ".gz"

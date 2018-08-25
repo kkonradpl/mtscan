@@ -20,6 +20,7 @@
 #include "model.h"
 #include "ui-connection.h"
 #include "mt-ssh.h"
+#include "tzsp-receiver.h"
 #include "ui-scanlist.h"
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
@@ -40,7 +41,6 @@ typedef struct mtscan_gtk
     GtkWidget *toolbar;
     GtkToolItem *b_connect;
     GtkToolItem *b_scan;
-    GtkToolItem *b_sniff;
     GtkToolItem *b_restart;
     GtkToolItem *b_scanlist_default;
     GtkToolItem *b_scanlist;
@@ -81,10 +81,16 @@ typedef struct mtscan_gtk
     ui_scanlist_t *scanlist;
 
     mt_ssh_t *conn;
+    gboolean reconnect;
     gint mode;
+    gchar *hwaddr;
     gboolean connected;
+    gboolean active;
+    tzsp_receiver_t *tzsp_rx;
+
     gint activity;
     gint64 activity_ts;
+
     guint activity_timeout;
     guint data_timeout;
 } mtscan_gtk_t;
@@ -93,7 +99,7 @@ mtscan_gtk_t ui;
 
 void ui_init(void);
 
-void ui_connected(const gchar*, const gchar*, const gchar*);
+void ui_connected(const gchar*, const gchar*, const gchar*, const gchar*);
 void ui_disconnected(void);
 void ui_changed(void);
 gboolean ui_can_discard_unsaved(void);
@@ -108,5 +114,7 @@ gboolean ui_log_save(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
 gboolean ui_log_save_full(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
 
 void ui_toggle_connection(gint);
+void ui_tzsp(void);
+void ui_tzsp_destroy(void);
 
 #endif

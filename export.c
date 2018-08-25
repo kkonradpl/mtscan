@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -225,6 +225,7 @@ export_foreach(GtkTreeModel *store,
                        COL_FREQUENCY, &net.frequency,
                        COL_CHANNEL, &net.channel,
                        COL_MODE, &net.mode,
+                       COL_STREAMS, &net.streams,
                        COL_SSID, &net.ssid,
                        COL_RADIONAME, &net.radioname,
                        COL_MAXRSSI, &net.rssi,
@@ -235,6 +236,10 @@ export_foreach(GtkTreeModel *store,
                        COL_WDS, &net.flags.wds,
                        COL_BRIDGE, &net.flags.bridge,
                        COL_ROUTEROS_VER, &net.routeros_ver,
+                       COL_AIRMAX, &net.ubnt_airmax,
+                       COL_AIRMAX_AC_PTP, &net.ubnt_ptp,
+                       COL_AIRMAX_AC_PTMP, &net.ubnt_ptmp,
+                       COL_AIRMAX_AC_MIXED, &net.ubnt_mixed,
                        COL_FIRSTLOG, &net.firstseen,
                        COL_LASTLOG, &net.lastseen,
                        COL_LATITUDE, &net.latitude,
@@ -258,6 +263,8 @@ export_foreach(GtkTreeModel *store,
             cstr = g_markup_printf_escaped("%s", net.mode);
         else if(col == MTSCAN_VIEW_COL_CHANNEL)
             cstr = g_markup_printf_escaped("%s", net.channel);
+        else if(col == MTSCAN_VIEW_COL_SPATIAL_STREAMS)
+            g_string_append_printf(str, "<td>%s</td>", model_format_streams(net.streams));
         else if(col == MTSCAN_VIEW_COL_SSID)
             cstr = g_markup_printf_escaped("%s", net.ssid);
         else if(col == MTSCAN_VIEW_COL_RADIO_NAME)
@@ -278,6 +285,14 @@ export_foreach(GtkTreeModel *store,
             g_string_append_printf(str, "<td>%s</td>", (net.flags.bridge ? ui_view_get_column_title(col) : ""));
         else if(col == MTSCAN_VIEW_COL_ROUTEROS_VER)
             cstr = g_markup_printf_escaped("%s", net.routeros_ver);
+        else if(col == MTSCAN_VIEW_COL_AIRMAX)
+            g_string_append_printf(str, "<td>%s</td>", (net.ubnt_airmax ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_AIRMAX_AC_PTP)
+            g_string_append_printf(str, "<td>%s</td>", (net.ubnt_ptp ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_AIRMAX_AC_PTMP)
+            g_string_append_printf(str, "<td>%s</td>", (net.ubnt_ptmp ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_AIRMAX_AC_MIXED)
+            g_string_append_printf(str, "<td>%s</td>", (net.ubnt_mixed ? ui_view_get_column_title(col) : ""));
         else if(col == MTSCAN_VIEW_COL_FIRST_LOG)
         {
             date = g_date_time_new_from_unix_local(net.firstseen);

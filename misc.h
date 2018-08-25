@@ -27,6 +27,7 @@ GtkListStore* create_liststore_from_tree(GTree*);
 void fill_tree_from_liststore(GTree*, GtkListStore*);
 
 gint64 str_addr_to_gint64(const gchar*, gint);
+gboolean str_addr_to_guint8(const gchar*, gint, guint8*);
 
 void mtscan_sound(const gchar *);
 gchar* timestamp_to_filename(const gchar*, gint64);

@@ -30,6 +30,7 @@ static const gchar* mtscan_view_cols[] =
     "address",
     "frequency",
     "mode",
+    "spatial-streams",
     "channel",
     "ssid",
     "radio-name",
@@ -43,6 +44,10 @@ static const gchar* mtscan_view_cols[] =
     "wds",
     "bridge",
     "routeros-ver",
+    "airmax",
+    "airmax-ac-ptp",
+    "airmax-ac-ptmp",
+    "airmax-ac-mixed",
     "first-log",
     "last-log",
     "latitude",
@@ -56,6 +61,7 @@ static const gchar* mtscan_view_titles[] =
     "Address",
     "Freq",
     "M",
+    "#",
     "Channel",
     "SSID",
     "Radio name",
@@ -69,6 +75,10 @@ static const gchar* mtscan_view_titles[] =
     "W",
     "B",
     "ROS",
+    "A",
+    "P",
+    "M",
+    "X",
     "First log",
     "Last log",
     "Latitude",
@@ -86,6 +96,7 @@ static void ui_view_format_background(GtkTreeViewColumn*, GtkCellRenderer*, GtkT
 static void ui_view_format_icon(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_address(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_freq(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
+static void ui_view_format_streams(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_date(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_level(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_gps(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
@@ -160,6 +171,19 @@ ui_view_new(mtscan_model_t *model,
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_MODE));
     g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_MODE], column);
+
+    /* Spatial streams column */
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_renderer_set_padding(renderer, 1, 0);
+    gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
+    gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_SPATIAL_STREAMS], renderer, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_streams, GINT_TO_POINTER(COL_STREAMS), NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_STREAMS));
+    g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_SPATIAL_STREAMS], column);
 
     /* Channel width column */
     renderer = gtk_cell_renderer_text_new();
@@ -315,6 +339,50 @@ ui_view_new(mtscan_model_t *model,
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_ROUTEROS_VER));
     g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_ROUTEROS_VER], column);
+
+    /* UBNT Airmax column */
+    renderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_set_padding(renderer, 0, 0);
+    column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX], renderer, "active", COL_AIRMAX, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_AIRMAX), NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AIRMAX));
+    g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_AIRMAX], column);
+
+    /* UBNT Airmax AC PTP column */
+    renderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_set_padding(renderer, 0, 0);
+    column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX_AC_PTP], renderer, "active", COL_AIRMAX_AC_PTP, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_AIRMAX_AC_PTP), NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AIRMAX_AC_PTP));
+    g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_AIRMAX_AC_PTP], column);
+
+    /* UBNT Airmax AC PTMP column */
+    renderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_set_padding(renderer, 0, 0);
+    column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX_AC_PTMP], renderer, "active", COL_AIRMAX_AC_PTMP, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_AIRMAX_AC_PTMP), NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AIRMAX_AC_PTMP));
+    g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_AIRMAX_AC_PTMP], column);
+
+    /* UBNT Airmax AC Mixed column */
+    renderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_set_padding(renderer, 0, 0);
+    column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX_AC_MIXED], renderer, "active", COL_AIRMAX_AC_MIXED, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_AIRMAX_AC_MIXED), NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AIRMAX_AC_MIXED));
+    g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_AIRMAX_AC_MIXED], column);
 
     /* First log column */
     renderer = gtk_cell_renderer_text_new();
@@ -634,6 +702,20 @@ ui_view_format_freq(GtkTreeViewColumn *col,
 }
 
 static void
+ui_view_format_streams(GtkTreeViewColumn *col,
+                       GtkCellRenderer   *renderer,
+                       GtkTreeModel      *store,
+                       GtkTreeIter       *iter,
+                       gpointer           data)
+{
+    gint col_id = GPOINTER_TO_INT(data);
+    gint value;
+    gtk_tree_model_get(store, iter, col_id, &value, -1);
+    g_object_set(renderer, "text", model_format_streams(value), NULL);
+    ui_view_format_background(col, renderer, store, iter, data);
+}
+
+static void
 ui_view_format_date(GtkTreeViewColumn *col,
                     GtkCellRenderer   *renderer,
                     GtkTreeModel      *store,
@@ -802,6 +884,10 @@ ui_view_column_clicked(GtkTreeViewColumn *column,
         case COL_TDMA:
         case COL_WDS:
         case COL_BRIDGE:
+        case COL_AIRMAX:
+        case COL_AIRMAX_AC_PTP:
+        case COL_AIRMAX_AC_PTMP:
+        case COL_AIRMAX_AC_MIXED:
             swap_direction = TRUE;
         break;
 

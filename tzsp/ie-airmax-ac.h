@@ -13,11 +13,22 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_EXPORT_H_
-#define MTSCAN_EXPORT_H_
-#include "model.h"
+#ifndef MTSCAN_TZSP_IE_AIRMAX_AC_H
+#define MTSCAN_TZSP_IE_AIRMAX_AC_H
+#include <stdint.h>
+#include <stdbool.h>
 
-gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, const gchar* const*, const gchar* const*);
+typedef struct ie_airmax_ac ie_airmax_ac_t;
+
+ie_airmax_ac_t* ie_airmax_ac_parse(const uint8_t*, uint8_t, const uint8_t[6]);
+
+bool ie_airmax_ac_is_ptp(ie_airmax_ac_t*);
+bool ie_airmax_ac_is_ptmp(ie_airmax_ac_t*);
+bool ie_airmax_ac_is_mixed(ie_airmax_ac_t*);
+
+const char* ie_airmax_ac_get_radioname(ie_airmax_ac_t*);
+const char* ie_airmax_ac_get_ssid(ie_airmax_ac_t*);
+
+void ie_airmax_ac_free(ie_airmax_ac_t*);
 
 #endif
-

@@ -18,6 +18,12 @@
 
 typedef struct conf_profile conf_profile_t;
 
+typedef enum mtscan_conf_profile_mode
+{
+    MTSCAN_CONF_PROFILE_MODE_SCANNER,
+    MTSCAN_CONF_PROFILE_MODE_SNIFFER
+} mtscan_conf_profile_mode_t;
+
 enum
 {
     CONF_PROFILE_COL_NAME,
@@ -26,6 +32,7 @@ enum
     CONF_PROFILE_COL_LOGIN,
     CONF_PROFILE_COL_PASSWORD,
     CONF_PROFILE_COL_INTERFACE,
+    CONF_PROFILE_COL_MODE,
     CONF_PROFILE_COL_DURATION_TIME,
     CONF_PROFILE_COL_DURATION,
     CONF_PROFILE_COL_REMOTE,
@@ -34,7 +41,7 @@ enum
     CONF_PROFILE_COLS
 };
 
-conf_profile_t* conf_profile_new(gchar*, gchar*, gint, gchar*, gchar*, gchar*, gint, gboolean, gboolean, gboolean, gboolean);
+conf_profile_t* conf_profile_new(gchar*, gchar*, gint, gchar*, gchar*, gchar*, mtscan_conf_profile_mode_t, gint, gboolean, gboolean, gboolean, gboolean);
 void conf_profile_free(conf_profile_t*);
 
 const gchar* conf_profile_get_name(const conf_profile_t*);
@@ -43,6 +50,7 @@ gint conf_profile_get_port(const conf_profile_t*);
 const gchar* conf_profile_get_login(const conf_profile_t*);
 const gchar* conf_profile_get_password(const conf_profile_t*);
 const gchar* conf_profile_get_interface(const conf_profile_t*);
+mtscan_conf_profile_mode_t conf_profile_get_mode(const conf_profile_t*);
 gint conf_profile_get_duration_time(const conf_profile_t*);
 gint conf_profile_get_duration(const conf_profile_t*);
 gboolean conf_profile_get_remote(const conf_profile_t*);

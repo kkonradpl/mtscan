@@ -223,6 +223,27 @@ str_addr_to_gint64(const gchar* str,
     return -1;
 }
 
+gboolean
+str_addr_to_guint8(const gchar *str,
+                   gint         len,
+                   guint8      *buff)
+{
+    gint64 addr_buff;
+    guint8 *ptr;
+    gint i;
+
+    addr_buff = str_addr_to_gint64(str, len);
+
+    if(addr_buff < 0)
+        return FALSE;
+
+    ptr = buff;
+    for(i=5; i>=0; i--)
+        *ptr++ = (uint8_t) (addr_buff >> (CHAR_BIT * i));
+
+    return TRUE;
+}
+
 void
 mtscan_sound(const gchar *filename)
 {

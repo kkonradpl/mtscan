@@ -13,11 +13,13 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_EXPORT_H_
-#define MTSCAN_EXPORT_H_
-#include "model.h"
+#ifndef MTSCAN_DECAP_H
+#define MTSCAN_DECAP_H
+#include <stdint.h>
 
-gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, const gchar* const*, const gchar* const*);
+const uint8_t* decap_ethernet(const uint8_t*, uint32_t*);
+const uint8_t* decap_ip(const uint8_t*, uint32_t*);
+const uint8_t* decap_udp(const uint8_t*, uint32_t*);
+const uint8_t* decap_tzsp(const uint8_t*, uint32_t*, const int8_t**, const uint8_t**, const uint8_t**);
 
 #endif
-

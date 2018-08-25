@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@ enum
     MTSCAN_VIEW_COL_ADDRESS,
     MTSCAN_VIEW_COL_FREQUENCY,
     MTSCAN_VIEW_COL_MODE,
+    MTSCAN_VIEW_COL_SPATIAL_STREAMS,
     MTSCAN_VIEW_COL_CHANNEL,
     MTSCAN_VIEW_COL_SSID,
     MTSCAN_VIEW_COL_RADIO_NAME,
@@ -38,6 +39,10 @@ enum
     MTSCAN_VIEW_COL_WDS,
     MTSCAN_VIEW_COL_BRIDGE,
     MTSCAN_VIEW_COL_ROUTEROS_VER,
+    MTSCAN_VIEW_COL_AIRMAX,
+    MTSCAN_VIEW_COL_AIRMAX_AC_PTP,
+    MTSCAN_VIEW_COL_AIRMAX_AC_PTMP,
+    MTSCAN_VIEW_COL_AIRMAX_AC_MIXED,
     MTSCAN_VIEW_COL_FIRST_LOG,
     MTSCAN_VIEW_COL_LAST_LOG,
     MTSCAN_VIEW_COL_LATITUDE,
@@ -45,6 +50,7 @@ enum
     MTSCAN_VIEW_COL_AZIMUTH,
     MTSCAN_VIEW_COLS
 };
+
 
 GtkWidget* ui_view_new(mtscan_model_t*, gint);
 void ui_view_configure(GtkWidget*);

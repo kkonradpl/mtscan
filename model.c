@@ -58,6 +58,7 @@ mtscan_model_new(void)
                                       G_TYPE_INT,      /* COL_FREQUENCY */
                                       G_TYPE_STRING,   /* COL_CHANNEL   */
                                       G_TYPE_STRING,   /* COL_MODE      */
+                                      G_TYPE_CHAR,     /* COL_STREAMS   */
                                       G_TYPE_STRING,   /* COL_SSID      */
                                       G_TYPE_STRING,   /* COL_RADIONAME */
                                       G_TYPE_CHAR,     /* COL_MAXRSSI   */
@@ -70,6 +71,10 @@ mtscan_model_new(void)
                                       G_TYPE_BOOLEAN,  /* COL_WDS       */
                                       G_TYPE_BOOLEAN,  /* COL_BRIDGE    */
                                       G_TYPE_STRING,   /* COL_ROS_VER   */
+                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX          */
+                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX_AC_PTP   */
+                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX_AC_PTMP  */
+                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX_AC_MIXED */
                                       G_TYPE_INT64,    /* COL_FIRSTLOG  */
                                       G_TYPE_INT64,    /* COL_LASTLOG   */
                                       G_TYPE_DOUBLE,   /* COL_LATITUDE  */
@@ -390,6 +395,7 @@ mtscan_model_buffer_add(mtscan_model_t *model,
         return;
     }
 
+    network_to_utf8(net, conf_get_preferences_fallback_encoding());
     model->buffer = g_slist_prepend(model->buffer, (gpointer)net);
 }
 
@@ -521,6 +527,7 @@ model_update_network(mtscan_model_t *model,
                                COL_STATE, current_state,
                                COL_FREQUENCY, net->frequency,
                                COL_CHANNEL, (net->channel ? net->channel : ""),
+                               COL_STREAMS, net->streams,
                                COL_MODE, (net->mode ? net->mode : ""),
                                COL_SSID, (net->ssid ? net->ssid : ""),
                                COL_RADIONAME, (net->radioname ? net->radioname : ""),
@@ -534,6 +541,10 @@ model_update_network(mtscan_model_t *model,
                                COL_WDS, net->flags.wds,
                                COL_BRIDGE, net->flags.bridge,
                                COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
+                               COL_AIRMAX, net->ubnt_airmax,
+                               COL_AIRMAX_AC_PTP, net->ubnt_ptp,
+                               COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
+                               COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
                                COL_LASTLOG, net->firstseen,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
@@ -546,6 +557,7 @@ model_update_network(mtscan_model_t *model,
                                COL_STATE, current_state,
                                COL_FREQUENCY, net->frequency,
                                COL_CHANNEL, (net->channel ? net->channel : ""),
+                               COL_STREAMS, net->streams,
                                COL_MODE, (net->mode ? net->mode : ""),
                                COL_SSID, (net->ssid ? net->ssid : ""),
                                COL_RADIONAME, (net->radioname ? net->radioname : ""),
@@ -558,6 +570,10 @@ model_update_network(mtscan_model_t *model,
                                COL_WDS, net->flags.wds,
                                COL_BRIDGE, net->flags.bridge,
                                COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
+                               COL_AIRMAX, net->ubnt_airmax,
+                               COL_AIRMAX_AC_PTP, net->ubnt_ptp,
+                               COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
+                               COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
                                COL_LASTLOG, net->firstseen,
                                -1);
         }
@@ -578,6 +594,7 @@ model_update_network(mtscan_model_t *model,
                                           COL_ADDRESS, net->address,
                                           COL_FREQUENCY, net->frequency,
                                           COL_CHANNEL, (net->channel ? net->channel : ""),
+                                          COL_STREAMS, net->streams,
                                           COL_MODE, (net->mode ? net->mode : ""),
                                           COL_SSID, (net->ssid ? net->ssid : ""),
                                           COL_RADIONAME, (net->radioname ? net->radioname : ""),
@@ -591,6 +608,10 @@ model_update_network(mtscan_model_t *model,
                                           COL_WDS, net->flags.wds,
                                           COL_BRIDGE, net->flags.bridge,
                                           COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
+                                          COL_AIRMAX, net->ubnt_airmax,
+                                          COL_AIRMAX_AC_PTP, net->ubnt_ptp,
+                                          COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
+                                          COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
                                           COL_FIRSTLOG, net->firstseen,
                                           COL_LASTLOG, net->firstseen,
                                           COL_LATITUDE, net->latitude,
@@ -658,6 +679,7 @@ mtscan_model_add(mtscan_model_t *model,
             gtk_list_store_set(model->store, iter_merge,
                                COL_FREQUENCY, net->frequency,
                                COL_CHANNEL, (net->channel ? net->channel : ""),
+                               COL_STREAMS, net->streams,
                                COL_MODE, (net->mode ? net->mode : ""),
                                COL_SSID, (net->ssid ? net->ssid : ""),
                                COL_RADIONAME, (net->radioname ? net->radioname : ""),
@@ -668,6 +690,10 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_WDS, net->flags.wds,
                                COL_BRIDGE, net->flags.bridge,
                                COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
+                               COL_AIRMAX, net->ubnt_airmax,
+                               COL_AIRMAX_AC_PTP, net->ubnt_ptp,
+                               COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
+                               COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
                                COL_LASTLOG, net->lastseen,
                                -1);
         }
@@ -691,6 +717,7 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_ADDRESS, net->address,
                                           COL_FREQUENCY, net->frequency,
                                           COL_CHANNEL, (net->channel ? net->channel : ""),
+                                          COL_STREAMS, net->streams,
                                           COL_MODE, (net->mode ? net->mode : ""),
                                           COL_SSID, (net->ssid ? net->ssid : ""),
                                           COL_RADIONAME, (net->radioname ? net->radioname : ""),
@@ -704,6 +731,10 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_WDS, net->flags.wds,
                                           COL_BRIDGE, net->flags.bridge,
                                           COL_ROUTEROS_VER, (net->routeros_ver ? net->routeros_ver : ""),
+                                          COL_AIRMAX, net->ubnt_airmax,
+                                          COL_AIRMAX_AC_PTP, net->ubnt_ptp,
+                                          COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
+                                          COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
                                           COL_FIRSTLOG, net->firstseen,
                                           COL_LASTLOG, net->lastseen,
                                           COL_LATITUDE, net->latitude,
@@ -793,6 +824,17 @@ model_format_frequency(gint value)
     }
 
     g_snprintf(output, sizeof(output), "%d", value/1000);
+    return output;
+}
+
+const gchar*
+model_format_streams(gint8 value)
+{
+    static gchar output[10];
+    if(value > 0)
+        g_snprintf(output, sizeof(output), "%d", value);
+    else
+        output[0] = '\0';
     return output;
 }
 

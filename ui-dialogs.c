@@ -450,6 +450,7 @@ ui_dialog_about(GtkWindow *window)
     gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
 }
+
 gboolean
 ui_dialog_scanlist_warn(GtkWindow   *window,
                         const gchar *name,

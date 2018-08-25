@@ -22,6 +22,10 @@
 #include "ui-dialogs.h"
 #include "conf.h"
 #include "misc.h"
+#include "tzsp-receiver.h"
+#include "callbacks.h"
+
+static void ui_callback_network_real(network_t*);
 
 static gboolean ui_callback_timeout(gpointer);
 static gboolean ui_callback_heartbeat_timeout(gpointer);
@@ -72,7 +76,8 @@ ui_callback_connected(const mt_ssh_t *context,
 
     ui_connected(mt_ssh_get_login(context),
                  mt_ssh_get_hostname(context),
-                 mt_ssh_get_interface(context));
+                 mt_ssh_get_interface(context),
+                 hwaddr);
 
     if(ui.conn_dialog)
         ui_connection_connected(ui.conn_dialog);
@@ -93,21 +98,25 @@ ui_callback_disconnected(const mt_ssh_t *context)
 
 void
 ui_callback_state(const mt_ssh_t *context,
-                  gboolean        value)
+                  gint            value)
 {
     if(ui.conn != context)
         return;
 
-    ui.mode = value;
-    ui_toolbar_mode_set_state(value);
-
-    if(ui.mode == MTSCAN_MODE_NONE)
-        mtscan_model_buffer_clear(ui.model);
+    ui.active = (gboolean)value;
+    ui_toolbar_scan_set_state(ui.active);
 
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_scan), TRUE);
-    gtk_widget_set_sensitive(GTK_WIDGET(ui.b_sniff), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_restart), TRUE);
     ui.activity_ts = UNIX_TIMESTAMP();
+
+    if(ui.tzsp_rx)
+    {
+        if(value == MTSCAN_MODE_SNIFFER)
+            tzsp_receiver_enable(ui.tzsp_rx);
+        else if(value == MTSCAN_MODE_NONE)
+            tzsp_receiver_disable(ui.tzsp_rx);
+    }
 }
 
 void
@@ -128,8 +137,6 @@ void
 ui_callback_network(const mt_ssh_t *context,
                     network_t      *net)
 {
-    const mtscan_gps_data_t *gps_data;
-
     if(ui.conn != context)
     {
         network_free(net);
@@ -137,6 +144,13 @@ ui_callback_network(const mt_ssh_t *context,
         return;
     }
 
+    ui_callback_network_real(net);
+}
+
+static void
+ui_callback_network_real(network_t *net)
+{
+    const mtscan_gps_data_t *gps_data;
     if(gps_get_data(&gps_data) == GPS_OK)
     {
         net->latitude = gps_data->lat;
@@ -225,4 +239,27 @@ ui_callback_scanlist(const mt_ssh_t *context,
         return;
 
     ui_scanlist_current(ui.scanlist, data);
+}
+
+void
+ui_callback_tzsp(tzsp_receiver_t *context)
+{
+    if(ui.tzsp_rx == context)
+        ui.tzsp_rx = NULL;
+
+    tzsp_receiver_free(context);
+}
+
+void
+ui_callback_tzsp_network(const tzsp_receiver_t *context,
+                         network_t             *network)
+{
+    if(ui.tzsp_rx != context)
+    {
+        network_free(network);
+        g_free(network);
+        return;
+    }
+
+    ui_callback_network_real(network);
 }

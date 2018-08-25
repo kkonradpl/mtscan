@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -21,11 +21,14 @@ void ui_callback_status(const mt_ssh_t*, const gchar*, const gchar*);
 void ui_callback_verify(const mt_ssh_t*, const gchar*);
 void ui_callback_connected(const mt_ssh_t*, const gchar*);
 void ui_callback_disconnected(const mt_ssh_t*);
-void ui_callback_state(const mt_ssh_t*, gboolean);
+void ui_callback_state(const mt_ssh_t*, gint);
 void ui_callback_failure(const mt_ssh_t*, const gchar*);
-void ui_callback_network(const mt_ssh_t *, network_t *);
+void ui_callback_network(const mt_ssh_t*, network_t*);
 void ui_callback_heartbeat(const mt_ssh_t*);
 void ui_callback_scanlist(const mt_ssh_t*, const gchar*);
+
+void ui_callback_tzsp(tzsp_receiver_t*);
+void ui_callback_tzsp_network(const tzsp_receiver_t*, network_t*);
 
 #endif
 

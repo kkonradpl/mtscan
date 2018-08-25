@@ -13,11 +13,14 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_EXPORT_H_
-#define MTSCAN_EXPORT_H_
-#include "model.h"
+#ifndef MTSCAN_TZSP_IE_AIRMAX_H
+#define MTSCAN_TZSP_IE_AIRMAX_H
+#include <stdint.h>
+#include <stdbool.h>
 
-gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, const gchar* const*, const gchar* const*);
+typedef struct ie_airmax ie_airmax_t;
+
+ie_airmax_t* ie_airmax_parse(const uint8_t*, uint8_t);
+void ie_airmax_free(ie_airmax_t*);
 
 #endif
-

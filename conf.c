@@ -44,6 +44,7 @@
 #define CONF_DEFAULT_PROFILE_LOGIN          "admin"
 #define CONF_DEFAULT_PROFILE_PASSWORD       ""
 #define CONF_DEFAULT_PROFILE_INTERFACE      "wlan1"
+#define CONF_DEFAULT_PROFILE_MODE           MTSCAN_CONF_PROFILE_MODE_SCANNER
 #define CONF_DEFAULT_PROFILE_DURATION_TIME  10
 #define CONF_DEFAULT_PROFILE_DURATION       FALSE
 #define CONF_DEFAULT_PROFILE_REMOTE         FALSE
@@ -62,6 +63,7 @@
 #define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
 #define CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL      5
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
+#define CONF_DEFAULT_PREFERENCES_FALLBACK_ENCODING      "ISO-8859-2"
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY      FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
@@ -69,6 +71,11 @@
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
+#define CONF_DEFAULT_PREFERENCES_TZSP_MODE              MTSCAN_CONF_TZSP_MODE_SOCKET
+#define CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT          0x9090
+#define CONF_DEFAULT_PREFERENCES_TZSP_INTERFACE         "eno1"
+#define CONF_DEFAULT_PREFERENCES_TZSP_CHANNEL_WIDTH     20
+#define CONF_DEFAULT_PREFERENCES_TZSP_BAND              MTSCAN_CONF_TZSP_BAND_5GHZ
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
 #define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE      TRUE
@@ -130,6 +137,7 @@ typedef struct conf
     gint      preferences_icon_size;
     gint      preferences_autosave_interval;
     gint      preferences_search_column;
+    gchar    *preferences_fallback_encoding;
     gboolean  preferences_signals;
     gboolean  preferences_display_time_only;
 
@@ -141,6 +149,12 @@ typedef struct conf
     gboolean  preferences_sounds_new_network_al;
     gboolean  preferences_sounds_no_data;
     gboolean  preferences_sounds_no_gps_data;
+
+    mtscan_conf_tzsp_mode_t  preferences_tzsp_mode;
+    gint                     preferences_tzsp_udp_port;
+    gchar                   *preferences_tzsp_interface;
+    gint                     preferences_tzsp_channel_width;
+    mtscan_conf_tzsp_band_t  preferences_tzsp_band;
 
     gchar    *preferences_gps_hostname;
     gint      preferences_gps_tcp_port;
@@ -177,18 +191,19 @@ static gchar*           conf_read_string(const gchar*, const gchar*, const gchar
 static gchar**          conf_read_string_list(GKeyFile*, const gchar*, const gchar*, const gchar* const*);
 static gchar**          conf_read_columns(GKeyFile*, const gchar*, const gchar*);
 static void             conf_read_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
+
 static void             conf_read_list(GtkListStore*, const gchar*, void (*)(GtkListStore*, const gchar*));
 static void             conf_read_profile_callback(GtkListStore*, const gchar*);
 static conf_profile_t*  conf_read_profile(const gchar*);
 static void             conf_read_scanlist_callback(GtkListStore*, const gchar*);
 static conf_scanlist_t* conf_read_scanlist(const gchar*);
 
-
 static void             conf_save_list(GtkListStore*, GtkTreeModelForeachFunc);
 static gboolean         conf_save_profiles_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 static void             conf_save_profile(GKeyFile*, const gchar*, const conf_profile_t*);
 static gboolean         conf_save_scanlists_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 static void             conf_save_scanlist(GKeyFile*, const gchar*, const conf_scanlist_t*);
+
 static void             conf_save_gint64_tree(GKeyFile*, const gchar*, const gchar*, GTree*);
 static gboolean         conf_save_gint64_tree_foreach(gpointer, gpointer, gpointer);
 
@@ -258,6 +273,7 @@ conf_read(void)
     conf.preferences_icon_size = conf_read_integer("preferences", "icon_size", CONF_DEFAULT_PREFERENCES_ICON_SIZE);
     conf.preferences_autosave_interval = conf_read_integer("preferences", "autosave_interval", CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
+    conf.preferences_fallback_encoding = conf_read_string("preferences", "fallback_encoding", CONF_DEFAULT_PREFERENCES_FALLBACK_ENCODING);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
     conf.preferences_display_time_only = conf_read_boolean("preferences", "display_time_only", CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY);
 
@@ -269,6 +285,12 @@ conf_read(void)
     conf.preferences_sounds_new_network_al = conf_read_boolean("preferences", "sounds_new_network_al", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL);
     conf.preferences_sounds_no_data = conf_read_boolean("preferences", "sounds_no_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA);
     conf.preferences_sounds_no_gps_data = conf_read_boolean("preferences", "sounds_no_gps_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA);
+
+    conf.preferences_tzsp_mode = (mtscan_conf_tzsp_mode_t)conf_read_integer("preferences", "tzsp_mode", CONF_DEFAULT_PREFERENCES_TZSP_MODE);
+    conf.preferences_tzsp_udp_port = conf_read_integer("preferences", "tzsp_udp_port", CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT);
+    conf.preferences_tzsp_interface = conf_read_string("preferences", "tzsp_interface", CONF_DEFAULT_PREFERENCES_TZSP_INTERFACE);
+    conf.preferences_tzsp_channel_width = conf_read_integer("preferences", "tzsp_channel_width", CONF_DEFAULT_PREFERENCES_TZSP_CHANNEL_WIDTH);
+    conf.preferences_tzsp_band = (mtscan_conf_tzsp_band_t)conf_read_integer("preferences", "tzsp_band", CONF_DEFAULT_PREFERENCES_TZSP_BAND);
 
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
@@ -474,6 +496,7 @@ conf_read_profile(const gchar *group_name)
                          conf_read_string(group_name, "login", CONF_DEFAULT_PROFILE_LOGIN),
                          conf_read_string(group_name, "password", CONF_DEFAULT_PROFILE_PASSWORD),
                          conf_read_string(group_name, "interface", CONF_DEFAULT_PROFILE_INTERFACE),
+                         (mtscan_conf_profile_mode_t)conf_read_integer(group_name, "mode", CONF_DEFAULT_PROFILE_MODE),
                          conf_read_integer(group_name, "duration_time", CONF_DEFAULT_PROFILE_DURATION_TIME),
                          conf_read_boolean(group_name, "duration", CONF_DEFAULT_PROFILE_DURATION),
                          conf_read_boolean(group_name, "remote", CONF_DEFAULT_PROFILE_REMOTE),
@@ -560,6 +583,7 @@ conf_save(void)
     g_key_file_set_integer(conf.keyfile, "preferences", "icon_size", conf.preferences_icon_size);
     g_key_file_set_integer(conf.keyfile, "preferences", "autosave_interval", conf.preferences_autosave_interval);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
+    g_key_file_set_string(conf.keyfile, "preferences", "fallback_encoding", conf.preferences_fallback_encoding);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
     g_key_file_set_boolean(conf.keyfile, "preferences", "display_time_only", conf.preferences_display_time_only);
 
@@ -573,6 +597,12 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_al", conf.preferences_sounds_new_network_al);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_data", conf.preferences_sounds_no_data);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gps_data", conf.preferences_sounds_no_gps_data);
+
+    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_mode", conf.preferences_tzsp_mode);
+    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_udp_port", conf.preferences_tzsp_udp_port);
+    g_key_file_set_string(conf.keyfile, "preferences", "tzsp_interface", conf.preferences_tzsp_interface);
+    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_channel_width", conf.preferences_tzsp_channel_width);
+    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_band", conf.preferences_tzsp_band);
 
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
@@ -670,6 +700,7 @@ conf_save_profile(GKeyFile             *keyfile,
     g_key_file_set_string(keyfile, group_name, "login", conf_profile_get_login(p));
     g_key_file_set_string(keyfile, group_name, "password", conf_profile_get_password(p));
     g_key_file_set_string(keyfile, group_name, "interface", conf_profile_get_interface(p));
+    g_key_file_set_integer(keyfile, group_name, "mode", conf_profile_get_mode(p));
     g_key_file_set_integer(keyfile, group_name, "duration_time", conf_profile_get_duration_time(p));
     g_key_file_set_boolean(keyfile, group_name, "duration", conf_profile_get_duration(p));
     g_key_file_set_boolean(keyfile, group_name, "remote", conf_profile_get_remote(p));
@@ -723,7 +754,6 @@ conf_save_gint64_tree(GKeyFile    *keyfile,
         values = g_new(gchar*, length);
         ptr = values;
         g_tree_foreach(tree, conf_save_gint64_tree_foreach, &ptr);
-
     }
 
     g_key_file_set_string_list(keyfile, group_name, key, (const gchar**)values, (gsize)length);
@@ -1000,6 +1030,18 @@ conf_set_preferences_search_column(gint value)
     conf.preferences_search_column = value;
 }
 
+const gchar*
+conf_get_preferences_fallback_encoding(void)
+{
+    return conf.preferences_fallback_encoding;
+}
+
+void
+conf_set_preferences_fallback_encoding(const gchar *value)
+{
+    conf_change_string(&conf.preferences_fallback_encoding, value);
+}
+
 gboolean
 conf_get_preferences_signals(void)
 {
@@ -1108,6 +1150,66 @@ void
 conf_set_preferences_sounds_no_gps_data(gboolean value)
 {
     conf.preferences_sounds_no_gps_data = value;
+}
+
+mtscan_conf_tzsp_mode_t
+conf_get_preferences_tzsp_mode(void)
+{
+    return conf.preferences_tzsp_mode;
+}
+
+void
+conf_set_preferences_tzsp_mode(mtscan_conf_tzsp_mode_t value)
+{
+    conf.preferences_tzsp_mode = value;
+}
+
+gint
+conf_get_preferences_tzsp_udp_port(void)
+{
+    return conf.preferences_tzsp_udp_port;
+}
+
+void
+conf_set_preferences_tzsp_udp_port(gint value)
+{
+    conf.preferences_tzsp_udp_port = value;
+}
+
+const gchar*
+conf_get_preferences_tzsp_interface(void)
+{
+    return conf.preferences_tzsp_interface;
+}
+
+void
+conf_set_preferences_tzsp_interface(const gchar *value)
+{
+    conf_change_string(&conf.preferences_tzsp_interface, value);
+}
+
+gint
+conf_get_preferences_tzsp_channel_width(void)
+{
+    return conf.preferences_tzsp_channel_width;
+}
+
+void
+conf_set_preferences_tzsp_channel_width(gint value)
+{
+    conf.preferences_tzsp_channel_width = value;
+}
+
+mtscan_conf_tzsp_band_t
+conf_get_preferences_tzsp_band(void)
+{
+    return conf.preferences_tzsp_band;
+}
+
+void
+conf_set_preferences_tzsp_band(mtscan_conf_tzsp_band_t value)
+{
+    conf.preferences_tzsp_band = value;
 }
 
 const gchar*

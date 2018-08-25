@@ -29,6 +29,7 @@
 #include "gps.h"
 #include "signals.h"
 #include "misc.h"
+#include "ui-callbacks.h"
 
 #ifdef G_OS_WIN32
 #include "win32.h"
@@ -269,7 +270,7 @@ ui_idle_timeout(gpointer user_data)
 
     if(conf_get_interface_sound() &&
        conf_get_preferences_sounds_no_data() &&
-       ui->mode != MTSCAN_MODE_NONE &&
+       ui->active &&
        (ts - ui->activity_ts) >= ACTIVITY_TIMEOUT &&
        (ts % 2) == 0)
     {
@@ -298,7 +299,7 @@ ui_idle_timeout_autosave(gpointer user_data)
 
     if(conf_get_interface_autosave() &&
        ui->changed &&
-       ui->mode != MTSCAN_MODE_NONE)
+       ui->active)
     {
         ts = UNIX_TIMESTAMP();
         if((ts - ui->log_ts) >= conf_get_preferences_autosave_interval()*60)
@@ -319,6 +320,7 @@ ui_idle_timeout_autosave(gpointer user_data)
             }
         }
     }
+
     return G_SOURCE_CONTINUE;
 }
 
@@ -385,13 +387,22 @@ ui_gps(mtscan_gps_state_t       state,
 void
 ui_connected(const gchar *login,
              const gchar *host,
-             const gchar *iface)
+             const gchar *iface,
+             const gchar *hwaddr)
 {
-    gchar *text = g_strdup_printf("%s@%s/%s", login, host, iface);
-    gtk_label_set_text(GTK_LABEL(ui.l_conn_status), text);
-    g_free(text);
-    ui_toolbar_connect_set_state(TRUE);
+    gchar *status_text;
+
     ui.connected = TRUE;
+    ui.active = FALSE;
+    ui.hwaddr = g_strdup(hwaddr);
+
+    ui_toolbar_connect_set_state(TRUE);
+
+    status_text = g_strdup_printf("%s@%s/%s", login, host, iface);
+    gtk_label_set_text(GTK_LABEL(ui.l_conn_status), status_text);
+    g_free(status_text);
+
+    ui_tzsp();
 }
 
 void
@@ -399,16 +410,20 @@ ui_disconnected(void)
 {
     ui.connected = FALSE;
     ui.mode = MTSCAN_MODE_NONE;
+    ui.active = FALSE;
     ui.conn = NULL;
 
+    g_free(ui.hwaddr);
+    ui.hwaddr = NULL;
+
     ui_toolbar_connect_set_state(FALSE);
-    ui_toolbar_mode_set_state(FALSE);
+    ui_toolbar_scan_set_state(FALSE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_connect), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_scan), TRUE);
-    gtk_widget_set_sensitive(GTK_WIDGET(ui.b_sniff), TRUE);
     gtk_widget_set_sensitive(GTK_WIDGET(ui.b_restart), TRUE);
     gtk_label_set_text(GTK_LABEL(ui.l_conn_status), "disconnected");
 
+    mtscan_model_buffer_clear(ui.model);
     mtscan_model_clear_active(ui.model);
     ui_status_update_networks();
 }
@@ -528,7 +543,6 @@ ui_show_uri(const gchar *uri)
     }
 #endif
 }
-
 
 void
 ui_screenshot(void)
@@ -681,4 +695,56 @@ ui_toggle_connection(gint auto_connect)
     /* Display connection dialog */
     ui_toolbar_connect_set_state(FALSE);
     ui.conn_dialog = ui_connection_new(auto_connect);
+}
+
+void
+ui_tzsp(void)
+{
+    gboolean sniffer_pcap_mode;
+    const gchar *tzsp_interface;
+    gint frequency_base;
+    gint channel_width;
+    guint8 tzsp_hwaddr[6];
+
+    if(ui.mode != MTSCAN_MODE_SNIFFER)
+        return;
+
+    /* Destroy current tzsp-receiver, if exists */
+    ui_tzsp_destroy();
+
+    /* Make sure that sensor address is available */
+    if(!ui.hwaddr ||
+       !str_addr_to_guint8(ui.hwaddr, (gint)strlen(ui.hwaddr), tzsp_hwaddr))
+    {
+        ui_dialog(NULL, GTK_MESSAGE_WARNING, "Error", "<b>Failed to create tzsp-receiver</b>\n\nSensor address is unavailable.");
+        return;
+    }
+
+    /* Read configuration */
+    sniffer_pcap_mode = conf_get_preferences_tzsp_mode() == MTSCAN_CONF_TZSP_MODE_PCAP;
+    tzsp_interface = sniffer_pcap_mode ? conf_get_preferences_tzsp_interface() : NULL;
+    channel_width = conf_get_preferences_tzsp_channel_width();
+    frequency_base = (conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_2GHZ) ? 2407 : 5000;
+
+
+    ui.tzsp_rx = tzsp_receiver_new((guint16)conf_get_preferences_tzsp_udp_port(),
+                                   tzsp_interface,
+                                   tzsp_hwaddr,
+                                   channel_width,
+                                   frequency_base,
+                                   ui_callback_tzsp,
+                                   ui_callback_tzsp_network);
+
+    if(!ui.tzsp_rx)
+        ui_dialog(NULL, GTK_MESSAGE_WARNING, "Error", "<b>Failed to enable tzsp-receiver.</b>");
+}
+
+void
+ui_tzsp_destroy(void)
+{
+    if(ui.tzsp_rx)
+    {
+        tzsp_receiver_cancel(ui.tzsp_rx);
+        ui.tzsp_rx = NULL;
+    }
 }

@@ -24,6 +24,7 @@ typedef struct conf_profile
     gchar *login;
     gchar *password;
     gchar *iface;
+    mtscan_conf_profile_mode_t mode;
     gint duration_time;
     gboolean duration;
     gboolean remote;
@@ -33,17 +34,18 @@ typedef struct conf_profile
 
 
 conf_profile_t*
-conf_profile_new(gchar    *name,
-                 gchar    *host,
-                 gint      port,
-                 gchar    *login,
-                 gchar    *password,
-                 gchar    *iface,
-                 gint      duration_time,
-                 gboolean  duration,
-                 gboolean  remote,
-                 gboolean  background,
-                 gboolean  reconnect)
+conf_profile_new(gchar                      *name,
+                 gchar                      *host,
+                 gint                        port,
+                 gchar                      *login,
+                 gchar                      *password,
+                 gchar                      *iface,
+                 mtscan_conf_profile_mode_t  mode,
+                 gint                        duration_time,
+                 gboolean                    duration,
+                 gboolean                    remote,
+                 gboolean                    background,
+                 gboolean                    reconnect)
 {
     conf_profile_t* p = g_malloc(sizeof(conf_profile_t));
     p->name = name;
@@ -52,6 +54,7 @@ conf_profile_new(gchar    *name,
     p->login = login;
     p->password = password;
     p->iface = iface;
+    p->mode = mode;
     p->duration_time = duration_time;
     p->duration = duration;
     p->remote = remote;
@@ -110,6 +113,12 @@ conf_profile_get_interface(const conf_profile_t *p)
     return p->iface;
 }
 
+mtscan_conf_profile_mode_t
+conf_profile_get_mode(const conf_profile_t *p)
+{
+    return p->mode;
+}
+
 gint
 conf_profile_get_duration_time(const conf_profile_t *p)
 {
@@ -150,6 +159,7 @@ conf_profile_list_new(void)
                               G_TYPE_STRING,    /* CONF_PROFILE_COL_LOGIN         */
                               G_TYPE_STRING,    /* CONF_PROFILE_COL_PASSWORD      */
                               G_TYPE_STRING,    /* CONF_PROFILE_COL_INTERFACE     */
+                              G_TYPE_INT,       /* CONF_PROFILE_COL_MODE          */
                               G_TYPE_INT,       /* CONF_PROFILE_COL_DURATION_TIME */
                               G_TYPE_BOOLEAN,   /* CONF_PROFILE_COL_DURATION      */
                               G_TYPE_BOOLEAN,   /* CONF_PROFILE_COL_REMOTE        */
@@ -170,6 +180,7 @@ conf_profile_list_add(GtkListStore         *model,
                        CONF_PROFILE_COL_LOGIN, p->login,
                        CONF_PROFILE_COL_PASSWORD, p->password,
                        CONF_PROFILE_COL_INTERFACE, p->iface,
+                       CONF_PROFILE_COL_MODE, p->mode,
                        CONF_PROFILE_COL_DURATION_TIME, p->duration_time,
                        CONF_PROFILE_COL_DURATION, p->duration,
                        CONF_PROFILE_COL_REMOTE, p->remote,
@@ -191,6 +202,7 @@ conf_profile_list_get(GtkListStore *model,
                        CONF_PROFILE_COL_LOGIN, &p->login,
                        CONF_PROFILE_COL_PASSWORD, &p->password,
                        CONF_PROFILE_COL_INTERFACE, &p->iface,
+                       CONF_PROFILE_COL_MODE, &p->mode,
                        CONF_PROFILE_COL_DURATION_TIME, &p->duration_time,
                        CONF_PROFILE_COL_DURATION, &p->duration,
                        CONF_PROFILE_COL_REMOTE, &p->remote,

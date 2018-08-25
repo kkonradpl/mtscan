@@ -48,6 +48,7 @@ static const gchar *const keys[] =
     "freq",
     "chan",
     "mode",
+    "ss",
     "ssid",
     "name",
     "s",
@@ -57,6 +58,10 @@ static const gchar *const keys[] =
     "tdma",
     "wds",
     "br",
+    "airmax",
+    "airmax-ac-ptp",
+    "airmax-ac-ptmp",
+    "airmax-ac-mixed",
     "first",
     "last",
     "lat",
@@ -70,6 +75,7 @@ enum
     KEY_FREQUENCY = KEY_UNKNOWN+1,
     KEY_CHANNEL,
     KEY_MODE,
+    KEY_SPATIAL_STREAMS,
     KEY_SSID,
     KEY_RADIONAME,
     KEY_RSSI,
@@ -79,6 +85,10 @@ enum
     KEY_TDMA,
     KEY_WDS,
     KEY_BRIDGE,
+    KEY_AIRMAX,
+    KEY_AIRMAX_AC_PTP,
+    KEY_AIRMAX_AC_PTMP,
+    KEY_AIRMAX_AC_MIXED,
     KEY_FIRSTSEEN,
     KEY_LASTSEEN,
     KEY_LATITUDE,
@@ -277,6 +287,8 @@ parse_integer(gpointer ptr,
     {
         if(ctx->key == KEY_FREQUENCY)
             ctx->network.frequency = value*1000;
+        if(ctx->key == KEY_SPATIAL_STREAMS)
+            ctx->network.streams = value;
         else if(ctx->key == KEY_RSSI)
             ctx->network.rssi = value;
         else if(ctx->key == KEY_PRIVACY)
@@ -291,6 +303,14 @@ parse_integer(gpointer ptr,
             ctx->network.flags.wds = value;
         else if(ctx->key == KEY_BRIDGE)
             ctx->network.flags.bridge = value;
+        else if(ctx->key == KEY_AIRMAX)
+            ctx->network.ubnt_airmax = value;
+        else if(ctx->key == KEY_AIRMAX_AC_PTP)
+            ctx->network.ubnt_ptp = value;
+        else if(ctx->key == KEY_AIRMAX_AC_PTMP)
+            ctx->network.ubnt_ptmp = value;
+        else if(ctx->key == KEY_AIRMAX_AC_MIXED)
+            ctx->network.ubnt_mixed = value;
         else if(ctx->key == KEY_FIRSTSEEN)
             ctx->network.firstseen = value;
         else if(ctx->key == KEY_LASTSEEN)
@@ -548,7 +568,6 @@ log_save(gchar       *filename,
 #endif
     fclose(ctx.fp);
 
-
     if(ctx.length != ctx.wrote)
     {
         ret = g_malloc(sizeof(log_save_error_t));
@@ -579,6 +598,7 @@ log_save_foreach(GtkTreeModel *store,
                        COL_FREQUENCY, &net.frequency,
                        COL_CHANNEL, &net.channel,
                        COL_MODE, &net.mode,
+                       COL_STREAMS, &net.streams,
                        COL_SSID, &net.ssid,
                        COL_RADIONAME, &net.radioname,
                        COL_MAXRSSI, &net.rssi,
@@ -589,6 +609,10 @@ log_save_foreach(GtkTreeModel *store,
                        COL_WDS, &net.flags.wds,
                        COL_BRIDGE, &net.flags.bridge,
                        COL_ROUTEROS_VER, &net.routeros_ver,
+                       COL_AIRMAX, &net.ubnt_airmax,
+                       COL_AIRMAX_AC_PTP, &net.ubnt_ptp,
+                       COL_AIRMAX_AC_PTMP, &net.ubnt_ptmp,
+                       COL_AIRMAX_AC_MIXED, &net.ubnt_mixed,
                        COL_FIRSTLOG, &net.firstseen,
                        COL_LASTLOG, &net.lastseen,
                        COL_LATITUDE, &net.latitude,
@@ -611,6 +635,12 @@ log_save_foreach(GtkTreeModel *store,
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_MODE], strlen(keys[KEY_MODE]));
     yajl_gen_string(ctx->gen, (guchar*)net.mode, strlen(net.mode));
 
+    if(net.streams)
+    {
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_SPATIAL_STREAMS], strlen(keys[KEY_SPATIAL_STREAMS]));
+        yajl_gen_integer(ctx->gen, net.streams);
+    }
+
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_SSID], strlen(keys[KEY_SSID]));
     yajl_gen_string(ctx->gen, (guchar*)net.ssid, strlen(net.ssid));
 
@@ -629,17 +659,35 @@ log_save_foreach(GtkTreeModel *store,
     else
         yajl_gen_integer(ctx->gen, net.flags.routeros);
 
-    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_NSTREME], strlen(keys[KEY_NSTREME]));
-    yajl_gen_integer(ctx->gen, net.flags.nstreme);
+    if(net.flags.routeros)
+    {
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_NSTREME], strlen(keys[KEY_NSTREME]));
+        yajl_gen_integer(ctx->gen, net.flags.nstreme);
 
-    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_TDMA], strlen(keys[KEY_TDMA]));
-    yajl_gen_integer(ctx->gen, net.flags.tdma);
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_TDMA], strlen(keys[KEY_TDMA]));
+        yajl_gen_integer(ctx->gen, net.flags.tdma);
 
-    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WDS], strlen(keys[KEY_WDS]));
-    yajl_gen_integer(ctx->gen, net.flags.wds);
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WDS], strlen(keys[KEY_WDS]));
+        yajl_gen_integer(ctx->gen, net.flags.wds);
 
-    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_BRIDGE], strlen(keys[KEY_BRIDGE]));
-    yajl_gen_integer(ctx->gen, net.flags.bridge);
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_BRIDGE], strlen(keys[KEY_BRIDGE]));
+        yajl_gen_integer(ctx->gen, net.flags.bridge);
+    }
+
+    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX], strlen(keys[KEY_AIRMAX]));
+    yajl_gen_integer(ctx->gen, net.ubnt_airmax);
+
+    if(net.ubnt_airmax)
+    {
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX_AC_PTP], strlen(keys[KEY_AIRMAX_AC_PTP]));
+        yajl_gen_integer(ctx->gen, net.ubnt_ptp);
+
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX_AC_PTMP], strlen(keys[KEY_AIRMAX_AC_PTMP]));
+        yajl_gen_integer(ctx->gen, net.ubnt_ptmp);
+
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX_AC_MIXED], strlen(keys[KEY_AIRMAX_AC_MIXED]));
+        yajl_gen_integer(ctx->gen, net.ubnt_mixed);
+    }
 
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_FIRSTSEEN], strlen(keys[KEY_FIRSTSEEN]));
     yajl_gen_integer(ctx->gen, net.firstseen);

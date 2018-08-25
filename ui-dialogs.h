@@ -59,4 +59,3 @@ ui_dialog_scanlist_t* ui_dialog_scanlist(GtkWindow*, gboolean);
 void ui_dialog_scanlist_free(ui_dialog_scanlist_t*);
 
 #endif
-

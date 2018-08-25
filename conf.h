@@ -18,6 +18,18 @@
 #include <gtk/gtk.h>
 #include "conf-profile.h"
 
+typedef enum mtscan_conf_tzsp_mode
+{
+    MTSCAN_CONF_TZSP_MODE_SOCKET,
+    MTSCAN_CONF_TZSP_MODE_PCAP
+} mtscan_conf_tzsp_mode_t;
+
+typedef enum mtscan_conf_tzsp_band
+{
+    MTSCAN_CONF_TZSP_BAND_2GHZ,
+    MTSCAN_CONF_TZSP_BAND_5GHZ
+} mtscan_conf_tzsp_band_t;
+
 /* Configuration reading & writing */
 void conf_init(const gchar*);
 void conf_save(void);
@@ -88,6 +100,9 @@ void conf_set_preferences_autosave_interval(gint);
 gint conf_get_preferences_search_column(void);
 void conf_set_preferences_search_column(gint);
 
+const gchar* conf_get_preferences_fallback_encoding(void);
+void conf_set_preferences_fallback_encoding(const gchar*);
+
 gboolean conf_get_preferences_signals(void);
 void conf_set_preferences_signals(gboolean);
 
@@ -114,6 +129,21 @@ void conf_set_preferences_sounds_no_data(gboolean);
 
 gboolean conf_get_preferences_sounds_no_gps_data(void);
 void conf_set_preferences_sounds_no_gps_data(gboolean);
+
+mtscan_conf_tzsp_mode_t conf_get_preferences_tzsp_mode(void);
+void conf_set_preferences_tzsp_mode(mtscan_conf_tzsp_mode_t);
+
+gint conf_get_preferences_tzsp_udp_port(void);
+void conf_set_preferences_tzsp_udp_port(gint);
+
+const gchar* conf_get_preferences_tzsp_interface(void);
+void conf_set_preferences_tzsp_interface(const gchar*);
+
+gint conf_get_preferences_tzsp_channel_width(void);
+void conf_set_preferences_tzsp_channel_width(gint);
+
+mtscan_conf_tzsp_band_t conf_get_preferences_tzsp_band(void);
+void conf_set_preferences_tzsp_band(mtscan_conf_tzsp_band_t);
 
 const gchar* conf_get_preferences_gps_hostname(void);
 void conf_set_preferences_gps_hostname(const gchar*);
