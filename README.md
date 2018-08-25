@@ -16,5 +16,7 @@ Install the following packages:
 - libssh (-lssh)
 - yajl (-lyajl)
 - zlib (-lz)
+- openssl (-lcrypto)
+- libpcap (-lpcap)
 
 Scripts are included in the 'build' directory.
