@@ -662,3 +662,21 @@ ui_log_save_full(gchar       *filename,
     }
     return FALSE;
 }
+
+void
+ui_toggle_connection(gint auto_connect)
+{
+    if(ui.conn)
+    {
+        /* Close connection */
+        ui_toolbar_connect_set_state(TRUE);
+        gtk_widget_set_sensitive(GTK_WIDGET(ui.b_connect), FALSE);
+
+        mt_ssh_cancel(ui.conn);
+        return;
+    }
+
+    /* Display connection dialog */
+    ui_toolbar_connect_set_state(FALSE);
+    ui.conn_dialog = ui_connection_new(auto_connect);
+}

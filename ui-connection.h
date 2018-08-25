@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -20,7 +20,7 @@
 
 typedef struct ui_connection ui_connection_t;
 
-ui_connection_t* ui_connection_new();
+ui_connection_t* ui_connection_new(gint);
 void ui_connection_set_status(ui_connection_t*, const gchar*, const gchar*);
 gboolean ui_connection_verify(ui_connection_t*, const gchar*);
 void ui_connection_connected(ui_connection_t*);

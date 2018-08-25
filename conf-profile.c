@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -28,6 +28,7 @@ typedef struct conf_profile
     gboolean duration;
     gboolean remote;
     gboolean background;
+    gboolean reconnect;
 } conf_profile_t;
 
 
@@ -41,7 +42,8 @@ conf_profile_new(gchar    *name,
                  gint      duration_time,
                  gboolean  duration,
                  gboolean  remote,
-                 gboolean  background)
+                 gboolean  background,
+                 gboolean  reconnect)
 {
     conf_profile_t* p = g_malloc(sizeof(conf_profile_t));
     p->name = name;
@@ -54,6 +56,7 @@ conf_profile_new(gchar    *name,
     p->duration = duration;
     p->remote = remote;
     p->background = background;
+    p->reconnect = reconnect;
     return p;
 }
 
@@ -131,6 +134,12 @@ conf_profile_get_background(const conf_profile_t *p)
     return p->background;
 }
 
+gboolean
+conf_profile_get_reconnect(const conf_profile_t *p)
+{
+    return p->reconnect;
+}
+
 GtkListStore*
 conf_profile_list_new(void)
 {
@@ -144,7 +153,8 @@ conf_profile_list_new(void)
                               G_TYPE_INT,       /* CONF_PROFILE_COL_DURATION_TIME */
                               G_TYPE_BOOLEAN,   /* CONF_PROFILE_COL_DURATION      */
                               G_TYPE_BOOLEAN,   /* CONF_PROFILE_COL_REMOTE        */
-                              G_TYPE_BOOLEAN);  /* CONF_PROFILE_COL_BACKGROUND    */
+                              G_TYPE_BOOLEAN,   /* CONF_PROFILE_COL_BACKGROUND    */
+                              G_TYPE_BOOLEAN);  /* CONF_PROFILE_COL_RECONNECT     */
 }
 
 GtkTreeIter
@@ -164,6 +174,7 @@ conf_profile_list_add(GtkListStore         *model,
                        CONF_PROFILE_COL_DURATION, p->duration,
                        CONF_PROFILE_COL_REMOTE, p->remote,
                        CONF_PROFILE_COL_BACKGROUND, p->background,
+                       CONF_PROFILE_COL_RECONNECT, p->reconnect,
                        -1);
     return iter;
 }
@@ -184,6 +195,7 @@ conf_profile_list_get(GtkListStore *model,
                        CONF_PROFILE_COL_DURATION, &p->duration,
                        CONF_PROFILE_COL_REMOTE, &p->remote,
                        CONF_PROFILE_COL_BACKGROUND, &p->background,
+                       CONF_PROFILE_COL_RECONNECT, &p->reconnect,
                        -1);
     return p;
 }

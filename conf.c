@@ -48,6 +48,7 @@
 #define CONF_DEFAULT_PROFILE_DURATION       FALSE
 #define CONF_DEFAULT_PROFILE_REMOTE         FALSE
 #define CONF_DEFAULT_PROFILE_BACKGROUND     FALSE
+#define CONF_DEFAULT_PROFILE_RECONNECT      TRUE
 
 #define CONF_DEFAULT_SCANLIST_NAME          "unnamed"
 #define CONF_DEFAULT_SCANLIST_DATA          "default"
@@ -476,7 +477,8 @@ conf_read_profile(const gchar *group_name)
                          conf_read_integer(group_name, "duration_time", CONF_DEFAULT_PROFILE_DURATION_TIME),
                          conf_read_boolean(group_name, "duration", CONF_DEFAULT_PROFILE_DURATION),
                          conf_read_boolean(group_name, "remote", CONF_DEFAULT_PROFILE_REMOTE),
-                         conf_read_boolean(group_name, "background", CONF_DEFAULT_PROFILE_BACKGROUND));
+                         conf_read_boolean(group_name, "background", CONF_DEFAULT_PROFILE_BACKGROUND),
+                         conf_read_boolean(group_name, "reconnect", CONF_DEFAULT_PROFILE_RECONNECT));
     return p;
 }
 
@@ -635,7 +637,7 @@ static void
 conf_save_list(GtkListStore            *model,
                GtkTreeModelForeachFunc  func)
 {
-    gint number = 0;
+    gint number = 1;
     gtk_tree_model_foreach(GTK_TREE_MODEL(model), func, &number);
 }
 
@@ -672,6 +674,7 @@ conf_save_profile(GKeyFile             *keyfile,
     g_key_file_set_boolean(keyfile, group_name, "duration", conf_profile_get_duration(p));
     g_key_file_set_boolean(keyfile, group_name, "remote", conf_profile_get_remote(p));
     g_key_file_set_boolean(keyfile, group_name, "background", conf_profile_get_background(p));
+    g_key_file_set_boolean(keyfile, group_name, "reconnect", conf_profile_get_reconnect(p));
 }
 
 static gboolean
@@ -699,7 +702,8 @@ conf_save_scanlist(GKeyFile              *keyfile,
 {
     g_key_file_set_string(keyfile, group_name, "name", conf_scanlist_get_name(sl));
     g_key_file_set_string(keyfile, group_name, "data", conf_scanlist_get_data(sl));
-    g_key_file_set_boolean(keyfile, group_name, "main", conf_scanlist_get_main(sl));
+    if(conf_scanlist_get_main(sl))
+        g_key_file_set_boolean(keyfile, group_name, "main", TRUE);
 }
 
 static void

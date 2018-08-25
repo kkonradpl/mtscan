@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -217,19 +217,7 @@ static void
 ui_toolbar_connect(GtkWidget *widget,
                    gpointer   data)
 {
-    if(ui.conn)
-    {
-        /* Close connection */
-        ui_toolbar_connect_set_state(TRUE);
-        gtk_widget_set_sensitive(widget, FALSE);
-
-        mt_ssh_cancel(ui.conn);
-        return;
-    }
-
-    /* Display connection dialog */
-    ui_toolbar_connect_set_state(FALSE);
-    ui.conn_dialog = ui_connection_new();
+    ui_toggle_connection(-1);
 }
 
 void

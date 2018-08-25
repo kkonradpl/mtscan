@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2018  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -15,6 +15,7 @@
 
 #include <gdk/gdkkeysyms.h>
 #include <string.h>
+#include <stdlib.h>
 #include "conf.h"
 #include "ui-connection.h"
 #include "ui-dialogs.h"
@@ -57,7 +58,7 @@ typedef struct ui_connection
     GtkWidget *c_remote;
 
     GtkWidget *c_background;
-
+    GtkWidget *c_reconnect;
     GtkWidget *box_status_wrapper;
     GtkWidget *box_status;
     GtkWidget *spinner;
@@ -69,9 +70,11 @@ typedef struct ui_connection
     GtkWidget *b_close;
 
     gboolean profile_reset_flag;
+    guint reconnect;
 } ui_connection_t;
 
 static void ui_connection_destroy(GtkWidget*, gpointer);
+static void ui_connection_format_desc(GtkCellLayout*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_connection_profile_changed(GtkComboBox*, gpointer);
 static void ui_connection_profile_unset(GtkWidget*, gpointer);
 static void ui_connection_duration_toggled(GtkWidget*, gpointer);
@@ -89,11 +92,14 @@ static void ui_connection_cancel(GtkWidget*, gpointer);
 static void ui_connection_from_profile(ui_connection_t *, const conf_profile_t *);
 static conf_profile_t* ui_connection_to_profile(ui_connection_t *, const gchar *);
 
+static gboolean ui_connection_reconnect(gpointer);
+
 ui_connection_t*
-ui_connection_new()
+ui_connection_new(gint auto_connect)
 {
     ui_connection_t *c;
     guint row;
+    GtkCellRenderer *renderer;
 
     c = g_malloc0(sizeof(ui_connection_t));
 
@@ -115,10 +121,10 @@ ui_connection_new()
     gtk_box_pack_start(GTK_BOX(c->box_profile), c->l_profile, FALSE, FALSE, 0);
 
     c->c_profile = gtk_combo_box_new_with_model(GTK_TREE_MODEL(conf_get_profiles()));
-    GtkCellRenderer *cell = gtk_cell_renderer_text_new();
-    g_object_set(cell, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
-    gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(c->c_profile), cell, TRUE);
-    gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(c->c_profile), cell, "text", CONF_PROFILE_COL_NAME, NULL);
+    renderer = gtk_cell_renderer_text_new();
+    g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
+    gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(c->c_profile), renderer, TRUE);
+    gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(c->c_profile), renderer, ui_connection_format_desc, NULL, NULL);
     gtk_box_pack_start(GTK_BOX(c->box_profile), c->c_profile, TRUE, TRUE, 4);
 
     c->b_profile_add = gtk_button_new();
@@ -134,7 +140,7 @@ ui_connection_new()
 
     gtk_box_pack_start(GTK_BOX(c->content), gtk_hseparator_new(), FALSE, FALSE, 4);
 
-    c->table = gtk_table_new(7, 3, TRUE);
+    c->table = gtk_table_new(8, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(c->table), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(c->table), 2);
     gtk_table_set_col_spacings(GTK_TABLE(c->table), 2);
@@ -193,6 +199,10 @@ ui_connection_new()
     c->c_background = gtk_check_button_new_with_label("Background scanning");
     gtk_table_attach(GTK_TABLE(c->table), c->c_background, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
+    row++;
+    c->c_reconnect = gtk_check_button_new_with_label("Keep connecting until success");
+    gtk_table_attach(GTK_TABLE(c->table), c->c_reconnect, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
     c->box_status_wrapper = gtk_hbox_new(TRUE, 5);
     gtk_box_pack_start(GTK_BOX(c->content), c->box_status_wrapper, FALSE, FALSE, 1);
     c->box_status = gtk_hbox_new(FALSE, 5);
@@ -228,6 +238,7 @@ ui_connection_new()
     g_signal_connect(c->c_duration, "toggled", G_CALLBACK(ui_connection_profile_unset), c);
     g_signal_connect(c->c_remote, "toggled", G_CALLBACK(ui_connection_profile_unset), c);
     g_signal_connect(c->c_background, "toggled", G_CALLBACK(ui_connection_profile_unset), c);
+    g_signal_connect(c->c_reconnect, "toggled", G_CALLBACK(ui_connection_profile_unset), c);
 
     g_signal_connect(c->c_duration, "toggled", G_CALLBACK(ui_connection_duration_toggled), c);
     g_signal_connect(c->c_remote, "toggled", G_CALLBACK(ui_connection_remote_toggled), c);
@@ -240,13 +251,23 @@ ui_connection_new()
     g_signal_connect(c->dialog, "key-press-event", G_CALLBACK(ui_connection_key), c);
     g_signal_connect(c->dialog, "destroy", G_CALLBACK(ui_connection_destroy), c);
 
-    gtk_combo_box_set_active(GTK_COMBO_BOX(c->c_profile), conf_get_interface_last_profile());
-    if(gtk_combo_box_get_active(GTK_COMBO_BOX(c->c_profile)) < 0)
-        ui_connection_from_profile(c, conf_get_profile_default());
+    if(auto_connect > 0)
+        gtk_combo_box_set_active(GTK_COMBO_BOX(c->c_profile), auto_connect-1);
+    else
+        gtk_combo_box_set_active(GTK_COMBO_BOX(c->c_profile), conf_get_interface_last_profile()-1);
 
-    gtk_widget_show_all(c->dialog);
+    if(gtk_combo_box_get_active(GTK_COMBO_BOX(c->c_profile)) < 0)
+    {
+        ui_connection_from_profile(c, conf_get_profile_default());
+        auto_connect = 0;
+    }
+
+        gtk_widget_show_all(c->dialog);
     ui_connection_unlock(c, TRUE);
     gtk_widget_grab_focus(c->e_host);
+
+    if(auto_connect > 0)
+        gtk_button_clicked(GTK_BUTTON(c->b_connect));
 
     return c;
 }
@@ -258,14 +279,41 @@ ui_connection_destroy(GtkWidget *widget,
     ui_connection_t *c = (ui_connection_t*)user_data;
 
     conf_set_profile_default(ui_connection_to_profile(c, "default"));
-    conf_set_interface_last_profile(gtk_combo_box_get_active(GTK_COMBO_BOX(c->c_profile)));
+    conf_set_interface_last_profile(gtk_combo_box_get_active(GTK_COMBO_BOX(c->c_profile)) + 1);
 
     gtk_button_clicked(GTK_BUTTON(c->b_cancel));
+
+    if(c->reconnect)
+    {
+        g_source_remove(c->reconnect);
+        c->reconnect = 0;
+    }
 
     if(ui.conn_dialog == c)
         ui.conn_dialog = NULL;
 
     g_free(c);
+}
+
+static void
+ui_connection_format_desc(GtkCellLayout   *cell,
+                          GtkCellRenderer *renderer,
+                          GtkTreeModel    *model,
+                          GtkTreeIter     *iter,
+                          gpointer         user_data)
+{
+    gchar *name;
+    gchar *iter_str;
+    gchar *text;
+
+    iter_str = gtk_tree_model_get_string_from_iter(model, iter);
+    gtk_tree_model_get(model, iter, CONF_PROFILE_COL_NAME, &name, -1);
+    text = g_strdup_printf("%d. %s", atoi(iter_str)+1, name);
+    g_object_set(renderer, "text", text, NULL);
+
+    g_free(iter_str);
+    g_free(text);
+    g_free(name);
 }
 
 static void
@@ -373,6 +421,7 @@ ui_connection_unlock(ui_connection_t *c,
     gtk_widget_set_sensitive(c->s_duration, value);
     gtk_widget_set_sensitive(c->c_remote, value);
     gtk_widget_set_sensitive(c->c_background, value);
+    gtk_widget_set_sensitive(c->c_reconnect, value);
     gtk_widget_set_sensitive(c->b_connect, value);
     gtk_widget_set_sensitive(c->b_cancel, !value);
 
@@ -548,6 +597,13 @@ ui_connection_cancel(GtkWidget *widget,
         ui_connection_unlock(c, TRUE);
         ui_connection_set_status(c, "Connection cancelled.", NULL);
     }
+
+    if(c->reconnect)
+    {
+        g_source_remove(c->reconnect);
+        c->reconnect = 0;
+        ui_connection_unlock(c, TRUE);
+    }
 }
 
 static void
@@ -566,6 +622,7 @@ ui_connection_from_profile(ui_connection_t      *c,
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c->c_duration), conf_profile_get_duration(p));
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c->c_remote), conf_profile_get_remote(p));
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c->c_background), conf_profile_get_background(p));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(c->c_reconnect), conf_profile_get_reconnect(p));
 
     c->profile_reset_flag = TRUE;
 }
@@ -587,7 +644,8 @@ ui_connection_to_profile(ui_connection_t *c,
                          gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(c->s_duration)),
                          gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_duration)),
                          gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_remote)),
-                         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_background)));
+                         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_background)),
+                         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_reconnect)));
 
     return p;
 }
@@ -630,5 +688,17 @@ ui_connection_connected(ui_connection_t *c)
 void
 ui_connection_disconnected(ui_connection_t *c)
 {
-    ui_connection_unlock(c, TRUE);
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_reconnect)))
+        c->reconnect = g_timeout_add(3000, ui_connection_reconnect, c);
+    else
+        ui_connection_unlock(c, TRUE);
+}
+
+static gboolean
+ui_connection_reconnect(gpointer user_data)
+{
+    ui_connection_t *c = (ui_connection_t*)user_data;
+    gtk_button_clicked(GTK_BUTTON(c->b_connect));
+    c->reconnect = 0;
+    return FALSE;
 }
