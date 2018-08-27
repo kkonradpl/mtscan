@@ -817,9 +817,14 @@ mt_ssh_verify(mt_ssh_t    *context,
     gchar *message;
     gint state = ssh_is_server_known(session);
 
-#if LIBSSH_VERSION_MAJOR >= 0 && LIBSSH_VERSION_MINOR >= 6
+#if LIBSSH_VERSION_INT >= 0x0600
     ssh_key srv_pubkey;
+
+#if LIBSSH_VERSION_INT <= 0x0705
     if(ssh_get_publickey(session, &srv_pubkey) < 0)
+#else
+    if(ssh_get_server_publickey(session, &srv_pubkey) < 0)
+#endif
         return FALSE;
 
     if(ssh_get_publickey_hash(srv_pubkey, SSH_PUBLICKEY_HASH_SHA1, &hash, &hlen) < 0)
