@@ -24,7 +24,7 @@ typedef struct log_save_error
     gboolean existing_file;
 } log_save_error_t;
 
-void log_open(GSList*, gboolean);
+void log_open(GSList*, gboolean, gboolean);
 log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
 
 #endif

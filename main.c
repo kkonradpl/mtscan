@@ -96,7 +96,7 @@ main(gint   argc,
     if(filenames)
     {
         filenames = g_slist_reverse(filenames);
-        log_open(filenames, (g_slist_length(filenames) > 1));
+        log_open(filenames, (g_slist_length(filenames) > 1), FALSE);
         g_slist_free_full(filenames, g_free);
     }
 

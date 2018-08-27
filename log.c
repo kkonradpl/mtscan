@@ -121,6 +121,7 @@ typedef struct read_context
     gint key;
     gboolean level_signals;
     gboolean merge;
+    gboolean strip_samples;
     gboolean changed;
     network_t network;
     signals_node_t *signal;
@@ -167,7 +168,8 @@ static yajl_callbacks json_callbacks =
 
 void
 log_open(GSList   *filenames,
-         gboolean  merge)
+         gboolean  merge,
+         gboolean  strip_samples)
 {
     gchar *filename;
     gzFile gzfp;
@@ -183,6 +185,7 @@ log_open(GSList   *filenames,
         return;
 
     context.merge = merge;
+    context.strip_samples = strip_samples;
     context.changed = FALSE;
 
     if(!merge)
@@ -382,7 +385,8 @@ parse_key_start(gpointer ptr)
     ctx->level++;
     if(ctx->level == LEVEL_NETWORK+1 &&
        ctx->level_signals == TRUE &&
-       ctx->network.address >= 0)
+       ctx->network.address >= 0 &&
+       !ctx->strip_samples)
     {
         ctx->signal = signals_node_new0();
     }

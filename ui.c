@@ -230,7 +230,7 @@ ui_drag_data_received(GtkWidget        *widget,
     gchar **list, **uri;
     gchar *current;
     gint count = 0;
-    gint action;
+    ui_dialog_open_or_merge_t *ret;
 
     if(!selection_data || info != UI_DRAG_URI_LIST_ID)
         return;
@@ -254,9 +254,17 @@ ui_drag_data_received(GtkWidget        *widget,
 
     if(filenames)
     {
-        action = (count > 1 ? ui_dialog_ask_merge(GTK_WINDOW(ui.window), count) : ui_dialog_ask_open_or_merge(GTK_WINDOW(ui.window)));
-        if(action != UI_DIALOG_CANCEL)
-            log_open(filenames, action);
+        if(count > 1)
+            ret = ui_dialog_ask_merge(GTK_WINDOW(ui.window), count);
+        else
+            ret = ui_dialog_ask_open_or_merge(GTK_WINDOW(ui.window));
+
+        if(ret)
+        {
+            log_open(filenames, ret->value, ret->strip_signals);
+            g_free(ret);
+        }
+
         g_slist_free_full(filenames, g_free);
     }
 }

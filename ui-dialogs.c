@@ -57,15 +57,19 @@ ui_dialog(GtkWindow      *window,
     g_free(msg);
 }
 
-GSList*
+ui_dialog_open_t*
 ui_dialog_open(GtkWindow *window,
                gboolean   merge)
 {
     GtkWidget *dialog;
-    GtkFileFilter *filter, *filter_all;
+    GtkWidget *box;
+    GtkWidget *strip_signals;
+    GtkFileFilter *filter;
+    GtkFileFilter *filter_all;
     GSList *filenames = NULL;
     const gchar *dir;
     gchar *new_dir;
+    ui_dialog_open_t *ret = NULL;
 
     dialog = gtk_file_chooser_dialog_new((merge ? "Merge files" : "Open file"),
                                          window,
@@ -77,6 +81,14 @@ ui_dialog_open(GtkWindow *window,
 
     if((dir = conf_get_path_log_open()))
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
+
+    box = gtk_hbox_new(FALSE, 12);
+
+    strip_signals = gtk_check_button_new_with_label("Strip signal samples");
+    gtk_box_pack_start(GTK_BOX(box), strip_signals, FALSE, FALSE, 0);
+
+    gtk_widget_show_all(box);
+    gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), box);
 
     filter = gtk_file_filter_new();
     gtk_file_filter_set_name(filter, filetype_default);
@@ -95,10 +107,17 @@ ui_dialog_open(GtkWindow *window,
         new_dir = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(dialog));
         conf_set_path_log_open(new_dir);
         g_free(new_dir);
+
+        if(filenames)
+        {
+            ret = g_malloc(sizeof(ui_dialog_open_t));
+            ret->filenames = filenames;
+            ret->strip_signals = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(strip_signals));
+        }
     }
 
     gtk_widget_destroy(dialog);
-    return filenames;
+    return ret;
 }
 
 ui_dialog_save_t*
@@ -349,60 +368,89 @@ ui_dialog_ask_unsaved(GtkWindow *window)
     return response;
 }
 
-gint
+ui_dialog_open_or_merge_t*
 ui_dialog_ask_open_or_merge(GtkWindow *window)
 {
     GtkWidget *dialog;
+    GtkWidget *content;
+    GtkWidget *strip_signals;
     gint response;
+    gboolean strip;
+    ui_dialog_open_or_merge_t *ret = NULL;
+
     dialog = gtk_message_dialog_new(window,
                                     GTK_DIALOG_MODAL,
                                     GTK_MESSAGE_QUESTION,
                                     GTK_BUTTONS_NONE,
                                     "Do you want to open this log\nor merge with currently opened?");
+    content = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog));
     gtk_dialog_add_buttons(GTK_DIALOG(dialog),
-                           GTK_STOCK_OPEN, GTK_RESPONSE_NO,
-                           GTK_STOCK_ADD, GTK_RESPONSE_YES,
+                           GTK_STOCK_OPEN, GTK_RESPONSE_YES,
+                           GTK_STOCK_ADD, GTK_RESPONSE_NO,
                            GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                            NULL);
+
+    strip_signals = gtk_check_button_new_with_label("Strip signal samples");
+    gtk_box_pack_start(GTK_BOX(content), strip_signals, FALSE, FALSE, 0);
+    gtk_widget_show(strip_signals);
+
     gtk_window_set_title(GTK_WINDOW(dialog), APP_NAME);
+    gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_YES));
     response = gtk_dialog_run(GTK_DIALOG(dialog));
+    strip = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(strip_signals));
     gtk_widget_destroy(dialog);
-    switch(response)
+
+    if(response == GTK_RESPONSE_YES ||
+       response == GTK_RESPONSE_NO)
     {
-    case GTK_RESPONSE_NO:
-        return UI_DIALOG_OPEN;
-    case GTK_RESPONSE_YES:
-        return UI_DIALOG_MERGE;
-    default:
-        return UI_DIALOG_CANCEL;
+        ret = g_malloc(sizeof(ui_dialog_scanlist_t));
+        ret->value = (response == GTK_RESPONSE_YES ? UI_DIALOG_OPEN : UI_DIALOG_MERGE);
+        ret->strip_signals = strip;
     }
+
+    return ret;
 }
 
-gint
+ui_dialog_open_or_merge_t*
 ui_dialog_ask_merge(GtkWindow *window,
                     gint       count)
 {
     GtkWidget *dialog;
+    GtkWidget *content;
+    GtkWidget *strip_signals;
     gint response;
-    dialog = gtk_message_dialog_new(window,
-                                    GTK_DIALOG_MODAL,
-                                    GTK_MESSAGE_QUESTION,
-                                    GTK_BUTTONS_NONE,
-                                    "Do you want to merge all logs?\n\nSelected files: %d", count);
+    gboolean strip;
+    ui_dialog_open_or_merge_t *ret = NULL;
+
+    dialog = gtk_message_dialog_new_with_markup(window,
+                                                GTK_DIALOG_MODAL,
+                                                GTK_MESSAGE_QUESTION,
+                                                GTK_BUTTONS_NONE,
+                                                "Do you want to merge all logs?\nSelected files: <b>%d</b>", count);
+    content = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(dialog));
     gtk_dialog_add_buttons(GTK_DIALOG(dialog),
                            GTK_STOCK_ADD, GTK_RESPONSE_YES,
                            GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                            NULL);
+
+    strip_signals = gtk_check_button_new_with_label("Strip signal samples");
+    gtk_box_pack_start(GTK_BOX(content), strip_signals, FALSE, FALSE, 0);
+    gtk_widget_show(strip_signals);
+
     gtk_window_set_title(GTK_WINDOW(dialog), APP_NAME);
+    gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_YES));
     response = gtk_dialog_run(GTK_DIALOG(dialog));
+    strip = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(strip_signals));
     gtk_widget_destroy(dialog);
-    switch(response)
+
+    if(response == GTK_RESPONSE_YES)
     {
-    case GTK_RESPONSE_YES:
-        return UI_DIALOG_MERGE;
-    default:
-        return UI_DIALOG_CANCEL;
+        ret = g_malloc(sizeof(ui_dialog_scanlist_t));
+        ret->value = UI_DIALOG_MERGE;
+        ret->strip_signals = strip;
     }
+
+    return ret;
 }
 
 gint

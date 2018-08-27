@@ -81,7 +81,6 @@ typedef struct mtscan_gtk
     ui_scanlist_t *scanlist;
 
     mt_ssh_t *conn;
-    gboolean reconnect;
     gint mode;
     gchar *hwaddr;
     gboolean connected;

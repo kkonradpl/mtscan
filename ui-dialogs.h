@@ -28,6 +28,12 @@ enum
 
 typedef struct
 {
+    GSList *filenames;
+    gboolean strip_signals;
+} ui_dialog_open_t;
+
+typedef struct
+{
     gchar *filename;
     gboolean compress;
     gboolean strip_signals;
@@ -37,19 +43,25 @@ typedef struct
 
 typedef struct
 {
+    gint value;
+    gboolean strip_signals;
+} ui_dialog_open_or_merge_t;
+
+typedef struct
+{
     gchar *name;
     gchar *value;
 } ui_dialog_scanlist_t;
 
 void ui_dialog(GtkWindow*, GtkMessageType, const gchar*, const gchar*, ...);
 
-GSList* ui_dialog_open(GtkWindow*, gboolean);
+ui_dialog_open_t* ui_dialog_open(GtkWindow*, gboolean);
 ui_dialog_save_t* ui_dialog_save(GtkWindow*);
 gchar* ui_dialog_export(GtkWindow*);
 
 gint ui_dialog_ask_unsaved(GtkWindow*);
-gint ui_dialog_ask_open_or_merge(GtkWindow*);
-gint ui_dialog_ask_merge(GtkWindow*, gint);
+ui_dialog_open_or_merge_t* ui_dialog_ask_open_or_merge(GtkWindow*);
+ui_dialog_open_or_merge_t* ui_dialog_ask_merge(GtkWindow*, gint);
 gint ui_dialog_yesno(GtkWindow*, const gchar*);
 
 void ui_dialog_about(GtkWindow*);

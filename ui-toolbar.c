@@ -451,12 +451,12 @@ static void
 ui_toolbar_open(GtkWidget *widget,
                 gpointer   data)
 {
-    GSList *filenames;
-    filenames = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_OPEN);
-    if(filenames)
+    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_OPEN);
+    if(o)
     {
-        log_open(filenames, FALSE);
-        g_slist_free_full(filenames, g_free);
+        log_open(o->filenames, FALSE, o->strip_signals);
+        g_slist_free_full(o->filenames, g_free);
+        g_free(o);
     }
 }
 
@@ -464,12 +464,12 @@ static void
 ui_toolbar_merge(GtkWidget *widget,
                  gpointer   data)
 {
-    GSList *filenames;
-    filenames = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_MERGE);
-    if(filenames)
+    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_MERGE);
+    if(o)
     {
-        log_open(filenames, TRUE);
-        g_slist_free_full(filenames, g_free);
+        log_open(o->filenames, TRUE, o->strip_signals);
+        g_slist_free_full(o->filenames, g_free);
+        g_free(o);
     }
 }
 
