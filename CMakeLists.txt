@@ -65,6 +65,8 @@ set(SOURCE_FILES
         ui-connection.h
         ui-dialogs.c
         ui-dialogs.h
+        ui-dialog-pcap.c
+        ui-dialog-pcap.h
         ui-icons.c
         ui-icons.h
         ui-preferences.c

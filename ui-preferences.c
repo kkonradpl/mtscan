@@ -21,6 +21,7 @@
 #include "gps.h"
 #include "ui-dialogs.h"
 #include "misc.h"
+#include "ui-dialog-pcap.h"
 
 enum
 {
@@ -89,8 +90,10 @@ typedef struct ui_preferences
     GtkWidget *r_tzsp_mode_pcap;
     GtkWidget *l_tzsp_udp_port;
     GtkWidget *s_tzsp_udp_port;
+    GtkWidget *box_tzsp_interface;
     GtkWidget *l_tzsp_interface;
     GtkWidget *e_tzsp_interface;
+    GtkWidget *b_tzsp_interface;
     GtkWidget *l_tzsp_channel_width;
     GtkWidget *s_tzsp_channel_width;
     GtkWidget *l_tzsp_channel_width_unit;
@@ -122,6 +125,8 @@ typedef struct ui_preferences
 
 static void ui_preferences_view_toggled(GtkCellRendererToggle*, gchar*, gpointer);
 static void ui_preferences_tzsp_mode_callback(GtkWidget*, gpointer);
+static void ui_preferences_tzsp_interface(GtkWidget*, gpointer);
+static void ui_preferences_tzsp_interface_callback(const gchar*, gpointer);
 
 static void ui_preferences_list_create(ui_preferences_list_t*, GtkWidget*, const gchar*, const gchar*, const gchar*);
 static void ui_preferences_list_format(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
@@ -330,8 +335,13 @@ ui_preferences_dialog(void)
     p.l_tzsp_interface = gtk_label_new("Pcap interface:");
     gtk_misc_set_alignment(GTK_MISC(p.l_tzsp_interface), 0.0, 0.5);
     gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_interface, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.box_tzsp_interface = gtk_hbox_new(FALSE, 0);
     p.e_tzsp_interface = gtk_entry_new();
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.e_tzsp_interface, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    gtk_box_pack_start(GTK_BOX(p.box_tzsp_interface), p.e_tzsp_interface, TRUE, TRUE, 0);
+    p.b_tzsp_interface = gtk_button_new_with_label("...");
+    g_signal_connect(p.b_tzsp_interface, "clicked", G_CALLBACK(ui_preferences_tzsp_interface), &p);
+    gtk_box_pack_start(GTK_BOX(p.box_tzsp_interface), p.b_tzsp_interface, FALSE, FALSE, 0);
+    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.box_tzsp_interface, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.l_tzsp_channel_width = gtk_label_new("Channel width:");
@@ -444,6 +454,25 @@ ui_preferences_tzsp_mode_callback(GtkWidget *widget,
     gboolean sensitive = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
 
     gtk_widget_set_sensitive(p->e_tzsp_interface, sensitive);
+    gtk_widget_set_sensitive(p->b_tzsp_interface, sensitive);
+}
+
+static void
+ui_preferences_tzsp_interface(GtkWidget *widget,
+                              gpointer   user_data)
+{
+    ui_preferences_t *p = (ui_preferences_t*)user_data;
+
+    ui_dialog_pcap_new(GTK_WINDOW(p->window), ui_preferences_tzsp_interface_callback, p->e_tzsp_interface);
+}
+
+static void
+ui_preferences_tzsp_interface_callback(const gchar *name,
+                                       gpointer     user_data)
+{
+    GtkEntry *entry = GTK_ENTRY(user_data);
+
+    gtk_entry_set_text(entry, name);
 }
 
 static void
