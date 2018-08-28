@@ -21,13 +21,12 @@
 #include <pcap.h>
 #include <string.h>
 #include <sys/time.h>
+#include <errno.h>
 #ifdef _WIN32
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #else
 #include <arpa/inet.h>
-#include <errno.h>
-
 #endif
 #include "tzsp-decap.h"
 #include "tzsp-socket.h"
@@ -169,7 +168,7 @@ tzsp_socket_loop(tzsp_socket_t *context)
             continue;
 
         len = sizeof(addr);
-        ret = recvfrom(context->socket, packet, SOCKET_BUFF_LEN, 0, (struct sockaddr*)&addr, &len);
+        ret = recvfrom(context->socket, (char*)packet, SOCKET_BUFF_LEN, 0, (struct sockaddr*)&addr, &len);
         if(ret <= 0)
         {
             if(ret == -1 && errno == EINTR)
