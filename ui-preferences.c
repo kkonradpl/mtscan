@@ -82,6 +82,12 @@ typedef struct ui_preferences
     GtkWidget *x_sounds_no_data;
     GtkWidget *x_sounds_no_gps_data;
 
+    GtkWidget *page_events;
+    GtkWidget *table_events;
+    GtkWidget *x_events_new_network;
+    GtkWidget *l_events_new_network;
+    GtkWidget *c_events_new_network;
+
     GtkWidget *page_tzsp;
     GtkWidget *table_tzsp;
     GtkWidget *l_tzsp_mode;
@@ -298,6 +304,30 @@ ui_preferences_dialog(void)
     row++;
     p.x_sounds_no_gps_data = gtk_check_button_new_with_label("No GPS data");
     gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_no_gps_data, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+
+    /* Events */
+    p.page_events = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(p.page_events), 4);
+    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_events, gtk_label_new("Events"));
+    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_events, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
+
+    p.table_events = gtk_table_new(2, 2, TRUE);
+    gtk_table_set_homogeneous(GTK_TABLE(p.table_events), FALSE);
+    gtk_table_set_row_spacings(GTK_TABLE(p.table_events), 4);
+    gtk_table_set_col_spacings(GTK_TABLE(p.table_events), 4);
+    gtk_container_add(GTK_CONTAINER(p.page_events), p.table_events);
+
+    row = 0;
+    p.x_events_new_network = gtk_check_button_new_with_label("New network event");
+    gtk_table_attach(GTK_TABLE(p.table_events), p.x_events_new_network, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_events_new_network = gtk_label_new("Execute:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_events_new_network), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_events), p.l_events_new_network, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.c_events_new_network = gtk_file_chooser_button_new("New network event", GTK_FILE_CHOOSER_ACTION_OPEN);
+    gtk_table_attach(GTK_TABLE(p.table_events), p.c_events_new_network, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
 
     /* TZSP */
@@ -718,6 +748,11 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data), conf_get_preferences_sounds_no_data());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data), conf_get_preferences_sounds_no_gps_data());
 
+    /* Events */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_events_new_network), conf_get_preferences_events_new_network());
+    if(strlen(conf_get_preferences_events_new_network_exec()))
+        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_events_new_network), conf_get_preferences_events_new_network_exec());
+
     /* TZSP */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_mode_socket), conf_get_preferences_tzsp_mode() == MTSCAN_CONF_TZSP_MODE_SOCKET);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_mode_pcap), conf_get_preferences_tzsp_mode() == MTSCAN_CONF_TZSP_MODE_PCAP);
@@ -793,6 +828,7 @@ ui_preferences_apply(GtkWidget *widget,
     gchar *new_screenshot_directory;
     gint new_search_column;
     mtscan_conf_tzsp_mode_t new_tzsp_mode;
+    gchar *new_network_exec;
     gint new_tzsp_udp_port;
     const gchar *new_tzsp_interface;
     gint new_tzsp_channel_width;
@@ -838,6 +874,12 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_sounds_new_network_al(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al)));
     conf_set_preferences_sounds_no_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data)));
     conf_set_preferences_sounds_no_gps_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data)));
+
+    /* Events */
+    conf_set_preferences_events_new_network(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_events_new_network)));
+    new_network_exec = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->c_events_new_network));
+    conf_set_preferences_events_new_network_exec((new_network_exec ? new_network_exec : ""));
+    g_free(new_network_exec);
 
     /* TZSP */
     new_tzsp_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->r_tzsp_mode_pcap)) ? MTSCAN_CONF_TZSP_MODE_PCAP : MTSCAN_CONF_TZSP_MODE_SOCKET;

@@ -130,6 +130,12 @@ void conf_set_preferences_sounds_no_data(gboolean);
 gboolean conf_get_preferences_sounds_no_gps_data(void);
 void conf_set_preferences_sounds_no_gps_data(gboolean);
 
+gboolean conf_get_preferences_events_new_network(void);
+void conf_set_preferences_events_new_network(gboolean);
+
+const gchar* conf_get_preferences_events_new_network_exec(void);
+void conf_set_preferences_events_new_network_exec(const gchar*);
+
 mtscan_conf_tzsp_mode_t conf_get_preferences_tzsp_mode(void);
 void conf_set_preferences_tzsp_mode(mtscan_conf_tzsp_mode_t);
 

@@ -17,6 +17,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "mtscan.h"
+#include "misc.h"
 
 #ifdef G_OS_WIN32
 #include "win32.h"
@@ -253,16 +254,40 @@ mtscan_sound(const gchar *filename)
 #ifdef G_OS_WIN32
     win32_play(path);
 #else
-    gchar *command[] = { APP_SOUND_EXEC, path, NULL };
-    GError *error = NULL;
-    if(!g_spawn_async(NULL, command, NULL, G_SPAWN_SEARCH_PATH, 0, NULL, NULL, &error))
-    {
-        fprintf(stderr, "Unable to start " APP_SOUND_EXEC ": %s\n", error->message);
-        g_error_free(error);
-    }
+    mtscan_exec(APP_SOUND_EXEC, 1, path);
 #endif
 
     g_free(path);
+}
+
+void
+mtscan_exec(const gchar *exec,
+            guint        argc,
+            ...)
+{
+    const gchar **command;
+    GError *error = NULL;
+    va_list args;
+    guint len = argc + 2;
+    guint i = 0;
+
+    command = g_malloc(sizeof(char*) * len);
+    command[i++] = exec;
+
+    va_start(args, argc);
+    while(i < (len-1))
+        command[i++] = va_arg(args, gchar*);
+    va_end(args);
+
+    command[i] = NULL;
+
+    if(!g_spawn_async(NULL, (gchar**)command, NULL, G_SPAWN_SEARCH_PATH, 0, NULL, NULL, &error))
+    {
+        fprintf(stderr, "Unable to spawn process '%s': %s\n", exec, error->message);
+        g_error_free(error);
+    }
+
+    g_free(command);
 }
 
 gchar*

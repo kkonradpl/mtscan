@@ -625,12 +625,34 @@ model_update_network(mtscan_model_t *model,
 
         g_hash_table_insert(model->map, address, iter_ptr);
         g_hash_table_insert(model->active, address, iter_ptr);
+
         if(conf_get_preferences_alarmlist_enabled() && conf_get_preferences_alarmlist(*address))
+        {
             new_network_found = MODEL_NETWORK_NEW_ALARM;
+            if(conf_get_preferences_events_new_network())
+                mtscan_exec(conf_get_preferences_events_new_network_exec(),
+                            2,
+                            model_format_address(*address, FALSE),
+                            "ALARM");
+        }
         else if(conf_get_preferences_highlightlist_enabled() && conf_get_preferences_highlightlist(*address))
+        {
             new_network_found = MODEL_NETWORK_NEW_HIGHLIGHT;
+            if(conf_get_preferences_events_new_network())
+                mtscan_exec(conf_get_preferences_events_new_network_exec(),
+                            2,
+                            model_format_address(*address, FALSE),
+                            "HIGHLIGHT");
+        }
         else
+        {
             new_network_found = MODEL_NETWORK_NEW;
+            if(conf_get_preferences_events_new_network())
+                mtscan_exec(conf_get_preferences_events_new_network_exec(),
+                            2,
+                            model_format_address(*address, FALSE),
+                            "NORMAL");
+        }
     }
 
     /* Signals are stored in GtkListStore just as pointer,

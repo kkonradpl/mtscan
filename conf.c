@@ -71,6 +71,7 @@
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
+#define CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK     FALSE
 #define CONF_DEFAULT_PREFERENCES_TZSP_MODE              MTSCAN_CONF_TZSP_MODE_SOCKET
 #define CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT          0x9090
 #define CONF_DEFAULT_PREFERENCES_TZSP_INTERFACE         "eno1"
@@ -149,6 +150,9 @@ typedef struct conf
     gboolean  preferences_sounds_new_network_al;
     gboolean  preferences_sounds_no_data;
     gboolean  preferences_sounds_no_gps_data;
+
+    gboolean  preferences_events_new_network;
+    gchar    *preferences_events_new_network_exec;
 
     mtscan_conf_tzsp_mode_t  preferences_tzsp_mode;
     gint                     preferences_tzsp_udp_port;
@@ -285,6 +289,9 @@ conf_read(void)
     conf.preferences_sounds_new_network_al = conf_read_boolean("preferences", "sounds_new_network_al", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL);
     conf.preferences_sounds_no_data = conf_read_boolean("preferences", "sounds_no_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA);
     conf.preferences_sounds_no_gps_data = conf_read_boolean("preferences", "sounds_no_gps_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA);
+
+    conf.preferences_events_new_network = conf_read_boolean("preferences", "events_new_network", CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK);
+    conf.preferences_events_new_network_exec = conf_read_string("preferences", "events_new_network_exec", "");
 
     conf.preferences_tzsp_mode = (mtscan_conf_tzsp_mode_t)conf_read_integer("preferences", "tzsp_mode", CONF_DEFAULT_PREFERENCES_TZSP_MODE);
     conf.preferences_tzsp_udp_port = conf_read_integer("preferences", "tzsp_udp_port", CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT);
@@ -597,6 +604,9 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_al", conf.preferences_sounds_new_network_al);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_data", conf.preferences_sounds_no_data);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gps_data", conf.preferences_sounds_no_gps_data);
+
+    g_key_file_set_boolean(conf.keyfile, "preferences", "events_new_network", conf.preferences_events_new_network);
+    g_key_file_set_string(conf.keyfile, "preferences", "events_new_network_exec", conf.preferences_events_new_network_exec);
 
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_mode", conf.preferences_tzsp_mode);
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_udp_port", conf.preferences_tzsp_udp_port);
@@ -1150,6 +1160,30 @@ void
 conf_set_preferences_sounds_no_gps_data(gboolean value)
 {
     conf.preferences_sounds_no_gps_data = value;
+}
+
+gboolean
+conf_get_preferences_events_new_network(void)
+{
+    return conf.preferences_events_new_network;
+}
+
+void
+conf_set_preferences_events_new_network(gboolean value)
+{
+    conf.preferences_events_new_network = value;
+}
+
+const gchar*
+conf_get_preferences_events_new_network_exec(void)
+{
+    return conf.preferences_events_new_network_exec;
+}
+
+void
+conf_set_preferences_events_new_network_exec(const gchar *value)
+{
+    conf_change_string(&conf.preferences_events_new_network_exec, value);
 }
 
 mtscan_conf_tzsp_mode_t
