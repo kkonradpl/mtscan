@@ -21,12 +21,12 @@
 #include "ui-scanlist.h"
 #include "conf.h"
 #include "misc.h"
+#include "oui.h"
 
 static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, gint64, gint, gint);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
-static void ui_view_menu_oui(GtkWidget*, gpointer);
 static void ui_view_menu_map(GtkWidget*, gpointer);
 static void ui_view_menu_scanlist(GtkWidget*, gpointer);
 static void ui_view_menu_blacklist(GtkWidget*, gpointer);
@@ -124,8 +124,8 @@ ui_view_menu_create(GtkTreeView *treeview,
 {
     GtkWidget *menu = gtk_menu_new();
     GtkWidget *item_header;
+    GtkWidget *item_oui;
     GtkWidget *item_sep;
-    GtkWidget *item_lookup_oui;
     GtkWidget *item_show_on_map;
     GtkWidget *item_lock_to_freq;
     GtkWidget *item_scanlist;
@@ -135,6 +135,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_save_as;
     GtkWidget *item_remove;
     gchar* string;
+    const gchar* oui;
 
     /* Header */
     string = (address < 0 ? g_strdup_printf("%d networks", count) : NULL);
@@ -144,6 +145,19 @@ ui_view_menu_create(GtkTreeView *treeview,
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_header);
     gtk_widget_set_sensitive(item_header, GPOINTER_TO_INT(address));
     g_free(string);
+
+    /* OUI lookup */
+    if(address >= 0)
+    {
+        oui = oui_lookup(address);
+        if(oui)
+        {
+            string = (strlen(oui) > 30) ? g_strdup_printf("%.*s…", 30, oui) : NULL;
+            item_oui = gtk_image_menu_item_new_with_label(string ? string : oui);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_oui);
+            g_free(string);
+        }
+    }
 
     /* Separator */
     item_sep = gtk_separator_menu_item_new();
@@ -156,15 +170,6 @@ ui_view_menu_create(GtkTreeView *treeview,
     g_signal_connect(item_lock_to_freq, "activate", (GCallback)ui_view_menu_lock, treeview);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_lock_to_freq);
     g_free(string);
-
-    /* OUI lookup */
-    if(count == 1)
-    {
-        item_lookup_oui = gtk_image_menu_item_new_with_label("Look up OUI");
-        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_lookup_oui), gtk_image_new_from_stock(GTK_STOCK_INFO, GTK_ICON_SIZE_MENU));
-        g_signal_connect(item_lookup_oui, "activate", (GCallback)ui_view_menu_oui, treeview);
-        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_lookup_oui);
-    }
 
     /* Show network on a map */
     if(flags & FLAG_POSITION)
@@ -342,39 +347,6 @@ ui_view_menu_lock_foreach(gpointer key,
     gint frequency = GPOINTER_TO_INT(key);
     g_string_append_printf(str, "%d,", frequency/1000);
     return FALSE;
-}
-
-
-static void
-ui_view_menu_oui(GtkWidget *menuitem,
-                 gpointer   user_data)
-{
-    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
-    GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
-    GtkTreeModel *model;
-    GtkTreeIter iter;
-    GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
-    gint64 address;
-    const gchar* str;
-
-    if(!list)
-        return;
-
-    gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
-    gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
-    str = model_format_address(address, FALSE);
-
-    if(str && strlen(str) == 12)
-    {
-        gchar *uri = g_strdup_printf("https://standards.ieee.org/cgi-bin/ouisearch?%c%c%c%c%c%c",
-                                     str[0], str[1],
-                                     str[2], str[3],
-                                     str[4], str[5]);
-        ui_show_uri(uri);
-        g_free(uri);
-    }
-    g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
-    g_list_free(list);
 }
 
 static void

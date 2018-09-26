@@ -20,6 +20,8 @@
 #include "ui.h"
 #include "log.h"
 #include "model.h"
+#include "oui.h"
+
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
@@ -35,6 +37,19 @@ static mtscan_arg_t args =
     .config_path = NULL,
     .auto_connect = 0
 };
+
+static const gchar *oui_files[] =
+{
+#ifdef G_OS_WIN32
+    "etc\\manuf",
+#else
+    "/etc/manuf",
+    "/usr/share/wireshark/manuf",
+    "/usr/share/wireshark/wireshark/manuf",
+#endif
+    NULL
+};
+
 
 static void
 parse_args(gint   argc,
@@ -71,6 +86,7 @@ main(gint   argc,
      gchar *argv[])
 {
     GSList *filenames = NULL;
+    const gchar **file;
     gint i;
 
     /* hack for the yajl bug:
@@ -103,8 +119,11 @@ main(gint   argc,
     if(args.auto_connect > 0)
         ui_toggle_connection(args.auto_connect);
 
+    for(file = oui_files; *file && !oui_init(*file); file++);
+
     gtk_main();
 
+    oui_destroy();
     mtscan_model_free(ui.model);
 #ifdef G_OS_WIN32
     win32_cleanup();

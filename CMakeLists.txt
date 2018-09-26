@@ -57,6 +57,8 @@ set(SOURCE_FILES
         mtscan.h
         network.c
         network.h
+        oui.c
+        oui.h
         signals.c
         signals.h
         ui-callbacks.c
