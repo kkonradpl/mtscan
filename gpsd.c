@@ -39,7 +39,17 @@ typedef int gpsd_socket_t;
 #define DEBUG_READ  0
 #define DEBUG_WRITE 0
 
-#define GPSD_DATA_BUFFER_LEN  1536
+/* The gpsd_json manual says:
+ *
+ * >The length limit for responses and reports is 1536 characters, including trailing
+ * >newline; longer responses will be truncated, so client code must be prepared for
+ * >the possibility of invalid JSON fragments.
+ *
+ * However, in year 2011, the GPS_JSON_RESPONSE_MAX was changed from 1536 to 4096.
+ * https://git.savannah.gnu.org/cgit/gpsd.git/commit/?id=cd86d4410bcff417de15a0fc5eb905ef56c2659
+ */
+
+#define GPSD_DATA_BUFFER_LEN  4096
 #define GPSD_DATA_TIMEOUT_SEC 10
 
 #define GPSD_TCP_KEEPCNT    2
@@ -747,8 +757,7 @@ gpsd_conn_parse(gpsd_conn_t *context,
 #if DEBUG
     if(status != yajl_status_ok)
     {
-        /* Longer responses than 1536 characters,
-         * incl. trailing newline, will be truncated. */
+        /* Longer responses will be truncated */
         if(len == GPSD_DATA_BUFFER_LEN)
             g_print("gpsd_conn@%p: truncated message\n", (gpointer)context);
     }
