@@ -44,7 +44,17 @@ static const char rc_string[] = "style \"minimal-toolbar-style\"\n"
                                 "{\n"
                                     "GtkToolbar::shadow-type = GTK_SHADOW_NONE\n"
                                  "}\n"
-                                 "widget \"*.minimal-toolbar\" style\n\"minimal-toolbar-style\"\n";
+                                 "widget \"*.minimal-toolbar\" style\n\"minimal-toolbar-style\"\n"
+                                 "style \"treeview-normal-style\"\n"
+                                 "{\n"
+                                    "GtkTreeView::even-row-color = \"#FFFFFF\"\n"
+                                 "}\n"
+                                "widget \"*.treeview-normal\" style\n\"treeview-normal-style\"\n"
+                                "style \"treeview-dark-style\"\n"
+                                "{\n"
+                                "GtkTreeView::even-row-color = \"#151515\"\n"
+                                "}\n"
+                                "widget \"*.treeview-dark\" style\n\"treeview-dark-style\"\n";
 
 
 static void ui_restore(void);

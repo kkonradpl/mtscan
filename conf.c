@@ -64,6 +64,7 @@
 #define CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL      5
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
 #define CONF_DEFAULT_PREFERENCES_FALLBACK_ENCODING      "ISO-8859-2"
+#define CONF_DEFAULT_PREFERENCES_NO_STYLE_OVERRIDE      FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY      FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
@@ -139,6 +140,7 @@ typedef struct conf
     gint      preferences_autosave_interval;
     gint      preferences_search_column;
     gchar    *preferences_fallback_encoding;
+    gboolean  preferences_no_style_override;
     gboolean  preferences_signals;
     gboolean  preferences_display_time_only;
 
@@ -278,6 +280,7 @@ conf_read(void)
     conf.preferences_autosave_interval = conf_read_integer("preferences", "autosave_interval", CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL);
     conf.preferences_search_column = conf_read_integer("preferences", "search_column", CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN);
     conf.preferences_fallback_encoding = conf_read_string("preferences", "fallback_encoding", CONF_DEFAULT_PREFERENCES_FALLBACK_ENCODING);
+    conf.preferences_no_style_override = conf_read_boolean("preferences", "no_style_override", CONF_DEFAULT_PREFERENCES_NO_STYLE_OVERRIDE);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
     conf.preferences_display_time_only = conf_read_boolean("preferences", "display_time_only", CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY);
 
@@ -591,6 +594,7 @@ conf_save(void)
     g_key_file_set_integer(conf.keyfile, "preferences", "autosave_interval", conf.preferences_autosave_interval);
     g_key_file_set_integer(conf.keyfile, "preferences", "search_column", conf.preferences_search_column);
     g_key_file_set_string(conf.keyfile, "preferences", "fallback_encoding", conf.preferences_fallback_encoding);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "no_style_override", conf.preferences_no_style_override);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
     g_key_file_set_boolean(conf.keyfile, "preferences", "display_time_only", conf.preferences_display_time_only);
 
@@ -1050,6 +1054,18 @@ void
 conf_set_preferences_fallback_encoding(const gchar *value)
 {
     conf_change_string(&conf.preferences_fallback_encoding, value);
+}
+
+gboolean
+conf_get_preferences_no_style_override(void)
+{
+    return conf.preferences_no_style_override;
+}
+
+void
+conf_set_preferences_no_style_override(gboolean value)
+{
+    conf.preferences_no_style_override = value;
 }
 
 gboolean

@@ -455,6 +455,7 @@ ui_view_new(mtscan_model_t *model,
     g_signal_connect(treeview, "motion-notify-event", G_CALLBACK(ui_view_disable_motion_redraw), NULL);
     g_signal_connect(treeview, "leave-notify-event", G_CALLBACK(ui_view_disable_motion_redraw), NULL);
 
+    ui_view_dark_mode(treeview, FALSE);
     ui_view_configure(treeview);
     return treeview;
 }
@@ -1025,30 +1026,45 @@ void
 ui_view_dark_mode(GtkWidget *treeview,
                   gboolean   dark_mode)
 {
-    static const GdkColor bg       = { 0, 0x1500, 0x1500, 0x1500 };
-    static const GdkColor text     = { 0, 0xdc00, 0xea00, 0xf200 };
-    static const GdkColor selected = { 0, 0x4a00, 0x4a00, 0x4a00 };
-    static const GdkColor active   = { 0, 0x3000, 0x3000, 0x3000 };
+    static const GdkColor bg_dark   = { 0, 0x1500, 0x1500, 0x1500 };
+    static const GdkColor text_dark = { 0, 0xdc00, 0xea00, 0xf200 };
+    static const GdkColor sel_dark  = { 0, 0x0000, 0x3600, 0x7f00 };
+    static const GdkColor act_dark  = { 0, 0x3000, 0x3000, 0x3000 };
 
-    if(dark_mode)
-    {
-        gtk_widget_modify_base(treeview, GTK_STATE_NORMAL, &bg);
-        gtk_widget_modify_base(treeview, GTK_STATE_SELECTED, &selected);
-        gtk_widget_modify_base(treeview, GTK_STATE_ACTIVE, &active);
-        gtk_widget_modify_text(treeview, GTK_STATE_NORMAL, &text);
-        gtk_widget_modify_text(treeview, GTK_STATE_SELECTED, &text);
-        gtk_widget_modify_text(treeview, GTK_STATE_ACTIVE, &text);
-    }
-    else
+    static const GdkColor bg   = { 0, 0xFFFF, 0xFFFF, 0xFFFF };
+    static const GdkColor text = { 0, 0x0000, 0x0000, 0x0000 };
+    static const GdkColor sel  = { 0, 0xba00, 0xd800, 0xff00 };
+    static const GdkColor act  = { 0, 0xd900, 0xd700, 0xd600 };
+
+    if(conf_get_preferences_no_style_override())
     {
         gtk_widget_set_name(treeview, NULL);
-
         gtk_widget_modify_base(treeview, GTK_STATE_NORMAL, NULL);
         gtk_widget_modify_base(treeview, GTK_STATE_SELECTED, NULL);
         gtk_widget_modify_base(treeview, GTK_STATE_ACTIVE, NULL);
         gtk_widget_modify_text(treeview, GTK_STATE_NORMAL, NULL);
         gtk_widget_modify_text(treeview, GTK_STATE_SELECTED, NULL);
         gtk_widget_modify_text(treeview, GTK_STATE_ACTIVE, NULL);
+    }
+    else if(dark_mode)
+    {
+        gtk_widget_set_name(treeview, "treeview-dark");
+        gtk_widget_modify_base(treeview, GTK_STATE_NORMAL, &bg_dark);
+        gtk_widget_modify_base(treeview, GTK_STATE_SELECTED, &sel_dark);
+        gtk_widget_modify_base(treeview, GTK_STATE_ACTIVE, &act_dark);
+        gtk_widget_modify_text(treeview, GTK_STATE_NORMAL, &text_dark);
+        gtk_widget_modify_text(treeview, GTK_STATE_SELECTED, &text_dark);
+        gtk_widget_modify_text(treeview, GTK_STATE_ACTIVE, &text_dark);
+    }
+    else
+    {
+        gtk_widget_set_name(treeview, "treeview-normal");
+        gtk_widget_modify_base(treeview, GTK_STATE_NORMAL, &bg);
+        gtk_widget_modify_base(treeview, GTK_STATE_SELECTED, &sel);
+        gtk_widget_modify_base(treeview, GTK_STATE_ACTIVE, &act);
+        gtk_widget_modify_text(treeview, GTK_STATE_NORMAL, &text);
+        gtk_widget_modify_text(treeview, GTK_STATE_SELECTED, &text);
+        gtk_widget_modify_text(treeview, GTK_STATE_ACTIVE, &text);
     }
 }
 

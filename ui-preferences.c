@@ -67,6 +67,7 @@ typedef struct ui_preferences
     GtkWidget *c_general_search_column;
     GtkWidget *l_general_fallback_encoding;
     GtkWidget *e_general_fallback_encoding;
+    GtkWidget *x_general_no_style_override;
     GtkWidget *x_general_signals;
     GtkWidget *x_general_display_time_only;
 
@@ -179,7 +180,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(8, 3, TRUE);
+    p.table_general = gtk_table_new(9, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
@@ -233,6 +234,10 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_general), p.l_general_fallback_encoding, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.e_general_fallback_encoding = gtk_entry_new();
     gtk_table_attach(GTK_TABLE(p.table_general), p.e_general_fallback_encoding, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_general_no_style_override = gtk_check_button_new_with_label("Do not override styles from system theme");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_no_style_override, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_general_signals = gtk_check_button_new_with_label("Record all signal samples");
@@ -735,6 +740,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_general_screenshot_directory), conf_get_path_screenshot());
     gtk_combo_box_set_active(GTK_COMBO_BOX(p->c_general_search_column), conf_get_preferences_search_column());
     gtk_entry_set_text(GTK_ENTRY(p->e_general_fallback_encoding), conf_get_preferences_fallback_encoding());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_no_style_override), conf_get_preferences_no_style_override());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_signals), conf_get_preferences_signals());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only), conf_get_preferences_display_time_only());
 
@@ -827,6 +833,7 @@ ui_preferences_apply(GtkWidget *widget,
     gchar *new_autosave_directory;
     gchar *new_screenshot_directory;
     gint new_search_column;
+    gboolean new_no_style_override;
     mtscan_conf_tzsp_mode_t new_tzsp_mode;
     gchar *new_network_exec;
     gint new_tzsp_udp_port;
@@ -862,6 +869,14 @@ ui_preferences_apply(GtkWidget *widget,
     }
 
     conf_set_preferences_fallback_encoding(gtk_entry_get_text(GTK_ENTRY(p->e_general_fallback_encoding)));
+
+    new_no_style_override = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_no_style_override));
+    if(new_no_style_override != conf_get_preferences_no_style_override())
+    {
+        conf_set_preferences_no_style_override(new_no_style_override);
+        ui_view_dark_mode(ui.treeview, conf_get_interface_dark_mode());
+    }
+
     conf_set_preferences_signals(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_signals)));
     conf_set_preferences_display_time_only(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only)));
 

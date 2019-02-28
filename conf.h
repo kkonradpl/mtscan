@@ -103,6 +103,9 @@ void conf_set_preferences_search_column(gint);
 const gchar* conf_get_preferences_fallback_encoding(void);
 void conf_set_preferences_fallback_encoding(const gchar*);
 
+gboolean conf_get_preferences_no_style_override(void);
+void conf_set_preferences_no_style_override(gboolean);
+
 gboolean conf_get_preferences_signals(void);
 void conf_set_preferences_signals(gboolean);
 
