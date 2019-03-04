@@ -19,6 +19,7 @@
 #include <string.h>
 #include <math.h>
 #include <zlib.h>
+#include <fcntl.h>
 #include "model.h"
 #include "ui.h"
 #include "ui-dialogs.h"
@@ -31,6 +32,10 @@
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
+#ifndef _O_BINARY
+#define _O_BINARY 0
+#endif
+
 
 #define READ_BUFFER_LEN 100*1024
 
@@ -197,7 +202,7 @@ log_open(GSList   *filenames,
     while(filenames != NULL)
     {
         filename = (gchar*)filenames->data;
-        gzfp = gzopen(filename, "r");
+        gzfp = gzdopen(g_open(filename, O_RDONLY | _O_BINARY, 0), "r");
         if(!gzfp)
         {
             ui_dialog(GTK_WINDOW(ui.window),
