@@ -13,24 +13,18 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_LOG_H_
-#define MTSCAN_LOG_H_
-#include <gtk/gtk.h>
+#ifndef MTSCAN_GEOLOC_DATABASE_H_
+#define MTSCAN_GEOLOC_DATABASE_H_
 
-#define LOG_READ_ERROR_EMPTY  0
-#define LOG_READ_ERROR_OPEN  -1
-#define LOG_READ_ERROR_READ  -2
-#define LOG_READ_ERROR_PARSE -3
+#include "geoloc-data.h"
 
-typedef struct log_save_error
-{
-    size_t wrote;
-    size_t length;
-    gboolean existing_file;
-} log_save_error_t;
+typedef GHashTable geoloc_database_t;
 
-
-gint log_read(const gchar*, void (*)(network_t*, gpointer), gpointer, gboolean);
-log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+geoloc_database_t* geoloc_database_new();
+guint geoloc_database_size(geoloc_database_t*);
+geoloc_data_t* geoloc_database_lookup(geoloc_database_t*, gint64);
+void geoloc_database_insert(geoloc_database_t*, gint64, geoloc_data_t*);
+void geoloc_database_remove(geoloc_database_t*, gint64);
+void geoloc_database_free(geoloc_database_t*);
 
 #endif

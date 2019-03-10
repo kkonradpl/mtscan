@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -21,6 +21,7 @@
 #include "ui-icons.h"
 #include "conf.h"
 #include "misc.h"
+#include "geoloc.h"
 
 #define UNIX_TIMESTAMP() (g_get_real_time() / 1000000)
 #define GPS_DOUBLE_PREC (1e-6)
@@ -45,6 +46,8 @@ static gint model_sort_version(GtkTreeModel*, GtkTreeIter*, GtkTreeIter*, gpoint
 static void model_free_foreach(gpointer, gpointer, gpointer);
 static gboolean model_clear_active_foreach(gpointer, gpointer, gpointer);
 static gint model_update_network(mtscan_model_t*, network_t*);
+
+static void mtscan_model_geoloc_foreach(gpointer, gpointer, gpointer);
 
 static void trim_zeros(gchar*);
 
@@ -80,6 +83,7 @@ mtscan_model_new(void)
                                       G_TYPE_DOUBLE,   /* COL_LATITUDE  */
                                       G_TYPE_DOUBLE,   /* COL_LONGITUDE */
                                       G_TYPE_FLOAT,    /* COL_AZIMUTH   */
+                                      G_TYPE_FLOAT,    /* COL_DISTANCE  */
                                       G_TYPE_POINTER); /* COL_SIGNALS   */
 
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_SSID, model_sort_ascii_string, GINT_TO_POINTER(COL_SSID), NULL);
@@ -88,6 +92,7 @@ mtscan_model_new(void)
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LATITUDE, model_sort_double, GINT_TO_POINTER(COL_LATITUDE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LONGITUDE, model_sort_double, GINT_TO_POINTER(COL_LONGITUDE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_AZIMUTH, model_sort_float, GINT_TO_POINTER(COL_AZIMUTH), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_DISTANCE, model_sort_float, GINT_TO_POINTER(COL_DISTANCE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ROUTEROS_VER, model_sort_version, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
 
     model->map = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, (GDestroyNotify)gtk_tree_iter_free);
@@ -236,10 +241,10 @@ model_sort_float(GtkTreeModel *model,
         return 0;
 
     if(!v1_isnan && v2_isnan)
-        return -1;
+        return 1;
 
     if(v1_isnan && !v2_isnan)
-        return 1;
+        return -1;
 
     diff = v1 - v2;
     if(fabs(diff) < AZI_FLOAT_PREC)
@@ -468,6 +473,7 @@ model_update_network(mtscan_model_t *model,
     gint8 current_maxrssi;
     guint8 current_state;
     gboolean new_network_found;
+    gfloat distance = NAN;
 
     if(g_hash_table_lookup_extended(model->map, &net->address, (gpointer*)&address, (gpointer*)&iter_ptr))
     {
@@ -520,9 +526,12 @@ model_update_network(mtscan_model_t *model,
         if(conf_get_preferences_signals())
             signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
 
-        /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE, COL_LONGITUDE and COL_AZIMUTH */
+        /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE, COL_LONGITUDE, COL_AZIMUTH and COL_DISTANCE */
         if(net->rssi > current_maxrssi)
         {
+            if(conf_get_interface_geoloc())
+                geoloc_match(net->address, net->ssid, net->azimuth, FALSE, &distance);
+
             gtk_list_store_set(model->store, iter_ptr,
                                COL_STATE, current_state,
                                COL_FREQUENCY, net->frequency,
@@ -549,6 +558,7 @@ model_update_network(mtscan_model_t *model,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
                                COL_AZIMUTH, net->azimuth,
+                               COL_DISTANCE, distance,
                                -1);
         }
         else
@@ -585,6 +595,9 @@ model_update_network(mtscan_model_t *model,
     else
     {
         /* Add a new network */
+        if(conf_get_interface_geoloc())
+            geoloc_match(net->address, net->ssid, net->azimuth, conf_get_preferences_location_wigle(), &distance);
+
         net->signals = signals_new();
         if(conf_get_preferences_signals())
             signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
@@ -617,6 +630,7 @@ model_update_network(mtscan_model_t *model,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
                                           COL_AZIMUTH, net->azimuth,
+                                          COL_DISTANCE, distance,
                                           COL_SIGNALS, net->signals,
                                           -1);
 
@@ -717,6 +731,7 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
                                COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
                                COL_LASTLOG, net->lastseen,
+                               COL_DISTANCE, NAN,
                                -1);
         }
 
@@ -728,6 +743,7 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
                                COL_AZIMUTH, net->azimuth,
+                               COL_DISTANCE, NAN,
                                -1);
         }
     }
@@ -762,9 +778,9 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
                                           COL_AZIMUTH, net->azimuth,
+                                          COL_DISTANCE, NAN,
                                           COL_SIGNALS, net->signals,
                                           -1);
-
 
         address = gint64dup(&net->address);
         g_hash_table_insert(model->map, address, gtk_tree_iter_copy(&iter));
@@ -773,6 +789,70 @@ mtscan_model_add(mtscan_model_t *model,
            so set it to NULL before freeing the struct */
         net->signals = NULL;
     }
+}
+
+void
+mtscan_model_geoloc(mtscan_model_t *model,
+                    gint64          addr)
+{
+    GtkTreeIter *iter;
+    gchar *ssid;
+    gfloat azimuth;
+    gfloat distance = NAN;
+
+    if((iter = g_hash_table_lookup(model->map, &addr)))
+    {
+
+        gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter,
+                           COL_SSID, &ssid,
+                           COL_AZIMUTH, &azimuth,
+                           -1);
+
+        geoloc_match(addr, ssid, azimuth, FALSE, &distance);
+
+        gtk_list_store_set(model->store, iter,
+                           COL_DISTANCE, distance,
+                           -1);
+        g_free(ssid);
+    }
+}
+
+void
+mtscan_model_geoloc_all(mtscan_model_t *model)
+{
+    /* Cannot use gtk_tree_model_foreach, because it is apparently not reliable with sorted models and modifications */
+    g_hash_table_foreach(model->map, mtscan_model_geoloc_foreach, model->store);
+}
+
+static void
+mtscan_model_geoloc_foreach(gpointer key,
+                            gpointer value,
+                            gpointer data)
+{
+    GtkListStore *model = GTK_LIST_STORE(data);
+    GtkTreeIter *iter = (GtkTreeIter*)value;
+    gint64 address = *(gint64*)key;
+    gchar *ssid;
+    gfloat azimuth;
+    gfloat last_distance;
+    gfloat distance = NAN;
+
+    gtk_tree_model_get(GTK_TREE_MODEL(model), iter,
+                       COL_SSID, &ssid,
+                       COL_AZIMUTH, &azimuth,
+                       COL_DISTANCE, &last_distance,
+                       -1);
+
+    geoloc_match(address, ssid, azimuth, FALSE, &distance);
+
+    if(last_distance != distance)
+    {
+        gtk_list_store_set(model, iter,
+                           COL_DISTANCE, distance,
+                          -1);
+    }
+
+    g_free(ssid);
 }
 
 void
@@ -948,6 +1028,22 @@ model_format_azimuth(gfloat   value,
     }
     return output;
 }
+
+const gchar*
+model_format_distance(gfloat value)
+{
+    static gchar output[12];
+
+    if(isnan(value))
+        *output = '\0';
+    else if(round(value) < conf_get_preferences_location_min_distance())
+        g_snprintf(output, sizeof(output), "L");
+    else
+        g_ascii_formatd(output, sizeof(output), "%.0f", round(value));
+
+    return output;
+}
+
 
 static void
 trim_zeros(gchar *string)

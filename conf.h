@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -58,6 +58,9 @@ void conf_set_interface_autosave(gboolean);
 
 gboolean conf_get_interface_gps(void);
 void conf_set_interface_gps(gboolean);
+
+gboolean conf_get_interface_geoloc(void);
+void conf_set_interface_geoloc(gboolean);
 
 gboolean conf_get_interface_rotator(void);
 void conf_set_interface_rotator(gboolean);
@@ -181,12 +184,6 @@ void conf_set_preferences_rotator_min_speed(gint);
 gint conf_get_preferences_rotator_def_speed(void);
 void conf_set_preferences_rotator_def_speed(gint);
 
-gdouble conf_get_preferences_rotator_latitude(void);
-void conf_set_preferences_rotator_latitude(gdouble);
-
-gdouble conf_get_preferences_rotator_longitude(void);
-void conf_set_preferences_rotator_longitude(gdouble);
-
 gboolean conf_get_preferences_blacklist_enabled(void);
 void conf_set_preferences_blacklist_enabled(gboolean);
 
@@ -222,5 +219,38 @@ void conf_del_preferences_alarmlist(gint64);
 
 GtkListStore* conf_get_preferences_alarmlist_as_liststore(void);
 void conf_set_preferences_alarmlist_from_liststore(GtkListStore*);
+
+gdouble conf_get_preferences_location_latitude(void);
+void conf_set_preferences_location_latitude(gdouble);
+
+gdouble conf_get_preferences_location_longitude(void);
+void conf_set_preferences_location_longitude(gdouble);
+
+gboolean conf_get_preferences_location_mtscan(void);
+void conf_set_preferences_location_mtscan(gboolean);
+
+const gchar* const* conf_get_preferences_location_mtscan_data(void);
+void conf_set_preferences_location_mtscan_data(const gchar* const*);
+
+GtkListStore* conf_get_preferences_location_mtscan_data_as_liststore(void);
+
+gboolean conf_get_preferences_location_wigle(void);
+void conf_set_preferences_location_wigle(gboolean);
+
+const gchar* conf_get_preferences_location_wigle_api_url(void);
+void conf_set_preferences_location_wigle_api_url(const gchar*);
+
+const gchar* conf_get_preferences_location_wigle_api_key(void);
+void conf_set_preferences_location_wigle_api_key(const gchar*);
+
+gint conf_get_preferences_location_azimuth_error(void);
+void conf_set_preferences_location_azimuth_error(gint);
+
+gint conf_get_preferences_location_min_distance(void);
+void conf_set_preferences_location_min_distance(gint);
+
+gint conf_get_preferences_location_max_distance(void);
+void conf_set_preferences_location_max_distance(gint);
+
 
 #endif

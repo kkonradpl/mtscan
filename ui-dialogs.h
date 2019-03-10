@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -55,7 +55,7 @@ typedef struct
 
 void ui_dialog(GtkWindow*, GtkMessageType, const gchar*, const gchar*, ...);
 
-ui_dialog_open_t* ui_dialog_open(GtkWindow*, gboolean);
+ui_dialog_open_t* ui_dialog_open(GtkWindow*, gboolean, gboolean);
 ui_dialog_save_t* ui_dialog_save(GtkWindow*);
 gchar* ui_dialog_export(GtkWindow*);
 

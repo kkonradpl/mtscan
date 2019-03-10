@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -17,6 +17,7 @@
 #define MTSCAN_MODEL_H_
 #include <gtk/gtk.h>
 #include "network.h"
+#include "geoloc.h"
 
 #define MODEL_NO_SIGNAL G_MININT8
 
@@ -84,6 +85,7 @@ enum
     COL_LATITUDE,
     COL_LONGITUDE,
     COL_AZIMUTH,
+    COL_DISTANCE,
     COL_SIGNALS,
     COL_COUNT
 };
@@ -100,6 +102,9 @@ gint mtscan_model_buffer_and_inactive_update(mtscan_model_t*);
 
 void mtscan_model_add(mtscan_model_t*, network_t*, gboolean);
 
+void mtscan_model_geoloc(mtscan_model_t*, gint64);
+void mtscan_model_geoloc_all(mtscan_model_t*);
+
 void mtscan_model_set_active_timeout(mtscan_model_t*, gint);
 void mtscan_model_set_new_timeout(mtscan_model_t*, gint);
 
@@ -112,5 +117,6 @@ const gchar* model_format_streams(gint8);
 const gchar* model_format_date(gint64);
 const gchar* model_format_gps(gdouble, gboolean);
 const gchar* model_format_azimuth(gfloat, gboolean);
+const gchar* model_format_distance(gfloat);
 
 #endif

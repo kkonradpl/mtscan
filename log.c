@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -22,9 +22,6 @@
 #include <fcntl.h>
 #include "model.h"
 #include "ui.h"
-#include "ui-dialogs.h"
-#include "ui-view.h"
-#include "ui-icons.h"
 #include "log.h"
 #include "signals.h"
 #include "misc.h"
@@ -35,7 +32,6 @@
 #ifndef _O_BINARY
 #define _O_BINARY 0
 #endif
-
 
 #define READ_BUFFER_LEN 100*1024
 
@@ -122,14 +118,16 @@ enum
 
 typedef struct read_context
 {
+    void (*net_cb)(network_t*, gpointer);
+    gpointer user_data;
+
     gint level;
     gint key;
     gboolean level_signals;
-    gboolean merge;
     gboolean strip_samples;
-    gboolean changed;
     network_t network;
     signals_node_t *signal;
+    gint count;
 } read_ctx_t;
 
 typedef struct save_context
@@ -171,110 +169,69 @@ static yajl_callbacks json_callbacks =
 };
 
 
-void
-log_open(GSList   *filenames,
-         gboolean  merge,
-         gboolean  strip_samples)
+gint
+log_read(const gchar  *filename,
+         void        (*net_cb)(network_t*, gpointer),
+         gpointer     user_data,
+         gboolean     strip_samples)
 {
-    gchar *filename;
     gzFile gzfp;
     gint n, err;
     guchar buffer[READ_BUFFER_LEN];
-    const gchar *err_string;
+    read_ctx_t context;
 
     yajl_handle json;
     yajl_status status;
-    read_ctx_t context;
 
-    if(!ui_can_discard_unsaved())
-        return;
-
-    context.merge = merge;
+    context.net_cb = net_cb;
+    context.user_data = user_data;
     context.strip_samples = strip_samples;
-    context.changed = FALSE;
 
-    if(!merge)
-        ui_clear();
+    gzfp = gzdopen(g_open(filename, O_RDONLY | _O_BINARY, 0), "r");
 
-    ui_set_title(NULL);
-    ui_view_lock(ui.treeview);
+    if(!gzfp)
+        return LOG_READ_ERROR_OPEN;
 
-    while(filenames != NULL)
+    status = yajl_status_ok;
+    json = yajl_alloc(&json_callbacks, NULL, &context);
+    err = 0;
+
+    context.key = KEY_UNKNOWN;
+    context.level = LEVEL_ROOT;
+    context.level_signals = FALSE;
+    context.signal = NULL;
+    context.count = 0;
+    network_init(&context.network);
+
+    do
     {
-        filename = (gchar*)filenames->data;
-        gzfp = gzdopen(g_open(filename, O_RDONLY | _O_BINARY, 0), "r");
-        if(!gzfp)
+        n = gzread(gzfp, buffer, READ_BUFFER_LEN-1);
+        if(n <= 0)
         {
-            ui_dialog(GTK_WINDOW(ui.window),
-                      GTK_MESSAGE_ERROR,
-                      "Error",
-                      "Failed to open a file:\n%s", filename);
-        }
-        else
-        {
-            context.key = KEY_UNKNOWN;
-            context.level = LEVEL_ROOT;
-            context.level_signals = FALSE;
-            context.signal = NULL;
-            network_init(&context.network);
-
-            json = yajl_alloc(&json_callbacks, NULL, &context);
-            do
+            gzerror(gzfp, &err);
+            if(err)
             {
-                n = gzread(gzfp, buffer, READ_BUFFER_LEN-1);
-                status = yajl_parse(json, buffer, n);
-
-                if(n < READ_BUFFER_LEN-1)
-                {
-                    if(gzeof(gzfp))
-                        break;
-                    err_string = gzerror(gzfp, &err);
-                    if(err)
-                    {
-                        ui_dialog(GTK_WINDOW(ui.window),
-                                  GTK_MESSAGE_ERROR,
-                                  "Error",
-                                  "Failed to read a file:\n%s\n\n%s",
-                                  filename, err_string);
-                        break;
-                    }
-                }
-            } while (status == yajl_status_ok);
-            gzclose(gzfp);
-
-            if(status == yajl_status_ok)
-                status = yajl_complete_parse(json);
-
-            yajl_free(json);
-
-            if(status != yajl_status_ok)
-            {
-                network_free(&context.network);
-                g_free(context.signal);
-                ui_dialog(GTK_WINDOW(ui.window),
-                          GTK_MESSAGE_ERROR,
-                          "Error",
-                          "The selected file is corrupted or is not a valid MTscan log:\n%s",
-                          filename);
-            }
-            else if(!merge)
-            {
-                /* Take the allocated filename for the UI */
-                ui_set_title(filename);
-                filenames->data = NULL;
+                context.count = LOG_READ_ERROR_READ;
+                break;
             }
         }
-        filenames = filenames->next;
-    }
+        status = yajl_parse(json, buffer, (size_t)n);
+    } while (!gzeof(gzfp) && status == yajl_status_ok);
 
-    ui_view_unlock(ui.treeview);
-
-    if(context.changed)
+    if(!err)
     {
-        ui_status_update_networks();
-        if(merge)
-            ui_changed();
+        if(status == yajl_status_ok)
+            status = yajl_complete_parse(json);
+        if(status != yajl_status_ok)
+            context.count = LOG_READ_ERROR_PARSE;
     }
+
+    gzclose(gzfp);
+    yajl_free(json);
+    network_free(&context.network);
+    g_free(context.signal);
+
+    return context.count;
 }
 
 static gint
@@ -468,9 +425,10 @@ parse_key_end(gpointer ptr)
     {
         if(ctx->network.address >= 0)
         {
-            mtscan_model_add(ui.model, &ctx->network, ctx->merge);
-            ctx->changed = TRUE;
+            ctx->net_cb(&ctx->network, ctx->user_data);
+            ctx->count++;
         }
+
         network_free_null(&ctx->network);
     }
     ctx->level--;

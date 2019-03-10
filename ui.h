@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -59,6 +59,7 @@ typedef struct mtscan_gtk
     GtkToolItem *b_mode;
     GtkToolItem *b_autosave;
     GtkToolItem *b_gps;
+    GtkToolItem *b_geoloc;
     GtkToolItem *b_about;
 
     GtkWidget *scroll;
@@ -108,9 +109,6 @@ void ui_set_title(gchar*);
 void ui_clear(void);
 void ui_show_uri(const gchar*);
 void ui_screenshot(void);
-
-gboolean ui_log_save(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
-gboolean ui_log_save_full(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
 
 void ui_toggle_connection(gint);
 void ui_tzsp(void);

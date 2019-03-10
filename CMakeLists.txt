@@ -28,6 +28,11 @@ include_directories(${LIBCRYPTO_INCLUDE_DIRS})
 link_directories(${LIBCRYPTO_LIBRARY_DIRS})
 add_definitions(${LIBCRYPTO_CFLAGS_OTHER})
 
+pkg_check_modules(LIBCURL REQUIRED libcurl)
+include_directories(${LIBCURL_INCLUDE_DIRS})
+link_directories(${LIBCURL_LIBRARY_DIRS})
+add_definitions(${LIBCURL_CFLAGS_OTHER})
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
 
 set(SOURCE_FILES
@@ -41,6 +46,14 @@ set(SOURCE_FILES
         conf.h
         export.c
         export.h
+        geoloc.c
+        geoloc.h
+        geoloc-data.c
+        geoloc-data.h
+        geoloc-database.c
+        geoloc-database.h
+        geoloc-utils.c
+        geoloc-utils.h
         gpsd.c
         gpsd.h
         gps.c
@@ -71,6 +84,8 @@ set(SOURCE_FILES
         ui-dialog-pcap.h
         ui-icons.c
         ui-icons.h
+        ui-log.c
+        ui-log.h
         ui-preferences.c
         ui-preferences.h
         ui-scanlist.c
@@ -106,7 +121,15 @@ set(SOURCE_FILES
         tzsp/tzsp-socket.c
         tzsp/tzsp-socket.h
         tzsp/utils.c
-        tzsp/utils.h)
+        tzsp/utils.h
+        wigle/wigle.c
+        wigle/wigle.h
+        wigle/wigle-data.c
+        wigle/wigle-data.h
+        wigle/wigle-json.c
+        wigle/wigle-json.h
+        wigle/wigle-msg.c
+        wigle/wigle-msg.h)
 
 set(SOURCE_FILES_MINGW
         win32.c
@@ -120,6 +143,7 @@ set(LIBRARIES
         ${YAJL_LIBRARIES}
         ${ZLIB_LIBRARIES}
         ${LIBCRYPTO_LIBRARIES}
+        ${LIBCURL_LIBRARIES}
         m)
 
 set(LIBRARIES_UNIX

@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -16,9 +16,10 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdlib.h>
+#include <curl/curl.h>
 #include "conf.h"
 #include "ui.h"
-#include "log.h"
+#include "ui-log.h"
 #include "model.h"
 #include "oui.h"
 
@@ -99,6 +100,8 @@ main(gint   argc,
     win32_init();
 #endif
 
+    curl_global_init(CURL_GLOBAL_SSL);
+
     parse_args(argc, argv);
     conf_init(args.config_path);
 
@@ -112,7 +115,7 @@ main(gint   argc,
     if(filenames)
     {
         filenames = g_slist_reverse(filenames);
-        log_open(filenames, (g_slist_length(filenames) > 1), FALSE);
+        ui_log_open(filenames, (g_slist_length(filenames) > 1), FALSE);
         g_slist_free_full(filenames, g_free);
     }
 
@@ -125,6 +128,7 @@ main(gint   argc,
 
     oui_destroy();
     mtscan_model_free(ui.model);
+
 #ifdef G_OS_WIN32
     win32_cleanup();
 #endif

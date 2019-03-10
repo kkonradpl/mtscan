@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -25,6 +25,10 @@ gchar* str_scanlist_compress(const gchar*);
 
 GtkListStore* create_liststore_from_tree(GTree*);
 void fill_tree_from_liststore(GTree*, GtkListStore*);
+
+GtkListStore* create_liststore_from_strv(const gchar* const *);
+gchar** create_strv_from_liststore(GtkListStore*);
+gboolean strv_equal(const gchar* const*, const gchar* const*);
 
 gint64 str_addr_to_gint64(const gchar*, gint);
 gboolean str_addr_to_guint8(const gchar*, gint, guint8*);

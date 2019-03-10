@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -59,7 +59,8 @@ ui_dialog(GtkWindow      *window,
 
 ui_dialog_open_t*
 ui_dialog_open(GtkWindow *window,
-               gboolean   merge)
+               gboolean   merge,
+               gboolean   extended)
 {
     GtkWidget *dialog;
     GtkWidget *box;
@@ -87,7 +88,8 @@ ui_dialog_open(GtkWindow *window,
     strip_signals = gtk_check_button_new_with_label("Strip signal samples");
     gtk_box_pack_start(GTK_BOX(box), strip_signals, FALSE, FALSE, 0);
 
-    gtk_widget_show_all(box);
+    if(extended)
+        gtk_widget_show_all(box);
     gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), box);
 
     filter = gtk_file_filter_new();
@@ -488,7 +490,7 @@ ui_dialog_about(GtkWindow *window)
     gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dialog), APP_NAME);
     gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dialog), APP_VERSION);
     gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dialog), APP_ICON);
-    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2018  Konrad Kosmatka");
+    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2019  Konrad Kosmatka");
     gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(dialog), "Mikrotik RouterOS wireless scanner");
     gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dialog), "http://fmdx.pl/mtscan");
     gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(dialog), APP_LICENCE);

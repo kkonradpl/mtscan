@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -27,6 +27,8 @@
 
 static gboolean create_liststore_from_tree_foreach(gpointer, gpointer, gpointer);
 static gboolean fill_tree_from_liststore_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+static gboolean create_strv_from_liststore_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
+
 
 gint
 gptrcmp(gconstpointer a,
@@ -194,6 +196,74 @@ fill_tree_from_liststore_foreach(GtkTreeModel *model,
     gtk_tree_model_get(model, iter, 0, &value, -1);
     g_tree_insert(tree, gint64dup(&value), GINT_TO_POINTER(TRUE));
     return FALSE;
+}
+
+GtkListStore*
+create_liststore_from_strv(const gchar* const *strv)
+{
+    GtkListStore *model = gtk_list_store_new(1, G_TYPE_STRING);
+    const gchar* const *s;
+
+    if(strv)
+    {
+        for(s = strv; *s; s++)
+            gtk_list_store_insert_with_values(model, NULL, -1, 0, *s, -1);
+    }
+    return model;
+}
+
+gchar**
+create_strv_from_liststore(GtkListStore *model)
+{
+    gchar **out;
+    gchar **ptr;
+    gint n;
+
+    n = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(model), NULL) + 1;
+
+    out = g_new(gchar*, n);
+    ptr = out;
+    gtk_tree_model_foreach(GTK_TREE_MODEL(model), create_strv_from_liststore_foreach, &ptr);
+    *ptr = NULL;
+
+    return out;
+}
+
+static gboolean
+create_strv_from_liststore_foreach(GtkTreeModel *model,
+                                   GtkTreePath  *path,
+                                   GtkTreeIter  *iter,
+                                   gpointer      data)
+{
+    gchar ***ptr = (gchar***)data;
+    gchar *value;
+
+    gtk_tree_model_get(model, iter, 0, &value, -1);
+    *((*ptr)++) = value;
+
+    return FALSE;
+}
+
+gboolean
+strv_equal(const gchar* const *v1,
+           const gchar* const *v2)
+{
+    if(v1 == v2)
+        return TRUE;
+
+    if(!v1 || !v2)
+        return FALSE;
+
+    while(*v1 && *v2)
+    {
+        if(g_ascii_strcasecmp(*v1, *v2) != 0)
+            return FALSE;
+
+        v1++;
+        v2++;
+    }
+
+    return (*v1 == NULL && *v2 == NULL);
 }
 
 gint64

@@ -35,6 +35,7 @@
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
 #define CONF_DEFAULT_INTERFACE_AUTOSAVE      FALSE
 #define CONF_DEFAULT_INTERFACE_GPS           FALSE
+#define CONF_DEFAULT_INTERFACE_GEOLOC        FALSE
 #define CONF_DEFAULT_INTERFACE_ROTATOR       FALSE
 #define CONF_DEFAULT_INTERFACE_LAST_PROFILE  (-1)
 
@@ -87,13 +88,21 @@
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_PASSWORD       ""
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_MIN_SPEED      25
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_DEF_SPEED      100
-#define CONF_DEFAULT_PREFERENCES_ROTATOR_LATITUDE       NAN
-#define CONF_DEFAULT_PREFERENCES_ROTATOR_LONGITUDE      NAN
 #define CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED      FALSE
 #define CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED     FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED  FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED FALSE
 #define CONF_DEFAULT_PREFERENCES_ALARMLIST_ENABLED      FALSE
+#define CONF_DEFAULT_PREFERENCES_LOCATION_LATITUDE      NAN
+#define CONF_DEFAULT_PREFERENCES_LOCATION_LONGITUDE     NAN
+#define CONF_DEFAULT_PREFERENCES_LOCATION_MTSCAN        FALSE
+#define CONF_DEFAULT_PREFERENCES_LOCATION_WIGLE         FALSE
+#define CONF_DEFAULT_PREFERENCES_LOCATION_WIGLE_API_URL "https://api.wigle.net/api/v2/network/detail?netid="
+#define CONF_DEFAULT_PREFERENCES_LOCATION_WIGLE_API_KEY ""
+#define CONF_DEFAULT_PREFERENCES_LOCATION_AZIMUTH_ERROR 5
+#define CONF_DEFAULT_PREFERENCES_LOCATION_MIN_DISTANCE  0
+#define CONF_DEFAULT_PREFERENCES_LOCATION_MAX_DISTANCE  999
+
 
 #define CONF_PROFILE_GROUP_PREFIX  "profile_"
 #define CONF_PROFILE_GROUP_DEFAULT "profile"
@@ -116,6 +125,7 @@ typedef struct conf
     gboolean interface_dark_mode;
     gboolean interface_autosave;
     gboolean interface_gps;
+    gboolean interface_geoloc;
     gboolean interface_rotator;
     gint     interface_last_profile;
 
@@ -172,8 +182,6 @@ typedef struct conf
     gchar    *preferences_rotator_password;
     gint      preferences_rotator_min_speed;
     gint      preferences_rotator_def_speed;
-    gdouble   preferences_rotator_latitude;
-    gdouble   preferences_rotator_longitude;
 
     gboolean  preferences_blacklist_enabled;
     gboolean  preferences_blacklist_inverted;
@@ -185,6 +193,17 @@ typedef struct conf
 
     gboolean  preferences_alarmlist_enabled;
     GTree    *alarmlist;
+
+    gdouble    preferences_location_latitude;
+    gdouble    preferences_location_longitude;
+    gboolean   preferences_location_mtscan;
+    gchar    **preferences_location_mtscan_data;
+    gboolean   preferences_location_wigle;
+    gchar     *preferences_location_wigle_api_url;
+    gchar     *preferences_location_wigle_api_key;
+    gint       preferences_location_azimuth_error;
+    gint       preferences_location_min_distance;
+    gint       preferences_location_max_distance;
 } conf_t;
 
 static conf_t conf;
@@ -260,6 +279,7 @@ conf_read(void)
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_autosave = conf_read_boolean("interface", "autosave", CONF_DEFAULT_INTERFACE_AUTOSAVE);
     conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
+    conf.interface_geoloc = conf_read_boolean("interface", "geoloc", CONF_DEFAULT_INTERFACE_GEOLOC);
     conf.interface_rotator = conf_read_boolean("interface", "rotator", CONF_DEFAULT_INTERFACE_ROTATOR);
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
 
@@ -312,8 +332,6 @@ conf_read(void)
     conf.preferences_rotator_password = conf_read_string("preferences", "rotator_password", CONF_DEFAULT_PREFERENCES_ROTATOR_PASSWORD);
     conf.preferences_rotator_min_speed = conf_read_integer("preferences", "rotator_min_speed", CONF_DEFAULT_PREFERENCES_ROTATOR_MIN_SPEED);
     conf.preferences_rotator_def_speed = conf_read_integer("preferences", "rotator_def_speed", CONF_DEFAULT_PREFERENCES_ROTATOR_DEF_SPEED);
-    conf.preferences_rotator_latitude = conf_read_double("preferences", "rotator_latitude", CONF_DEFAULT_PREFERENCES_ROTATOR_LATITUDE);
-    conf.preferences_rotator_longitude = conf_read_double("preferences", "rotator_longitude", CONF_DEFAULT_PREFERENCES_ROTATOR_LONGITUDE);
 
     conf.preferences_blacklist_enabled = conf_read_boolean("preferences", "blacklist_enabled", CONF_DEFAULT_PREFERENCES_BLACKLIST_ENABLED);
     conf.preferences_blacklist_inverted = conf_read_boolean("preferences", "blacklist_inverted", CONF_DEFAULT_PREFERENCES_BLACKLIST_INVERTED);
@@ -325,6 +343,18 @@ conf_read(void)
 
     conf.preferences_alarmlist_enabled = conf_read_boolean("preferences", "alarmlist_enabled", CONF_DEFAULT_PREFERENCES_ALARMLIST_ENABLED);
     conf_read_gint64_tree(conf.keyfile, "preferences", "alarmlist", conf.alarmlist);
+
+    conf.preferences_location_latitude = conf_read_double("preferences", "location_latitude", CONF_DEFAULT_PREFERENCES_LOCATION_LATITUDE);
+    conf.preferences_location_longitude = conf_read_double("preferences", "location_longitude", CONF_DEFAULT_PREFERENCES_LOCATION_LONGITUDE);
+    conf.preferences_location_mtscan = conf_read_boolean("preferences", "location_mtscan", CONF_DEFAULT_PREFERENCES_LOCATION_MTSCAN);
+    conf.preferences_location_mtscan_data = conf_read_string_list(conf.keyfile, "preferences", "location_mtscan_data", NULL);
+    conf.preferences_location_wigle = conf_read_boolean("preferences", "location_wigle", CONF_DEFAULT_PREFERENCES_LOCATION_WIGLE);
+    conf.preferences_location_wigle_api_url = conf_read_string("preferences", "location_wigle_api_url", CONF_DEFAULT_PREFERENCES_LOCATION_WIGLE_API_URL);
+    conf.preferences_location_wigle_api_key = conf_read_string("preferences", "location_wigle_api_key", CONF_DEFAULT_PREFERENCES_LOCATION_WIGLE_API_KEY);
+    conf.preferences_location_azimuth_error = conf_read_integer("preferences", "location_azimuth_error", CONF_DEFAULT_PREFERENCES_LOCATION_AZIMUTH_ERROR);
+    conf.preferences_location_min_distance = conf_read_integer("preferences", "location_min_distance", CONF_DEFAULT_PREFERENCES_LOCATION_MIN_DISTANCE);
+    conf.preferences_location_max_distance = conf_read_integer("preferences", "location_max_distance", CONF_DEFAULT_PREFERENCES_LOCATION_MAX_DISTANCE);
+
 
     if(!file_exists)
         conf_save();
@@ -577,6 +607,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "interface", "dark_mode", conf.interface_dark_mode);
     g_key_file_set_boolean(conf.keyfile, "interface", "autosave", conf.interface_autosave);
     g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
+    g_key_file_set_boolean(conf.keyfile, "interface", "geoloc", conf.interface_geoloc);
     g_key_file_set_boolean(conf.keyfile, "interface", "rotator", conf.interface_rotator);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
 
@@ -626,10 +657,8 @@ conf_save(void)
     g_key_file_set_string(conf.keyfile, "preferences", "rotator_hostname", conf.preferences_rotator_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "rotator_tcp_port", conf.preferences_rotator_tcp_port);
     g_key_file_set_string(conf.keyfile, "preferences", "rotator_password", conf.preferences_rotator_password);
-    g_key_file_set_double(conf.keyfile, "preferences", "rotator_latitude", conf.preferences_rotator_latitude);
     g_key_file_set_integer(conf.keyfile, "preferences", "rotator_min_speed", conf.preferences_rotator_min_speed);
     g_key_file_set_integer(conf.keyfile, "preferences", "rotator_def_speed", conf.preferences_rotator_def_speed);
-    g_key_file_set_double(conf.keyfile, "preferences", "rotator_longitude", conf.preferences_rotator_longitude);
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_enabled", conf.preferences_blacklist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "blacklist_inverted", conf.preferences_blacklist_inverted);
@@ -641,6 +670,20 @@ conf_save(void)
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "alarmlist_enabled", conf.preferences_alarmlist_enabled);
     conf_save_gint64_tree(conf.keyfile, "preferences", "alarmlist", conf.alarmlist);
+
+    g_key_file_set_double(conf.keyfile, "preferences", "location_latitude", conf.preferences_location_latitude);
+    g_key_file_set_double(conf.keyfile, "preferences", "location_longitude", conf.preferences_location_longitude);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "location_mtscan", conf.preferences_location_mtscan);
+    g_key_file_set_string_list(conf.keyfile, "preferences", "location_mtscan_data",
+                               (const gchar * const *)conf.preferences_location_mtscan_data,
+                               g_strv_length(conf.preferences_location_mtscan_data));
+    g_key_file_set_boolean(conf.keyfile, "preferences", "location_wigle", conf.preferences_location_wigle);
+    g_key_file_set_string(conf.keyfile, "preferences", "location_wigle_api_url", conf.preferences_location_wigle_api_url);
+    g_key_file_set_string(conf.keyfile, "preferences", "location_wigle_api_key", conf.preferences_location_wigle_api_key);
+    g_key_file_set_integer(conf.keyfile, "preferences", "location_azimuth_error", conf.preferences_location_azimuth_error);
+    g_key_file_set_integer(conf.keyfile, "preferences", "location_min_distance", conf.preferences_location_min_distance);
+    g_key_file_set_integer(conf.keyfile, "preferences", "location_max_distance", conf.preferences_location_max_distance);
+
 
     if(!(configuration = g_key_file_to_data(conf.keyfile, &length, &err)))
     {
@@ -897,6 +940,18 @@ void
 conf_set_interface_gps(gboolean gps)
 {
     conf.interface_gps = gps;
+}
+
+gboolean
+conf_get_interface_geoloc(void)
+{
+    return conf.interface_geoloc;
+}
+
+void
+conf_set_interface_geoloc(gboolean geoloc)
+{
+    conf.interface_geoloc = geoloc;
 }
 
 gboolean
@@ -1370,30 +1425,6 @@ conf_set_preferences_rotator_def_speed(gint value)
     conf.preferences_rotator_def_speed = value;
 }
 
-gdouble
-conf_get_preferences_rotator_latitude(void)
-{
-    return conf.preferences_rotator_latitude;
-}
-
-void
-conf_set_preferences_rotator_latitude(gdouble value)
-{
-    conf.preferences_rotator_latitude = value;
-}
-
-gdouble
-conf_get_preferences_rotator_longitude(void)
-{
-    return conf.preferences_rotator_longitude;
-}
-
-void
-conf_set_preferences_rotator_longitude(gdouble value)
-{
-    conf.preferences_rotator_longitude = value;
-}
-
 gboolean
 conf_get_preferences_blacklist_enabled(void)
 {
@@ -1558,3 +1589,131 @@ conf_set_preferences_alarmlist_from_liststore(GtkListStore *model)
 {
     fill_tree_from_liststore(conf.alarmlist, model);
 }
+
+gdouble
+conf_get_preferences_location_latitude(void)
+{
+    return conf.preferences_location_latitude;
+}
+
+void
+conf_set_preferences_location_latitude(gdouble value)
+{
+    conf.preferences_location_latitude = value;
+}
+
+gdouble
+conf_get_preferences_location_longitude(void)
+{
+    return conf.preferences_location_longitude;
+}
+
+void
+conf_set_preferences_location_longitude(gdouble value)
+{
+    conf.preferences_location_longitude = value;
+}
+
+gboolean
+conf_get_preferences_location_mtscan(void)
+{
+    return conf.preferences_location_mtscan;
+}
+
+void
+conf_set_preferences_location_mtscan(gboolean value)
+{
+    conf.preferences_location_mtscan = value;
+}
+
+const gchar* const*
+conf_get_preferences_location_mtscan_data(void)
+{
+    return (const gchar* const*)conf.preferences_location_mtscan_data;
+}
+
+void
+conf_set_preferences_location_mtscan_data(const gchar* const* value)
+{
+    g_strfreev(conf.preferences_location_mtscan_data);
+    conf.preferences_location_mtscan_data = g_strdupv((gchar**)value);
+}
+
+GtkListStore*
+conf_get_preferences_location_mtscan_data_as_liststore(void)
+{
+    return create_liststore_from_strv((const gchar* const*)conf.preferences_location_mtscan_data);
+}
+
+gboolean
+conf_get_preferences_location_wigle(void)
+{
+    return conf.preferences_location_wigle;
+}
+
+void
+conf_set_preferences_location_wigle(gboolean value)
+{
+    conf.preferences_location_wigle = value;
+}
+
+const gchar*
+conf_get_preferences_location_wigle_api_url(void)
+{
+    return conf.preferences_location_wigle_api_url;
+}
+
+void
+conf_set_preferences_location_wigle_api_url(const gchar *value)
+{
+    conf_change_string(&conf.preferences_location_wigle_api_url, value);
+}
+
+const gchar*
+conf_get_preferences_location_wigle_api_key(void)
+{
+    return conf.preferences_location_wigle_api_key;
+}
+
+void
+conf_set_preferences_location_wigle_api_key(const gchar *value)
+{
+    conf_change_string(&conf.preferences_location_wigle_api_key, value);
+}
+
+gint
+conf_get_preferences_location_azimuth_error(void)
+{
+    return conf.preferences_location_azimuth_error;
+}
+
+void
+conf_set_preferences_location_azimuth_error(gint value)
+{
+    conf.preferences_location_azimuth_error = value;
+}
+
+gint
+conf_get_preferences_location_min_distance(void)
+{
+    return conf.preferences_location_min_distance;
+}
+
+void
+conf_set_preferences_location_min_distance(gint value)
+{
+    conf.preferences_location_min_distance = value;
+}
+
+gint
+conf_get_preferences_location_max_distance(void)
+{
+    return conf.preferences_location_max_distance;
+}
+
+void
+conf_set_preferences_location_max_distance(gint value)
+{
+    conf.preferences_location_max_distance = value;
+}
+

@@ -13,24 +13,17 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_LOG_H_
-#define MTSCAN_LOG_H_
-#include <gtk/gtk.h>
+#ifndef MTSCAN_GEOLOC_DATA_H_
+#define MTSCAN_GEOLOC_DATA_H_
 
-#define LOG_READ_ERROR_EMPTY  0
-#define LOG_READ_ERROR_OPEN  -1
-#define LOG_READ_ERROR_READ  -2
-#define LOG_READ_ERROR_PARSE -3
+typedef struct geoloc_data geoloc_data_t;
 
-typedef struct log_save_error
-{
-    size_t wrote;
-    size_t length;
-    gboolean existing_file;
-} log_save_error_t;
+geoloc_data_t* geoloc_data_new(const gchar*, gdouble, gdouble);
+void geoloc_data_free(geoloc_data_t*);
 
-
-gint log_read(const gchar*, void (*)(network_t*, gpointer), gpointer, gboolean);
-log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+const gchar* geoloc_data_get_ssid(const geoloc_data_t*);
+gdouble geoloc_data_get_lat(const geoloc_data_t*);
+gdouble geoloc_data_get_lon(const geoloc_data_t*);
+gboolean geoloc_data_is_vaild(const geoloc_data_t*);
 
 #endif

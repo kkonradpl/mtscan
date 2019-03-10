@@ -12,25 +12,43 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  */
+#include <glib.h>
+#include "wigle.h"
 
-#ifndef MTSCAN_LOG_H_
-#define MTSCAN_LOG_H_
-#include <gtk/gtk.h>
-
-#define LOG_READ_ERROR_EMPTY  0
-#define LOG_READ_ERROR_OPEN  -1
-#define LOG_READ_ERROR_READ  -2
-#define LOG_READ_ERROR_PARSE -3
-
-typedef struct log_save_error
+typedef struct wigle_msg
 {
-    size_t wrote;
-    size_t length;
-    gboolean existing_file;
-} log_save_error_t;
+    const wigle_t *src;
+    wigle_data_t  *data;
+} wigle_msg_t;
 
 
-gint log_read(const gchar*, void (*)(network_t*, gpointer), gpointer, gboolean);
-log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+wigle_msg_t*
+wigle_msg_new(const wigle_t *src,
+              wigle_data_t  *data)
+{
+    wigle_msg_t *msg;
+    msg = g_malloc(sizeof(wigle_msg_t));
 
-#endif
+    msg->src = src;
+    msg->data = data;
+    return msg;
+}
+
+void
+wigle_msg_free(wigle_msg_t *msg)
+{
+    wigle_data_free(msg->data);
+    g_free(msg);
+}
+
+const wigle_t*
+wigle_msg_get_src(const wigle_msg_t *msg)
+{
+    return msg->src;
+}
+
+const wigle_data_t*
+wigle_msg_get_data(const wigle_msg_t *msg)
+{
+    return msg->data;
+}

@@ -13,24 +13,13 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_LOG_H_
-#define MTSCAN_LOG_H_
+#ifndef MTSCAN_UI_LOG_H_
+#define MTSCAN_UI_LOG_H_
 #include <gtk/gtk.h>
 
-#define LOG_READ_ERROR_EMPTY  0
-#define LOG_READ_ERROR_OPEN  -1
-#define LOG_READ_ERROR_READ  -2
-#define LOG_READ_ERROR_PARSE -3
+void ui_log_open(GSList*, gboolean, gboolean);
 
-typedef struct log_save_error
-{
-    size_t wrote;
-    size_t length;
-    gboolean existing_file;
-} log_save_error_t;
-
-
-gint log_read(const gchar*, void (*)(network_t*, gpointer), gpointer, gboolean);
-log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+gboolean ui_log_save(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
+gboolean ui_log_save_full(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
 
 #endif

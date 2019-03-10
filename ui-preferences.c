@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -22,6 +22,7 @@
 #include "ui-dialogs.h"
 #include "misc.h"
 #include "ui-dialog-pcap.h"
+#include "ui-callbacks.h"
 
 enum
 {
@@ -125,6 +126,32 @@ typedef struct ui_preferences
     ui_preferences_list_t highlightlist;
     ui_preferences_list_t alarmlist;
 
+    GtkWidget *page_location;
+    GtkWidget *table_location;
+    GtkWidget *l_location_latitude;
+    GtkWidget *s_location_latitude;
+    GtkWidget *l_location_longitude;
+    GtkWidget *s_location_longitude;
+    GtkWidget *b_location_acquire;
+    GtkWidget *x_location_mtscan;
+    GtkWidget *v_location_mtscan;
+    GtkWidget *s_location_mtscan;
+    GtkWidget *b_location_buttons;
+    GtkWidget *b_location_add;
+    GtkWidget *b_location_remove;
+    GtkWidget *b_location_clear;
+    GtkWidget *x_location_wigle;
+    GtkWidget *l_location_wigle_api_url;
+    GtkWidget *e_location_wigle_api_url;
+    GtkWidget *l_location_wigle_api_key;
+    GtkWidget *e_location_wigle_api_key;
+    GtkWidget *l_location_azimuth_error;
+    GtkWidget *s_location_azimuth_error;
+    GtkWidget *l_location_min_distance;
+    GtkWidget *s_location_min_distance;
+    GtkWidget *l_location_max_distance;
+    GtkWidget *s_location_max_distance;
+
     GtkWidget *box_button;
     GtkWidget *b_apply;
     GtkWidget *b_cancel;
@@ -144,6 +171,8 @@ static gboolean ui_preferences_key_list_add(GtkWidget*, GdkEventKey*, gpointer);
 static void ui_preferences_list_add(GtkWidget*, gpointer);
 static void ui_preferences_list_remove(GtkWidget*, gpointer);
 static void ui_preferences_list_clear(GtkWidget*, gpointer);
+static void ui_preferences_file_add(GtkWidget*, gpointer);
+static void ui_preferences_location_acquire(GtkWidget*, gpointer);
 static void ui_preferences_load(ui_preferences_t*);
 static void ui_preferences_load_view(ui_preferences_t*, const gchar* const*, const gchar* const*);
 static void ui_preferences_apply(GtkWidget*, gpointer);
@@ -441,9 +470,117 @@ ui_preferences_dialog(void)
     p.x_gps_show_errors = gtk_check_button_new_with_label("Show error estimates");
     gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
+    /* Blacklist */
     ui_preferences_list_create(&p.blacklist, p.notebook, "Blacklist", "Enable blacklist", "Invert to whitelist");
+
+    /* Highlight list */
     ui_preferences_list_create(&p.highlightlist, p.notebook, "Highlight", "Enable highlight list", "Invert highlight list");
+
+    /* Alarm list */
     ui_preferences_list_create(&p.alarmlist, p.notebook, "Alarm", "Enable alarm list", NULL);
+
+    /* Location */
+    p.page_location = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(p.page_location), 4);
+    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_location, gtk_label_new("Location"));
+    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_location, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
+
+    p.table_location = gtk_table_new(12, 3, TRUE);
+    gtk_table_set_homogeneous(GTK_TABLE(p.table_location), FALSE);
+    gtk_table_set_row_spacings(GTK_TABLE(p.table_location), 4);
+    gtk_table_set_col_spacings(GTK_TABLE(p.table_location), 4);
+    gtk_container_add(GTK_CONTAINER(p.page_location), p.table_location);
+
+    row = 0;
+    p.l_location_latitude = gtk_label_new("Latitude:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_latitude), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_latitude, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_location_latitude = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, -90.0, 90.0, 0.1, 1.0, 0.0)), 0, 6);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.s_location_latitude, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_location_longitude = gtk_label_new("Longitude:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_longitude), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_longitude, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_location_longitude = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, -180.0, 180.0, 0.1, 1.0, 0.0)), 0, 6);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.s_location_longitude, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    p.b_location_acquire = gtk_button_new_with_label("Acquire");
+    gtk_table_attach(GTK_TABLE(p.table_location), p.b_location_acquire, 2, 3, row-1, row+1, GTK_EXPAND|GTK_FILL, GTK_EXPAND|GTK_FILL, 0, 0);
+    g_signal_connect(p.b_location_acquire, "clicked", G_CALLBACK(ui_preferences_location_acquire), &p);
+
+    row++;
+    p.x_location_mtscan = gtk_check_button_new_with_label("Use MTscan logs for geolocation");
+    gtk_table_attach(GTK_TABLE(p.table_location), p.x_location_mtscan, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.b_location_buttons = gtk_hbox_new(TRUE, 0);
+    p.b_location_add = gtk_button_new_from_stock(GTK_STOCK_ADD);
+    gtk_box_pack_start(GTK_BOX(p.b_location_buttons), p.b_location_add, TRUE, TRUE, 0);
+    p.b_location_remove = gtk_button_new_from_stock(GTK_STOCK_REMOVE);
+    gtk_box_pack_start(GTK_BOX(p.b_location_buttons), p.b_location_remove, TRUE, TRUE, 0);
+    p.b_location_clear = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
+    gtk_box_pack_start(GTK_BOX(p.b_location_buttons), p.b_location_clear, TRUE, TRUE, 0);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.b_location_buttons, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.v_location_mtscan = gtk_tree_view_new();
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(p.v_location_mtscan), FALSE);
+    gtk_tree_view_set_reorderable(GTK_TREE_VIEW(p.v_location_mtscan), TRUE);
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    column = gtk_tree_view_column_new_with_attributes("Path", renderer, "text", 0, NULL);
+    g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_START, "ellipsize-set", TRUE, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(p.v_location_mtscan), column);
+    g_signal_connect(p.b_location_add, "clicked", G_CALLBACK(ui_preferences_file_add), p.v_location_mtscan);
+    g_signal_connect(p.b_location_remove, "clicked", G_CALLBACK(ui_preferences_list_remove), p.v_location_mtscan);
+    g_signal_connect(p.b_location_clear, "clicked", G_CALLBACK(ui_preferences_list_clear), p.v_location_mtscan);
+    g_signal_connect(p.v_location_mtscan, "key-press-event", G_CALLBACK(ui_preferences_key_list), p.b_location_remove);
+
+    p.s_location_mtscan = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(p.s_location_mtscan), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+    gtk_container_add(GTK_CONTAINER(p.s_location_mtscan), p.v_location_mtscan);
+    gtk_widget_set_size_request(p.s_location_mtscan, -1, 100);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.s_location_mtscan, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_location_wigle = gtk_check_button_new_with_label("Use WiGLE for geolocation");
+    gtk_table_attach(GTK_TABLE(p.table_location), p.x_location_wigle, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_location_wigle_api_url = gtk_label_new("WiGLE API URL:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_wigle_api_url), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_wigle_api_url, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.e_location_wigle_api_url = gtk_entry_new();
+    gtk_table_attach(GTK_TABLE(p.table_location), p.e_location_wigle_api_url, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_location_wigle_api_key = gtk_label_new("WiGLE API key:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_wigle_api_key), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_wigle_api_key, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.e_location_wigle_api_key = gtk_entry_new();
+    gtk_table_attach(GTK_TABLE(p.table_location), p.e_location_wigle_api_key, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_location_azimuth_error = gtk_label_new("Azimuth error ± [°]:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_azimuth_error), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_azimuth_error, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_location_azimuth_error = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 0, 180.0, 1.0, 1.0, 0.0)), 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.s_location_azimuth_error, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_location_min_distance = gtk_label_new("Min distance [km]:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_min_distance), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_min_distance, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_location_min_distance = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 0, 9999.0, 1.0, 1.0, 0.0)), 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.s_location_min_distance, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.l_location_max_distance = gtk_label_new("Max distance [km]:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_location_max_distance), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.l_location_max_distance, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_location_max_distance = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 0, 9999.0, 1.0, 1.0, 0.0)), 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_location), p.s_location_max_distance, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     /* --- */
     p.box_button = gtk_hbutton_box_new();
@@ -729,6 +866,47 @@ ui_preferences_list_clear(GtkWidget *widget,
 }
 
 static void
+ui_preferences_file_add(GtkWidget *widget,
+                        gpointer   data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(data);
+    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+    GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(toplevel), UI_DIALOG_OPEN, FALSE);
+    GSList *it;
+
+    if(o)
+    {
+        for(it = o->filenames; it; it = it->next)
+            gtk_list_store_insert_with_values(GTK_LIST_STORE(model), NULL, -1, 0, (gchar*)it->data, -1);
+        g_slist_free_full(o->filenames, g_free);
+        g_free(o);
+    }
+}
+
+static void
+ui_preferences_location_acquire(GtkWidget *widget,
+                                gpointer   data)
+{
+    ui_preferences_t *p = (ui_preferences_t*)data;
+    const mtscan_gps_data_t *gps_data;
+    GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+
+    if(gps_get_data(&gps_data) != GPS_OK)
+    {
+        ui_dialog(GTK_WINDOW(toplevel),
+                  GTK_MESSAGE_WARNING,
+                  "GPS position",
+                  "Failed to acquire GPS position.\nNo current position fix available.");
+    }
+    else
+    {
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_latitude), gps_data->lat);
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_longitude), gps_data->lon);
+    }
+}
+
+static void
 ui_preferences_load(ui_preferences_t *p)
 {
     GtkListStore *model;
@@ -794,6 +972,20 @@ ui_preferences_load(ui_preferences_t *p)
     model = conf_get_preferences_alarmlist_as_liststore();
     gtk_tree_view_set_model(GTK_TREE_VIEW(p->alarmlist.view), GTK_TREE_MODEL(model));
     g_object_unref(model);
+
+    /* Location */
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_latitude), conf_get_preferences_location_latitude());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_longitude), conf_get_preferences_location_longitude());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_location_mtscan), conf_get_preferences_location_mtscan());
+    model = conf_get_preferences_location_mtscan_data_as_liststore();
+    gtk_tree_view_set_model(GTK_TREE_VIEW(p->v_location_mtscan), GTK_TREE_MODEL(model));
+    g_object_unref(model);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_location_wigle), conf_get_preferences_location_wigle());
+    gtk_entry_set_text(GTK_ENTRY(p->e_location_wigle_api_url), conf_get_preferences_location_wigle_api_url());
+    gtk_entry_set_text(GTK_ENTRY(p->e_location_wigle_api_key), conf_get_preferences_location_wigle_api_key());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_azimuth_error), conf_get_preferences_location_azimuth_error());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_min_distance), conf_get_preferences_location_min_distance());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_max_distance), conf_get_preferences_location_max_distance());
 }
 
 static void
@@ -842,6 +1034,17 @@ ui_preferences_apply(GtkWidget *widget,
     mtscan_conf_tzsp_band_t new_tzsp_band;
     const gchar *new_gps_hostname;
     gint new_gps_tcp_port;
+    gdouble new_location_latitude;
+    gdouble new_location_longitude;
+    gboolean new_location_mtscan;
+    gchar** new_location_mtscan_data;
+    gboolean is_new_location_mtscan_data;
+    gboolean new_location_wigle;
+    gint new_location_azimuth_error;
+    gint new_location_min_distance;
+    gint new_location_max_distance;
+    const gchar *new_location_wigle_api_url;
+    const gchar *new_location_wigle_api_key;
 
     /* General */
     new_icon_size = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_general_icon_size));
@@ -949,6 +1152,63 @@ ui_preferences_apply(GtkWidget *widget,
     /* Alarm list */
     conf_set_preferences_alarmlist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_enabled)));
     conf_set_preferences_alarmlist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->alarmlist.view))));
+
+    /* Location */
+    new_location_latitude = gtk_spin_button_get_value(GTK_SPIN_BUTTON(p->s_location_latitude));
+    new_location_longitude = gtk_spin_button_get_value(GTK_SPIN_BUTTON(p->s_location_longitude));
+    new_location_mtscan = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_location_mtscan));
+    new_location_mtscan_data = create_strv_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->v_location_mtscan))));
+    new_location_wigle = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_location_wigle));
+    new_location_azimuth_error = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_location_azimuth_error));
+    new_location_min_distance = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_location_min_distance));
+    new_location_max_distance = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_location_max_distance));
+
+    is_new_location_mtscan_data = !strv_equal((const gchar* const*)new_location_mtscan_data, conf_get_preferences_location_mtscan_data());
+
+    if(is_new_location_mtscan_data)
+    {
+        conf_set_preferences_location_mtscan_data((const gchar* const*)new_location_mtscan_data);
+        if(conf_get_interface_geoloc())
+            geoloc_reinit((const gchar* const*)new_location_mtscan_data);
+    }
+
+    g_strfreev(new_location_mtscan_data);
+
+    if(new_location_latitude != conf_get_preferences_location_latitude() ||
+       new_location_longitude != conf_get_preferences_location_longitude() ||
+       new_location_mtscan != conf_get_preferences_location_mtscan() ||
+       new_location_wigle != conf_get_preferences_location_wigle() ||
+       new_location_azimuth_error != conf_get_preferences_location_azimuth_error() ||
+       new_location_min_distance != conf_get_preferences_location_min_distance() ||
+       new_location_max_distance != conf_get_preferences_location_max_distance())
+    {
+
+        conf_set_preferences_location_latitude(new_location_latitude);
+        conf_set_preferences_location_longitude(new_location_longitude);
+        conf_set_preferences_location_mtscan(new_location_mtscan);
+        conf_set_preferences_location_wigle(new_location_wigle);
+        conf_set_preferences_location_azimuth_error(new_location_azimuth_error);
+        conf_set_preferences_location_min_distance(new_location_min_distance);
+        conf_set_preferences_location_max_distance(new_location_max_distance);
+
+        if(conf_get_interface_geoloc() &&
+           !is_new_location_mtscan_data)
+        {
+            ui_callback_geoloc(-1);
+        }
+    }
+
+    new_location_wigle_api_url = gtk_entry_get_text(GTK_ENTRY(p->e_location_wigle_api_url));
+    new_location_wigle_api_key = gtk_entry_get_text(GTK_ENTRY(p->e_location_wigle_api_key));
+
+    if((strcmp(conf_get_preferences_location_wigle_api_url(), new_location_wigle_api_url) != 0) ||
+       (strcmp(conf_get_preferences_location_wigle_api_key(), new_location_wigle_api_key) != 0))
+    {
+        conf_set_preferences_location_wigle_api_url(new_location_wigle_api_url);
+        conf_set_preferences_location_wigle_api_key(new_location_wigle_api_key);
+        if(conf_get_interface_geoloc())
+            geoloc_wigle(new_location_wigle_api_url, new_location_wigle_api_key);
+    }
 
     /* --- */
     gtk_widget_destroy(p->window);

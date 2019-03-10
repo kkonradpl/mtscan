@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -218,6 +218,7 @@ export_foreach(GtkTreeModel *store,
     GString *str;
     GSList *it;
     gint col;
+    gfloat distance;
 
     network_init(&net);
     gtk_tree_model_get(store, iter,
@@ -245,6 +246,7 @@ export_foreach(GtkTreeModel *store,
                        COL_LATITUDE, &net.latitude,
                        COL_LONGITUDE, &net.longitude,
                        COL_AZIMUTH, &net.azimuth,
+                       COL_DISTANCE, &distance,
                        -1);
 
     str = g_string_new("<tr>");
@@ -310,7 +312,9 @@ export_foreach(GtkTreeModel *store,
         else if(col == MTSCAN_VIEW_COL_LONGITUDE)
             g_string_append_printf(str, "<td>%s</td>", model_format_gps(net.longitude, FALSE));
         else if(col == MTSCAN_VIEW_COL_AZIMUTH)
-            g_string_append_printf(str, "<td>%s</td>", model_format_azimuth(net.azimuth, TRUE));
+            g_string_append_printf(str, "<td align=\"right\">%s</td>", model_format_azimuth(net.azimuth, TRUE));
+        else if(col == MTSCAN_VIEW_COL_DISTANCE)
+            g_string_append_printf(str, "<td align=\"right\">%s</td>", model_format_distance(distance));
 
         if(cstr)
         {

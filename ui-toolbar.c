@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -18,6 +18,7 @@
 #include "ui.h"
 #include "ui-view.h"
 #include "ui-dialogs.h"
+#include "ui-log.h"
 #include "log.h"
 #include "mt-ssh.h"
 #include "ui-scanlist.h"
@@ -28,6 +29,7 @@
 #include "export.h"
 #include "gps.h"
 #include "conf-scanlist.h"
+#include "ui-callbacks.h"
 
 static void ui_toolbar_connect(GtkWidget*, gpointer);
 static void ui_toolbar_scan(GtkWidget*, gpointer);
@@ -56,6 +58,7 @@ static void ui_toolbar_sound(GtkWidget*, gpointer);
 static void ui_toolbar_mode(GtkWidget*, gpointer);
 static void ui_toolbar_autosave(GtkWidget*, gpointer);
 static void ui_toolbar_gps(GtkWidget*, gpointer);
+static void ui_toolbar_geoloc(GtkWidget*, gpointer);
 static void ui_toolbar_about(GtkWidget*, gpointer);
 
 /* ToggleToolButton's 'clicked' callback contain
@@ -195,6 +198,13 @@ ui_toolbar_create(void)
     gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_gps), "Enable GPS");
     g_signal_connect(ui.b_gps, "clicked", G_CALLBACK(ui_toolbar_gps), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_gps, -1);
+
+    ui.b_geoloc = gtk_toggle_tool_button_new();
+    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_geoloc), gtk_image_new_from_icon_name("mtscan-geoloc", GTK_ICON_SIZE_BUTTON));
+    gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_geoloc), "Enable geolocation");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_geoloc), "Enable geolocation");
+    g_signal_connect(ui.b_geoloc, "clicked", G_CALLBACK(ui_toolbar_geoloc), NULL);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_geoloc, -1);
 
     ui.b_about = gtk_tool_button_new(gtk_image_new_from_stock(GTK_STOCK_ABOUT, GTK_ICON_SIZE_BUTTON), "About");
     gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_about), "About " APP_NAME);
@@ -451,10 +461,10 @@ static void
 ui_toolbar_open(GtkWidget *widget,
                 gpointer   data)
 {
-    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_OPEN);
+    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_OPEN, TRUE);
     if(o)
     {
-        log_open(o->filenames, FALSE, o->strip_signals);
+        ui_log_open(o->filenames, FALSE, o->strip_signals);
         g_slist_free_full(o->filenames, g_free);
         g_free(o);
     }
@@ -464,10 +474,10 @@ static void
 ui_toolbar_merge(GtkWidget *widget,
                  gpointer   data)
 {
-    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_MERGE);
+    ui_dialog_open_t *o = ui_dialog_open(GTK_WINDOW(ui.window), UI_DIALOG_MERGE, TRUE);
     if(o)
     {
-        log_open(o->filenames, TRUE, o->strip_signals);
+        ui_log_open(o->filenames, TRUE, o->strip_signals);
         g_slist_free_full(o->filenames, g_free);
         g_free(o);
     }
@@ -580,6 +590,27 @@ ui_toolbar_gps(GtkWidget *widget,
     g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_gps), NULL);
     gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(widget), pressed);
     g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_gps), NULL);
+}
+
+static void
+ui_toolbar_geoloc(GtkWidget *widget,
+                  gpointer   data)
+{
+    static gboolean pressed = FALSE;
+    pressed = !pressed;
+    conf_set_interface_geoloc(pressed);
+
+    if(pressed)
+    {
+        geoloc_init(conf_get_preferences_location_mtscan_data(),
+                    &ui_callback_geoloc);
+        geoloc_wigle(conf_get_preferences_location_wigle_api_url(),
+                     conf_get_preferences_location_wigle_api_key());
+    }
+
+    g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_geoloc), NULL);
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(widget), pressed);
+    g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_geoloc), NULL);
 }
 
 static void

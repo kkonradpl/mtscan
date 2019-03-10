@@ -13,24 +13,14 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_LOG_H_
-#define MTSCAN_LOG_H_
-#include <gtk/gtk.h>
+#ifndef MTSCAN_WIGLE_MSG_H_
+#define MTSCAN_WIGLE_MSG_H_
 
-#define LOG_READ_ERROR_EMPTY  0
-#define LOG_READ_ERROR_OPEN  -1
-#define LOG_READ_ERROR_READ  -2
-#define LOG_READ_ERROR_PARSE -3
+typedef struct wigle_msg wigle_msg_t;
 
-typedef struct log_save_error
-{
-    size_t wrote;
-    size_t length;
-    gboolean existing_file;
-} log_save_error_t;
-
-
-gint log_read(const gchar*, void (*)(network_t*, gpointer), gpointer, gboolean);
-log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+wigle_msg_t*        wigle_msg_new(const wigle_t*, wigle_data_t*);
+void                wigle_msg_free(wigle_msg_t*);
+const wigle_t*      wigle_msg_get_src(const wigle_msg_t*);
+const wigle_data_t* wigle_msg_get_data(const wigle_msg_t*);
 
 #endif

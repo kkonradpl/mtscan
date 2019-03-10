@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -22,12 +22,14 @@
 #include "conf.h"
 #include "misc.h"
 #include "oui.h"
+#include "ui-log.h"
 
 static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, gint64, gint, gint);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
 static void ui_view_menu_map(GtkWidget*, gpointer);
+static void ui_view_menu_geoloc(GtkWidget*, gpointer);
 static void ui_view_menu_scanlist(GtkWidget*, gpointer);
 static void ui_view_menu_blacklist(GtkWidget*, gpointer);
 static void ui_view_menu_unblacklist(GtkWidget*, gpointer);
@@ -47,7 +49,8 @@ enum
     FLAG_DEHIGHLIGHT = (1 << 3),
     FLAG_ALARM_SET   = (1 << 4),
     FLAG_ALARM_UNSET = (1 << 5),
-    FLAG_POSITION    = (1 << 6)
+    FLAG_POSITION    = (1 << 6),
+    FLAG_GEOLOC      = (1 << 7)
 };
 
 void
@@ -63,6 +66,7 @@ ui_view_menu(GtkWidget      *treeview,
     gint64 address;
     gint frequency;
     gdouble latitude, longitude;
+    gfloat distance;
     GtkWidget *menu;
     gint flags = 0;
 
@@ -77,6 +81,7 @@ ui_view_menu(GtkWidget      *treeview,
                                          COL_FREQUENCY, &frequency,
                                          COL_LATITUDE, &latitude,
                                          COL_LONGITUDE, &longitude,
+                                         COL_DISTANCE, &distance,
                                          -1);
 
         if(conf_get_preferences_blacklist_enabled())
@@ -90,6 +95,9 @@ ui_view_menu(GtkWidget      *treeview,
 
         if(!isnan(latitude) && !isnan(longitude))
             flags |= FLAG_POSITION;
+
+        if(!isnan(distance))
+            flags |= FLAG_GEOLOC;
 
         menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, address, frequency, flags);
     }
@@ -127,6 +135,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_oui;
     GtkWidget *item_sep;
     GtkWidget *item_show_on_map;
+    GtkWidget *item_geoloc;
     GtkWidget *item_lock_to_freq;
     GtkWidget *item_scanlist;
     GtkWidget *item_blacklist, *item_unblacklist;
@@ -178,6 +187,15 @@ ui_view_menu_create(GtkTreeView *treeview,
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_show_on_map), gtk_image_new_from_icon_name("mtscan-gps", GTK_ICON_SIZE_MENU));
         g_signal_connect(item_show_on_map, "activate", (GCallback)ui_view_menu_map, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_show_on_map);
+    }
+
+    /* Show geolocation */
+    if(flags & FLAG_GEOLOC)
+    {
+        item_geoloc = gtk_image_menu_item_new_with_label("Show geolocation");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_geoloc), gtk_image_new_from_icon_name("mtscan-wigle", GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_geoloc, "activate", (GCallback)ui_view_menu_geoloc, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_geoloc);
     }
 
     /* Select in custom scan-list */
@@ -378,6 +396,45 @@ ui_view_menu_map(GtkWidget *menuitem,
     }
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
     g_list_free(list);
+}
+
+static void
+ui_view_menu_geoloc(GtkWidget *menuitem,
+                    gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
+    gint64 address;
+    const geoloc_data_t *geoloc;
+    gchar *ssid;
+    gfloat azimuth;
+
+    if(!list)
+        return;
+
+    gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
+    gtk_tree_model_get(model, &iter,
+                       COL_ADDRESS, &address,
+                       COL_SSID, &ssid,
+                       COL_AZIMUTH, &azimuth,
+                       -1);
+
+    geoloc = geoloc_match(address, ssid, azimuth, FALSE, NULL);
+
+    if(geoloc)
+    {
+        gchar *uri = g_strdup_printf("https://maps.google.com/maps?z=12&q=loc:%.6f+%.6f",
+                                     geoloc_data_get_lat(geoloc), geoloc_data_get_lon(geoloc));
+        ui_show_uri(uri);
+        g_free(uri);
+    }
+
+    g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);
+    g_list_free(list);
+    g_free(ssid);
 }
 
 static void

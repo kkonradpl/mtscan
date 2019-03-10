@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -52,7 +52,8 @@ static const gchar* mtscan_view_cols[] =
     "last-log",
     "latitude",
     "longitude",
-    "azimuth"
+    "azimuth",
+    "distance"
 };
 
 static const gchar* mtscan_view_titles[] =
@@ -83,7 +84,8 @@ static const gchar* mtscan_view_titles[] =
     "Last log",
     "Latitude",
     "Longitude",
-    "Az"
+    "Az",
+    "Di"
 };
 
 
@@ -101,6 +103,7 @@ static void ui_view_format_date(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeMod
 static void ui_view_format_level(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_gps(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static void ui_view_format_azimuth(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
+static void ui_view_format_distance(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
 static gboolean ui_view_compare_string(GtkTreeModel*, gint, const gchar*, GtkTreeIter*, gpointer);
 static void ui_view_column_clicked(GtkTreeViewColumn*, gpointer);
 
@@ -446,6 +449,19 @@ ui_view_new(mtscan_model_t *model,
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_AZIMUTH));
     g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_AZIMUTH], column);
+
+    /* Distance column */
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_renderer_set_padding(renderer, 2, 0);
+    gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
+    gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_DISTANCE], renderer, NULL);
+    gtk_tree_view_column_set_clickable(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
+    gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_distance, GINT_TO_POINTER(COL_DISTANCE), NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+    g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_DISTANCE));
+    g_hash_table_insert(cols, (gpointer)mtscan_view_cols[MTSCAN_VIEW_COL_DISTANCE], column);
 
     g_signal_connect(treeview, "popup-menu", G_CALLBACK(ui_view_popup), NULL);
     g_signal_connect(treeview, "button-press-event", G_CALLBACK(ui_view_clicked), NULL);
@@ -805,6 +821,22 @@ ui_view_format_azimuth(GtkTreeViewColumn *col,
         snprintf(text, sizeof(text), "%.1f", value);
         g_object_set(renderer, "text", text, NULL);
     }
+
+    ui_view_format_background(col, renderer, store, iter, data);
+}
+
+static void
+ui_view_format_distance(GtkTreeViewColumn *col,
+                       GtkCellRenderer   *renderer,
+                       GtkTreeModel      *store,
+                       GtkTreeIter       *iter,
+                       gpointer           data)
+{
+    gint col_id = GPOINTER_TO_INT(data);
+    gfloat value;
+    gtk_tree_model_get(store, iter, col_id, &value, -1);
+
+    g_object_set(renderer, "text", model_format_distance(value), NULL);
 
     ui_view_format_background(col, renderer, store, iter, data);
 }

@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 #include "ui-toolbar.h"
 #include "ui-connection.h"
 #include "ui-icons.h"
+#include "ui-log.h"
 #include "log.h"
 #include "conf.h"
 #include "model.h"
@@ -181,6 +182,9 @@ ui_restore(void)
     if(conf_get_interface_gps())
         g_signal_emit_by_name(ui.b_gps, "clicked");
 
+    if(conf_get_interface_geoloc())
+        g_signal_emit_by_name(ui.b_geoloc, "clicked");
+
     ui_view_set_columns_order(ui.treeview, conf_get_preferences_view_cols_order());
     ui_view_set_columns_hidden(ui.treeview, conf_get_preferences_view_cols_hidden());
 }
@@ -271,7 +275,7 @@ ui_drag_data_received(GtkWidget        *widget,
 
         if(ret)
         {
-            log_open(filenames, ret->value, ret->strip_signals);
+            ui_log_open(filenames, ret->value, ret->strip_signals);
             g_free(ret);
         }
 
@@ -635,66 +639,6 @@ ui_screenshot(void)
 #endif
     g_free(path);
     g_free(filename);
-}
-
-gboolean
-ui_log_save(gchar       *filename,
-            gboolean     strip_signals,
-            gboolean     strip_gps,
-            gboolean     strip_azi,
-            GList       *iterlist,
-            gboolean     show_message)
-{
-    log_save_error_t *error;
-    error = log_save(filename, strip_signals, strip_gps, strip_azi, iterlist);
-
-    if(error)
-    {
-        if(show_message)
-        {
-            if (error->length != error->wrote)
-            {
-                ui_dialog(GTK_WINDOW(ui.window),
-                          GTK_MESSAGE_ERROR,
-                          "Error",
-                          "Unable to save a file:\n%s\n\nWrote only %d of %d uncompressed bytes so far.%s",
-                          filename, error->wrote, error->length,
-                          (error->existing_file) ? "\n\nThe existing file has been renamed." : "");
-            }
-            else
-            {
-                ui_dialog(GTK_WINDOW(ui.window),
-                          GTK_MESSAGE_ERROR,
-                          "Error",
-                          "Unable to save a file:\n%s%s",
-                          filename,
-                          (error->existing_file) ? "\n\nThe existing file has been renamed." : "");
-            }
-        }
-        g_free(error);
-        return FALSE;
-    }
-    return TRUE;
-}
-
-
-gboolean
-ui_log_save_full(gchar       *filename,
-                 gboolean     strip_signals,
-                 gboolean     strip_gps,
-                 gboolean     strip_azi,
-                 GList       *iterlist,
-                 gboolean     show_message)
-{
-    if(ui_log_save(filename, strip_signals, strip_gps, strip_azi, iterlist, show_message))
-    {
-        /* update the window title */
-        ui.changed = FALSE;
-        ui.log_ts = UNIX_TIMESTAMP();
-        ui_set_title(filename);
-        return TRUE;
-    }
-    return FALSE;
 }
 
 void

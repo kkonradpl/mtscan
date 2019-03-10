@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -30,5 +30,6 @@ void ui_callback_scanlist(const mt_ssh_t*, const gchar*);
 void ui_callback_tzsp(tzsp_receiver_t*);
 void ui_callback_tzsp_network(const tzsp_receiver_t*, network_t*);
 
-#endif
+void ui_callback_geoloc(gint64);
 
+#endif
