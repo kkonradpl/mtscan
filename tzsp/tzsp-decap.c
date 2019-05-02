@@ -15,12 +15,15 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 #ifdef _WIN32
 #include <Winsock2.h>
 #include <Windows.h>
 #include "win32.h"
 #else
+#include <sys/types.h>
 #include <net/ethernet.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #endif
 #include "tzsp-decap.h"
@@ -58,13 +61,13 @@ decap_ethernet(const uint8_t *packet,
     struct ether_header *eth_header;
 
     if(packet &&
-       *len > ETH_HLEN)
+       *len > ETHER_HDR_LEN)
     {
         eth_header = (struct ether_header*)packet;
         if(eth_header->ether_type == ntohs(ETHERTYPE_IP))
         {
-            *len -= ETH_HLEN;
-            return packet + ETH_HLEN;
+            *len -= ETHER_HDR_LEN;
+            return packet + ETHER_HDR_LEN;
         }
     }
     return NULL;
