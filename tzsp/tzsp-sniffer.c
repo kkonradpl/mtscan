@@ -23,7 +23,9 @@
 #include <Ws2tcpip.h>
 #define inet_pton InetPtonW
 #else
+#include <sys/types.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #endif
 #include "tzsp-sniffer.h"
 #include "tzsp-decap.h"

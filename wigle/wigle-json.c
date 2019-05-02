@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  */
 #include <glib.h>
-#include <yajl_parse.h>
+#include <yajl/yajl_parse.h>
 #include "wigle-data.h"
 
 typedef enum wigle_json_level

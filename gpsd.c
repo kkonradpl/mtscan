@@ -18,7 +18,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-#include <yajl_parse.h>
+#include <yajl/yajl_parse.h>
 #include "gpsd.h"
 #ifdef G_OS_WIN32
 #include <winsock2.h>
@@ -32,6 +32,7 @@ typedef SOCKET gpsd_socket_t;
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
+#include <netinet/in.h>
 typedef int gpsd_socket_t;
 #endif
 

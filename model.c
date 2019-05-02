@@ -273,11 +273,7 @@ model_sort_version(GtkTreeModel *model,
     gtk_tree_model_get(model, b,
                        column, &v2,
                        -1);
-#ifndef G_OS_WIN32
-    ret = strverscmp(v1, v2);
-#else
     ret = strcasecmp(v1, v2);
-#endif
     g_free(v1);
     g_free(v2);
     return ret;
