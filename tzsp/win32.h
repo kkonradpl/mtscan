@@ -20,7 +20,7 @@
 
 #define ETHERTYPE_IP 0x0800
 #define ETH_ALEN 6
-#define ETH_HLEN 14
+#define ETHER_HDR_LEN 14
 
 struct ether_header
 {
