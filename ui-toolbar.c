@@ -14,6 +14,7 @@
  */
 
 #include <gdk/gdkkeysyms.h>
+#include <string.h>
 #include "conf.h"
 #include "ui.h"
 #include "ui-view.h"

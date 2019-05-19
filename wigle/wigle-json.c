@@ -13,6 +13,7 @@
  *  GNU General Public License for more details.
  */
 #include <glib.h>
+#include <string.h>
 #include <yajl/yajl_parse.h>
 #include "wigle-data.h"
 
