@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <string.h>
 #include "tzsp/tzsp-socket.h"
 #include "tzsp/tzsp-sniffer.h"
 #include "tzsp/mac80211.h"

@@ -3,6 +3,7 @@
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
+#include <string.h>
 
 #define OUI_MAX_LINE_LEN 256
 

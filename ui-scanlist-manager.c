@@ -14,6 +14,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <string.h>
 #include "ui-scanlist-manager.h"
 #include "conf-scanlist.h"
 #include "ui-dialogs.h"
