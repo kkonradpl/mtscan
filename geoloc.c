@@ -15,6 +15,7 @@
 
 #include <glib.h>
 #include <math.h>
+#include <string.h>
 #include "geoloc.h"
 #include "geoloc-database.h"
 #include "geoloc-utils.h"
