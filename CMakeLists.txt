@@ -33,6 +33,13 @@ include_directories(${LIBCURL_INCLUDE_DIRS})
 link_directories(${LIBCURL_LIBRARY_DIRS})
 add_definitions(${LIBCURL_CFLAGS_OTHER})
 
+INCLUDE (CheckIncludeFile)
+
+CHECK_INCLUDE_FILE(pcap/pcap.h HAVE_LIBPCAP)
+IF(NOT HAVE_LIBPCAP)
+  message( FATAL_ERROR "libpcap is required to build mtscan" )
+ENDIF()
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
 
 set(SOURCE_FILES
