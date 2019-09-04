@@ -84,16 +84,30 @@ ui_callback_connected(const mt_ssh_t *context,
 }
 
 void
-ui_callback_disconnected(const mt_ssh_t *context)
+ui_callback_disconnected(const mt_ssh_t *context,
+                         gboolean        cancelled)
 {
+    ui_connection_mode_t mode;
+
     if(ui.conn != context)
         return;
+
+    mode = (ui.active ? UI_CONNECTION_MODE_RECONNECT : UI_CONNECTION_MODE_RECONNECT_IDLE);
 
     ui_disconnected();
     ui.conn = NULL;
 
     if(ui.conn_dialog)
+    {
+        /* Reconnect will be handled there */
         ui_connection_disconnected(ui.conn_dialog);
+    }
+    else if(!cancelled &&
+            conf_get_preferences_reconnect())
+    {
+        /* Try to reconnect in the background */
+        ui.conn_dialog = ui_connection_new(-1, mode);
+    }
 }
 
 void

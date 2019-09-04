@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -37,11 +37,10 @@ enum
     CONF_PROFILE_COL_DURATION,
     CONF_PROFILE_COL_REMOTE,
     CONF_PROFILE_COL_BACKGROUND,
-    CONF_PROFILE_COL_RECONNECT,
     CONF_PROFILE_COLS
 };
 
-conf_profile_t* conf_profile_new(gchar*, gchar*, gint, gchar*, gchar*, gchar*, mtscan_conf_profile_mode_t, gint, gboolean, gboolean, gboolean, gboolean);
+conf_profile_t* conf_profile_new(gchar*, gchar*, gint, gchar*, gchar*, gchar*, mtscan_conf_profile_mode_t, gint, gboolean, gboolean, gboolean);
 void conf_profile_free(conf_profile_t*);
 
 const gchar* conf_profile_get_name(const conf_profile_t*);
@@ -55,11 +54,9 @@ gint conf_profile_get_duration_time(const conf_profile_t*);
 gint conf_profile_get_duration(const conf_profile_t*);
 gboolean conf_profile_get_remote(const conf_profile_t*);
 gboolean conf_profile_get_background(const conf_profile_t*);
-gboolean conf_profile_get_reconnect(const conf_profile_t*);
 
 GtkListStore* conf_profile_list_new(void);
 GtkTreeIter conf_profile_list_add(GtkListStore*, const conf_profile_t*);
 conf_profile_t* conf_profile_list_get(GtkListStore*, GtkTreeIter*);
 
 #endif
-

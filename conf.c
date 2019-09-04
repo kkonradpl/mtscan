@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2019  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -68,6 +68,7 @@
 #define CONF_DEFAULT_PREFERENCES_NO_STYLE_OVERRIDE      FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY      FALSE
+#define CONF_DEFAULT_PREFERENCES_RECONNECT              FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
@@ -153,6 +154,7 @@ typedef struct conf
     gboolean  preferences_no_style_override;
     gboolean  preferences_signals;
     gboolean  preferences_display_time_only;
+    gboolean  preferences_reconnect;
 
     gchar   **preferences_view_cols_order;
     gchar   **preferences_view_cols_hidden;
@@ -303,6 +305,7 @@ conf_read(void)
     conf.preferences_no_style_override = conf_read_boolean("preferences", "no_style_override", CONF_DEFAULT_PREFERENCES_NO_STYLE_OVERRIDE);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
     conf.preferences_display_time_only = conf_read_boolean("preferences", "display_time_only", CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY);
+    conf.preferences_reconnect = conf_read_boolean("preferences", "reconnect", CONF_DEFAULT_PREFERENCES_RECONNECT);
 
     conf.preferences_view_cols_order = conf_read_columns(conf.keyfile, "preferences", "view_cols_order");
     conf.preferences_view_cols_hidden = conf_read_string_list(conf.keyfile, "preferences", "view_cols_hidden", NULL);
@@ -540,8 +543,7 @@ conf_read_profile(const gchar *group_name)
                          conf_read_integer(group_name, "duration_time", CONF_DEFAULT_PROFILE_DURATION_TIME),
                          conf_read_boolean(group_name, "duration", CONF_DEFAULT_PROFILE_DURATION),
                          conf_read_boolean(group_name, "remote", CONF_DEFAULT_PROFILE_REMOTE),
-                         conf_read_boolean(group_name, "background", CONF_DEFAULT_PROFILE_BACKGROUND),
-                         conf_read_boolean(group_name, "reconnect", CONF_DEFAULT_PROFILE_RECONNECT));
+                         conf_read_boolean(group_name, "background", CONF_DEFAULT_PROFILE_BACKGROUND));
     return p;
 }
 
@@ -628,6 +630,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "no_style_override", conf.preferences_no_style_override);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
     g_key_file_set_boolean(conf.keyfile, "preferences", "display_time_only", conf.preferences_display_time_only);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "reconnect", conf.preferences_reconnect);
 
     g_key_file_set_string_list(conf.keyfile, "preferences", "view_cols_order",
                                (const gchar * const *)conf.preferences_view_cols_order, g_strv_length(conf.preferences_view_cols_order));
@@ -762,7 +765,6 @@ conf_save_profile(GKeyFile             *keyfile,
     g_key_file_set_boolean(keyfile, group_name, "duration", conf_profile_get_duration(p));
     g_key_file_set_boolean(keyfile, group_name, "remote", conf_profile_get_remote(p));
     g_key_file_set_boolean(keyfile, group_name, "background", conf_profile_get_background(p));
-    g_key_file_set_boolean(keyfile, group_name, "reconnect", conf_profile_get_reconnect(p));
 }
 
 static gboolean
@@ -1145,6 +1147,18 @@ void
 conf_set_preferences_display_time_only(gboolean value)
 {
     conf.preferences_display_time_only = value;
+}
+
+gboolean
+conf_get_preferences_reconnect(void)
+{
+    return conf.preferences_reconnect;
+}
+
+void
+conf_set_preferences_reconnect(gboolean reconnect)
+{
+    conf.preferences_reconnect = reconnect;
 }
 
 const gchar* const*

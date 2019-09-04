@@ -115,6 +115,9 @@ void conf_set_preferences_signals(gboolean);
 gboolean conf_get_preferences_display_time_only();
 void conf_set_preferences_display_time_only(gboolean);
 
+gboolean conf_get_preferences_reconnect(void);
+void conf_set_preferences_reconnect(gboolean);
+
 const gchar* const* conf_get_preferences_view_cols_order(void);
 void conf_set_preferences_view_cols_order(const gchar* const*);
 

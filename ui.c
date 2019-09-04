@@ -642,7 +642,7 @@ ui_screenshot(void)
 }
 
 void
-ui_toggle_connection(gint auto_connect)
+ui_toggle_connection(gint auto_connect_profile)
 {
     if(ui.conn)
     {
@@ -656,7 +656,8 @@ ui_toggle_connection(gint auto_connect)
 
     /* Display connection dialog */
     ui_toolbar_connect_set_state(FALSE);
-    ui.conn_dialog = ui_connection_new(auto_connect);
+    ui.conn_dialog = ui_connection_new(auto_connect_profile,
+                                       (auto_connect_profile > 0) ? UI_CONNECTION_MODE_AUTOCONNECT : UI_CONNECTION_MODE_NONE);
 }
 
 void
