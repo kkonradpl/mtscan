@@ -180,6 +180,9 @@ if(MINGW)
 ELSE()
     add_executable(mtscan ${SOURCE_FILES})
     install(TARGETS mtscan DESTINATION bin)
-    install(DIRECTORY icons/ DESTINATION share/icons/hicolor)
+    install(DIRECTORY icons/ DESTINATION share/icons/hicolor
+            PATTERN "INFO" EXCLUDE
+            PATTERN "ico" EXCLUDE)
+    install(CODE "execute_process(COMMAND gtk-update-icon-cache /usr/share/icons/hicolor)")
     target_link_libraries(mtscan ${LIBRARIES} ${LIBRARIES_UNIX})
 ENDIF()
