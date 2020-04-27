@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2020  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -562,7 +562,8 @@ conf_read_scanlist(const gchar *group_name)
     conf_scanlist_t *sl;
     sl = conf_scanlist_new(conf_read_string(group_name, "name", CONF_DEFAULT_SCANLIST_NAME),
                            conf_read_string(group_name, "data", CONF_DEFAULT_SCANLIST_DATA),
-                           conf_read_boolean(group_name, "main", FALSE));
+                           conf_read_boolean(group_name, "main", FALSE),
+                           conf_read_boolean(group_name, "default", FALSE));
 
     return sl;
 }
@@ -794,6 +795,8 @@ conf_save_scanlist(GKeyFile              *keyfile,
     g_key_file_set_string(keyfile, group_name, "data", conf_scanlist_get_data(sl));
     if(conf_scanlist_get_main(sl))
         g_key_file_set_boolean(keyfile, group_name, "main", TRUE);
+    if(conf_scanlist_get_default(sl))
+        g_key_file_set_boolean(keyfile, group_name, "default", TRUE);
 }
 
 static void

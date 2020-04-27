@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2020  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -35,12 +35,11 @@
 static void ui_toolbar_connect(GtkWidget*, gpointer);
 static void ui_toolbar_scan(GtkWidget*, gpointer);
 static void ui_toolbar_restart(GtkWidget*, gpointer);
+
+static void ui_toolbar_scanlist_apply(const gchar*, const gchar*);
 static void ui_toolbar_scanlist_default(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist(GtkWidget*, gpointer);
 static void ui_toolbar_scanlist_preset(GtkWidget *, gpointer);
-
-static gboolean ui_toolbar_scanlist_preset_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
-static void ui_toolbar_scanlist_preset_apply(const gchar*, const gchar*);
 static void ui_toolbar_scanlist_menu(GtkWidget*, gpointer);
 static gboolean ui_toolbar_scanlist_menu_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 static void ui_toolbar_scanlist_menu_manager(GtkWidget*, gpointer);
@@ -270,11 +269,38 @@ ui_toolbar_restart(GtkWidget *widget,
 }
 
 static void
+ui_toolbar_scanlist_apply(const gchar *name,
+                          const gchar *value)
+{
+    static gboolean scanlist_set = FALSE;
+
+    if(!scanlist_set)
+        scanlist_set = ui_dialog_scanlist_warn(GTK_WINDOW(ui.window), name, value);
+
+    if(scanlist_set && ui.conn)
+        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, value);
+}
+
+static void
 ui_toolbar_scanlist_default(GtkWidget *widget,
                             gpointer   data)
 {
-    if(ui.conn)
-        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, "default");
+    GtkListStore *model = conf_get_scanlists();
+    conf_scanlist_t *sl;
+
+    sl = conf_scanlist_find_default(model);
+    if(sl)
+    {
+        ui_toolbar_scanlist_apply(conf_scanlist_get_name(sl),
+                                  conf_scanlist_get_data(sl));
+        conf_scanlist_free(sl);
+        return;
+    }
+
+    if(!ui.conn)
+        return;
+
+    mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, "default");
 }
 
 static void
@@ -289,48 +315,18 @@ ui_toolbar_scanlist_preset(GtkWidget *widget,
                            gpointer data)
 {
     GtkListStore *model = conf_get_scanlists();
-    gboolean found = FALSE;
-
-    gtk_tree_model_foreach(GTK_TREE_MODEL(model), ui_toolbar_scanlist_preset_foreach, &found);
-
-    if(!found)
-        ui_scanlist_manager(ui.window, conf_get_scanlists());
-}
-
-static gboolean
-ui_toolbar_scanlist_preset_foreach(GtkTreeModel *store,
-                                   GtkTreePath  *path,
-                                   GtkTreeIter  *iter,
-                                   gpointer      data)
-{
-    gboolean *found = (gboolean*)data;
     conf_scanlist_t *sl;
 
-    sl = conf_scanlist_list_get(GTK_LIST_STORE(store), iter);
-    if(conf_scanlist_get_main(sl))
+    sl = conf_scanlist_find_main(model);
+    if(sl)
     {
-        ui_toolbar_scanlist_preset_apply(conf_scanlist_get_name(sl),
-                                         conf_scanlist_get_data(sl));
-        *found = TRUE;
+        ui_toolbar_scanlist_apply(conf_scanlist_get_name(sl),
+                                  conf_scanlist_get_data(sl));
         conf_scanlist_free(sl);
-        return TRUE;
+        return;
     }
 
-    conf_scanlist_free(sl);
-    return FALSE;
-}
-
-static void
-ui_toolbar_scanlist_preset_apply(const gchar *name,
-                                 const gchar *value)
-{
-    static gboolean scanlist_set = FALSE;
-
-    if(!scanlist_set)
-        scanlist_set = ui_dialog_scanlist_warn(GTK_WINDOW(ui.window), name, value);
-
-    if(scanlist_set && ui.conn)
-        mt_ssh_cmd(ui.conn, MT_SSH_CMD_SCANLIST, value);
+    ui_scanlist_manager(ui.window, conf_get_scanlists());
 }
 
 static void
@@ -444,7 +440,7 @@ ui_toolbar_scanlist_menu_preset(GtkWidget *widget,
     const gchar *value = (const gchar*)g_object_get_data(G_OBJECT(widget), "mtscan_scanlist_value");
 
     if(name && value)
-        ui_toolbar_scanlist_preset_apply(name, value);
+        ui_toolbar_scanlist_apply(name, value);
 }
 
 static void

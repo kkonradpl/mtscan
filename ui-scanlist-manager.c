@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2020  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -28,6 +28,7 @@ typedef struct scanlist_manager
     GtkWidget *content;
     GtkWidget *view;
     GtkWidget *scrolled;
+    GtkWidget *x_default;
     GtkWidget *box_button;
     GtkWidget *b_clear;
     GtkWidget *b_remove;
@@ -38,7 +39,8 @@ typedef struct scanlist_manager
 static void ui_scanlist_manager_destroy(GtkWidget*, gpointer);
 
 static void ui_scanlist_manager_edited(GtkCellRendererText*, gchar*, gchar*, gpointer);
-static void ui_scanlist_manager_toggled(GtkCellRendererToggle*, gchar*, gpointer);
+static void ui_scanlist_manager_main_toggled(GtkCellRendererToggle*, gchar*, gpointer);
+static void ui_scanlist_manager_default_toggled(GtkCellRendererToggle*, gchar*, gpointer);
 gboolean ui_scanlist_manager_toggled_foreach(GtkTreeModel*, GtkTreePath*, GtkTreeIter*, gpointer);
 
 static void ui_scanlist_manager_clear(GtkWidget*, gpointer);
@@ -88,8 +90,15 @@ ui_scanlist_manager(GtkWidget    *parent,
 
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
-    g_signal_connect(renderer, "toggled", G_CALLBACK(ui_scanlist_manager_toggled), m);
+    g_signal_connect(renderer, "toggled", G_CALLBACK(ui_scanlist_manager_main_toggled), m);
     column = gtk_tree_view_column_new_with_attributes("*", renderer, "active", CONF_SCANLIST_COL_MAIN, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(m->view), column);
+
+    renderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
+    g_signal_connect(renderer, "toggled", G_CALLBACK(ui_scanlist_manager_default_toggled), m);
+    column = gtk_tree_view_column_new_with_attributes("D", renderer, "active", CONF_SCANLIST_COL_DEFAULT, NULL);
     gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_append_column(GTK_TREE_VIEW(m->view), column);
 
@@ -150,9 +159,9 @@ ui_scanlist_manager_edited(GtkCellRendererText *renderer,
 }
 
 static void
-ui_scanlist_manager_toggled(GtkCellRendererToggle *renderer,
-                            gchar                 *path_string,
-                            gpointer               user_data)
+ui_scanlist_manager_main_toggled(GtkCellRendererToggle *renderer,
+                                 gchar                 *path_string,
+                                 gpointer               user_data)
 {
     scanlist_manager_t *m = (scanlist_manager_t *) user_data;
     GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(m->view));
@@ -160,8 +169,26 @@ ui_scanlist_manager_toggled(GtkCellRendererToggle *renderer,
 
     if(gtk_tree_model_get_iter_from_string(model, &iter, path_string))
     {
-        gtk_tree_model_foreach(model, ui_scanlist_manager_toggled_foreach, NULL);
+        gtk_tree_model_foreach(model, ui_scanlist_manager_toggled_foreach, GINT_TO_POINTER(CONF_SCANLIST_COL_MAIN));
         gtk_list_store_set(GTK_LIST_STORE(model), &iter, CONF_SCANLIST_COL_MAIN, TRUE, -1);
+    }
+}
+
+static void
+ui_scanlist_manager_default_toggled(GtkCellRendererToggle *renderer,
+                                    gchar                 *path_string,
+                                    gpointer               user_data)
+{
+    scanlist_manager_t *m = (scanlist_manager_t *) user_data;
+    GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(m->view));
+    GtkTreeIter iter;
+    gboolean current;
+
+    if(gtk_tree_model_get_iter_from_string(model, &iter, path_string))
+    {
+        gtk_tree_model_get(model, &iter, CONF_SCANLIST_COL_DEFAULT, &current, -1);
+        gtk_tree_model_foreach(model, ui_scanlist_manager_toggled_foreach, GINT_TO_POINTER(CONF_SCANLIST_COL_DEFAULT));
+        gtk_list_store_set(GTK_LIST_STORE(model), &iter, CONF_SCANLIST_COL_DEFAULT, !current, -1);
     }
 }
 
@@ -171,7 +198,8 @@ ui_scanlist_manager_toggled_foreach(GtkTreeModel *model,
                                     GtkTreeIter  *iter,
                                     gpointer      user_data)
 {
-    gtk_list_store_set(GTK_LIST_STORE(model), iter, CONF_SCANLIST_COL_MAIN, FALSE, -1);
+    gint column = GPOINTER_TO_INT(user_data);
+    gtk_list_store_set(GTK_LIST_STORE(model), iter, column, FALSE, -1);
     return FALSE;
 }
 
@@ -238,7 +266,7 @@ ui_scanlist_manager_add(GtkWidget *widget,
     ret = ui_dialog_scanlist(GTK_WINDOW(m->window), TRUE);
     if(ret)
     {
-        sl = conf_scanlist_new(g_strdup(ret->name), g_strdup(ret->value), FALSE);
+        sl = conf_scanlist_new(g_strdup(ret->name), g_strdup(ret->value), FALSE, FALSE);
         conf_scanlist_list_add(GTK_LIST_STORE(model), sl);
         conf_scanlist_free(sl);
         ui_dialog_scanlist_free(ret);
