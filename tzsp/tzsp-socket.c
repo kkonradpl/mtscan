@@ -88,11 +88,6 @@ tzsp_socket_init(tzsp_socket_t *context,
     if(context->socket < 0)
         return TZSP_SOCKET_ERROR_SOCKET;
 
-#ifndef _WIN32
-    int opt = 1;
-    setsockopt(context->socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
-#endif
-
     memset((char*)&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -153,8 +148,6 @@ tzsp_socket_loop(tzsp_socket_t *context)
     const uint8_t *sensor_mac;
     ssize_t ret;
 
-    printf("tzsp_sniffer_loop\n");
-
     while(!context->canceled)
     {
         FD_ZERO(&input);
@@ -204,8 +197,6 @@ tzsp_socket_loop(tzsp_socket_t *context)
                 context->user_func(ptr, header.caplen, rssi, channel, sensor_mac, context->user_data);
         }
     }
-
-    printf("tzsp_sniffer_loop END\n");
 }
 
 void
