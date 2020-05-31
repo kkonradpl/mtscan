@@ -75,9 +75,7 @@
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
 #define CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK     FALSE
-#define CONF_DEFAULT_PREFERENCES_TZSP_MODE              MTSCAN_CONF_TZSP_MODE_SOCKET
 #define CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT          0x9090
-#define CONF_DEFAULT_PREFERENCES_TZSP_INTERFACE         "eno1"
 #define CONF_DEFAULT_PREFERENCES_TZSP_CHANNEL_WIDTH     20
 #define CONF_DEFAULT_PREFERENCES_TZSP_BAND              MTSCAN_CONF_TZSP_BAND_5GHZ
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
@@ -168,9 +166,7 @@ typedef struct conf
     gboolean  preferences_events_new_network;
     gchar    *preferences_events_new_network_exec;
 
-    mtscan_conf_tzsp_mode_t  preferences_tzsp_mode;
     gint                     preferences_tzsp_udp_port;
-    gchar                   *preferences_tzsp_interface;
     gint                     preferences_tzsp_channel_width;
     mtscan_conf_tzsp_band_t  preferences_tzsp_band;
 
@@ -319,9 +315,7 @@ conf_read(void)
     conf.preferences_events_new_network = conf_read_boolean("preferences", "events_new_network", CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK);
     conf.preferences_events_new_network_exec = conf_read_string("preferences", "events_new_network_exec", "");
 
-    conf.preferences_tzsp_mode = (mtscan_conf_tzsp_mode_t)conf_read_integer("preferences", "tzsp_mode", CONF_DEFAULT_PREFERENCES_TZSP_MODE);
     conf.preferences_tzsp_udp_port = conf_read_integer("preferences", "tzsp_udp_port", CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT);
-    conf.preferences_tzsp_interface = conf_read_string("preferences", "tzsp_interface", CONF_DEFAULT_PREFERENCES_TZSP_INTERFACE);
     conf.preferences_tzsp_channel_width = conf_read_integer("preferences", "tzsp_channel_width", CONF_DEFAULT_PREFERENCES_TZSP_CHANNEL_WIDTH);
     conf.preferences_tzsp_band = (mtscan_conf_tzsp_band_t)conf_read_integer("preferences", "tzsp_band", CONF_DEFAULT_PREFERENCES_TZSP_BAND);
 
@@ -647,9 +641,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "events_new_network", conf.preferences_events_new_network);
     g_key_file_set_string(conf.keyfile, "preferences", "events_new_network_exec", conf.preferences_events_new_network_exec);
 
-    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_mode", conf.preferences_tzsp_mode);
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_udp_port", conf.preferences_tzsp_udp_port);
-    g_key_file_set_string(conf.keyfile, "preferences", "tzsp_interface", conf.preferences_tzsp_interface);
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_channel_width", conf.preferences_tzsp_channel_width);
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_band", conf.preferences_tzsp_band);
 
@@ -1274,18 +1266,6 @@ conf_set_preferences_events_new_network_exec(const gchar *value)
     conf_change_string(&conf.preferences_events_new_network_exec, value);
 }
 
-mtscan_conf_tzsp_mode_t
-conf_get_preferences_tzsp_mode(void)
-{
-    return conf.preferences_tzsp_mode;
-}
-
-void
-conf_set_preferences_tzsp_mode(mtscan_conf_tzsp_mode_t value)
-{
-    conf.preferences_tzsp_mode = value;
-}
-
 gint
 conf_get_preferences_tzsp_udp_port(void)
 {
@@ -1296,18 +1276,6 @@ void
 conf_set_preferences_tzsp_udp_port(gint value)
 {
     conf.preferences_tzsp_udp_port = value;
-}
-
-const gchar*
-conf_get_preferences_tzsp_interface(void)
-{
-    return conf.preferences_tzsp_interface;
-}
-
-void
-conf_set_preferences_tzsp_interface(const gchar *value)
-{
-    conf_change_string(&conf.preferences_tzsp_interface, value);
 }
 
 gint

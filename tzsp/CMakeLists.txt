@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project(mtscan-tzsp)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -DHAVE_PCAP")
 
 set(SOURCE_FILES
         ie-airmax.h

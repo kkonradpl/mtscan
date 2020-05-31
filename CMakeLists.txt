@@ -35,11 +35,6 @@ add_definitions(${LIBCURL_CFLAGS_OTHER})
 
 INCLUDE (CheckIncludeFile)
 
-CHECK_INCLUDE_FILE(pcap/pcap.h HAVE_LIBPCAP)
-IF(NOT HAVE_LIBPCAP)
-  message( FATAL_ERROR "libpcap is required to build mtscan" )
-ENDIF()
-
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
 
 set(SOURCE_FILES
@@ -87,8 +82,6 @@ set(SOURCE_FILES
         ui-connection.h
         ui-dialogs.c
         ui-dialogs.h
-        ui-dialog-pcap.c
-        ui-dialog-pcap.h
         ui-icons.c
         ui-icons.h
         ui-log.c
@@ -123,8 +116,6 @@ set(SOURCE_FILES
         tzsp/ie-mikrotik.h
         tzsp/ie-mikrotik-utils.c
         tzsp/ie-mikrotik-utils.h
-        tzsp/tzsp-sniffer.c
-        tzsp/tzsp-sniffer.h
         tzsp/tzsp-socket.c
         tzsp/tzsp-socket.h
         tzsp/utils.c
@@ -153,9 +144,6 @@ set(LIBRARIES
         ${LIBCURL_LIBRARIES}
         m)
 
-set(LIBRARIES_UNIX
-        pcap)
-
 set(LIBRARIES_MINGW
         ws2_32
         winmm)
@@ -168,15 +156,8 @@ if(MINGW)
     ENABLE_LANGUAGE(RC)
     SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -i <SOURCE> -o <OBJECT>")
 
-    SET(NPCAP_DIR /build/npcap-sdk-0.1)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}${NPCAP_DIR}/Include)
-    IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(LIBRARIES_MINGW_NPCAP ${CMAKE_CURRENT_SOURCE_DIR}${NPCAP_DIR}/Lib/x64/wpcap.lib)
-    ELSE()
-        set(LIBRARIES_MINGW_NPCAP ${CMAKE_CURRENT_SOURCE_DIR}${NPCAP_DIR}/Lib/wpcap.lib)
-    ENDIF()
     add_executable(mtscan ${SOURCE_FILES} ${SOURCE_FILES_MINGW})
-    target_link_libraries(mtscan ${LIBRARIES} ${LIBRARIES_MINGW} ${LIBRARIES_MINGW_NPCAP})
+    target_link_libraries(mtscan ${LIBRARIES} ${LIBRARIES_MINGW})
 ELSE()
     add_executable(mtscan ${SOURCE_FILES})
     install(TARGETS mtscan DESTINATION bin)

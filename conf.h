@@ -18,12 +18,6 @@
 #include <gtk/gtk.h>
 #include "conf-profile.h"
 
-typedef enum mtscan_conf_tzsp_mode
-{
-    MTSCAN_CONF_TZSP_MODE_SOCKET,
-    MTSCAN_CONF_TZSP_MODE_PCAP
-} mtscan_conf_tzsp_mode_t;
-
 typedef enum mtscan_conf_tzsp_band
 {
     MTSCAN_CONF_TZSP_BAND_2GHZ,
@@ -145,14 +139,8 @@ void conf_set_preferences_events_new_network(gboolean);
 const gchar* conf_get_preferences_events_new_network_exec(void);
 void conf_set_preferences_events_new_network_exec(const gchar*);
 
-mtscan_conf_tzsp_mode_t conf_get_preferences_tzsp_mode(void);
-void conf_set_preferences_tzsp_mode(mtscan_conf_tzsp_mode_t);
-
 gint conf_get_preferences_tzsp_udp_port(void);
 void conf_set_preferences_tzsp_udp_port(gint);
-
-const gchar* conf_get_preferences_tzsp_interface(void);
-void conf_set_preferences_tzsp_interface(const gchar*);
 
 gint conf_get_preferences_tzsp_channel_width(void);
 void conf_set_preferences_tzsp_channel_width(gint);

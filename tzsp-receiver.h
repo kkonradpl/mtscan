@@ -4,7 +4,6 @@
 typedef struct tzsp_receiver tzsp_receiver_t;
 
 tzsp_receiver_t* tzsp_receiver_new(guint16,
-                                   const gchar*,
                                    guint8[6],
                                    gint,
                                    gint,

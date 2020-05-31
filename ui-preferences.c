@@ -21,7 +21,6 @@
 #include "gps.h"
 #include "ui-dialogs.h"
 #include "misc.h"
-#include "ui-dialog-pcap.h"
 #include "ui-callbacks.h"
 
 enum
@@ -159,9 +158,6 @@ typedef struct ui_preferences
 } ui_preferences_t;
 
 static void ui_preferences_view_toggled(GtkCellRendererToggle*, gchar*, gpointer);
-static void ui_preferences_tzsp_mode_callback(GtkWidget*, gpointer);
-static void ui_preferences_tzsp_interface(GtkWidget*, gpointer);
-static void ui_preferences_tzsp_interface_callback(const gchar*, gpointer);
 
 static void ui_preferences_list_create(ui_preferences_list_t*, GtkWidget*, const gchar*, const gchar*, const gchar*);
 static void ui_preferences_list_format(GtkTreeViewColumn*, GtkCellRenderer*, GtkTreeModel*, GtkTreeIter*, gpointer);
@@ -382,35 +378,11 @@ ui_preferences_dialog(void)
     gtk_box_pack_start(GTK_BOX(p.page_tzsp), p.table_tzsp, TRUE, TRUE, 1);
 
     row = 0;
-    p.l_tzsp_mode = gtk_label_new("Streaming mode:");
-    gtk_misc_set_alignment(GTK_MISC(p.l_tzsp_mode), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_mode, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.box_tzsp_mode = gtk_hbox_new(FALSE, 6);
-    p.r_tzsp_mode_socket = gtk_radio_button_new_with_label(NULL, "socket");
-    gtk_box_pack_start(GTK_BOX(p.box_tzsp_mode), p.r_tzsp_mode_socket, FALSE, FALSE, 0);
-    p.r_tzsp_mode_pcap = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(p.r_tzsp_mode_socket), "pcap");
-    gtk_box_pack_start(GTK_BOX(p.box_tzsp_mode), p.r_tzsp_mode_pcap, FALSE, FALSE, 0);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.box_tzsp_mode, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    g_signal_connect(p.r_tzsp_mode_pcap, "toggled", G_CALLBACK(ui_preferences_tzsp_mode_callback), &p);
-
-    row++;
     p.l_tzsp_udp_port = gtk_label_new("UDP port:");
     gtk_misc_set_alignment(GTK_MISC(p.l_tzsp_udp_port), 0.0, 0.5);
     gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_udp_port, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.s_tzsp_udp_port = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 1024.0, 65535.0, 1.0, 10.0, 0.0)), 0, 0);
     gtk_table_attach(GTK_TABLE(p.table_tzsp), p.s_tzsp_udp_port, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
-    p.l_tzsp_interface = gtk_label_new("Pcap interface:");
-    gtk_misc_set_alignment(GTK_MISC(p.l_tzsp_interface), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_interface, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.box_tzsp_interface = gtk_hbox_new(FALSE, 0);
-    p.e_tzsp_interface = gtk_entry_new();
-    gtk_box_pack_start(GTK_BOX(p.box_tzsp_interface), p.e_tzsp_interface, TRUE, TRUE, 0);
-    p.b_tzsp_interface = gtk_button_new_with_label("...");
-    g_signal_connect(p.b_tzsp_interface, "clicked", G_CALLBACK(ui_preferences_tzsp_interface), &p);
-    gtk_box_pack_start(GTK_BOX(p.box_tzsp_interface), p.b_tzsp_interface, FALSE, FALSE, 0);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.box_tzsp_interface, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.l_tzsp_channel_width = gtk_label_new("Channel width:");
@@ -433,7 +405,7 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_tzsp), p.box_tzsp_band, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     p.box_tzsp_info = gtk_hbox_new(FALSE, 5);
-    p.i_tzsp_info = gtk_image_new_from_icon_name("gtk-dialog-warning", GTK_ICON_SIZE_MENU);
+    p.i_tzsp_info = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_MENU);
     gtk_box_pack_start(GTK_BOX(p.box_tzsp_info), p.i_tzsp_info, FALSE, FALSE, 1);
     p.l_tzsp_info = gtk_label_new(NULL);
     gtk_label_set_line_wrap(GTK_LABEL(p.l_tzsp_info), TRUE);
@@ -621,35 +593,6 @@ ui_preferences_view_toggled(GtkCellRendererToggle *cell,
     gtk_tree_model_get(model, &iter, VIEW_MODEL_SHOW, &state, -1);
     gtk_list_store_set(GTK_LIST_STORE(model), &iter, VIEW_MODEL_SHOW, !state, -1);
     gtk_tree_path_free(path);
-}
-
-static void
-ui_preferences_tzsp_mode_callback(GtkWidget *widget,
-                                  gpointer   user_data)
-{
-    ui_preferences_t *p = (ui_preferences_t*)user_data;
-    gboolean sensitive = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-
-    gtk_widget_set_sensitive(p->e_tzsp_interface, sensitive);
-    gtk_widget_set_sensitive(p->b_tzsp_interface, sensitive);
-}
-
-static void
-ui_preferences_tzsp_interface(GtkWidget *widget,
-                              gpointer   user_data)
-{
-    ui_preferences_t *p = (ui_preferences_t*)user_data;
-
-    ui_dialog_pcap_new(GTK_WINDOW(p->window), ui_preferences_tzsp_interface_callback, p->e_tzsp_interface);
-}
-
-static void
-ui_preferences_tzsp_interface_callback(const gchar *name,
-                                       gpointer     user_data)
-{
-    GtkEntry *entry = GTK_ENTRY(user_data);
-
-    gtk_entry_set_text(entry, name);
 }
 
 static void
@@ -944,11 +887,7 @@ ui_preferences_load(ui_preferences_t *p)
         gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->c_events_new_network), conf_get_preferences_events_new_network_exec());
 
     /* TZSP */
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_mode_socket), conf_get_preferences_tzsp_mode() == MTSCAN_CONF_TZSP_MODE_SOCKET);
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_mode_pcap), conf_get_preferences_tzsp_mode() == MTSCAN_CONF_TZSP_MODE_PCAP);
-    ui_preferences_tzsp_mode_callback(p->r_tzsp_mode_pcap, p); /* force 'toggled' signal */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_tzsp_udp_port), conf_get_preferences_tzsp_udp_port());
-    gtk_entry_set_text(GTK_ENTRY(p->e_tzsp_interface), conf_get_preferences_tzsp_interface());
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_tzsp_channel_width), conf_get_preferences_tzsp_channel_width());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_band_2g), conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_2GHZ);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_band_5g), conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_5GHZ);
@@ -1032,10 +971,8 @@ ui_preferences_apply(GtkWidget *widget,
     gchar *new_screenshot_directory;
     gint new_search_column;
     gboolean new_no_style_override;
-    mtscan_conf_tzsp_mode_t new_tzsp_mode;
     gchar *new_network_exec;
     gint new_tzsp_udp_port;
-    const gchar *new_tzsp_interface;
     gint new_tzsp_channel_width;
     mtscan_conf_tzsp_band_t new_tzsp_band;
     const gchar *new_gps_hostname;
@@ -1107,25 +1044,19 @@ ui_preferences_apply(GtkWidget *widget,
     g_free(new_network_exec);
 
     /* TZSP */
-    new_tzsp_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->r_tzsp_mode_pcap)) ? MTSCAN_CONF_TZSP_MODE_PCAP : MTSCAN_CONF_TZSP_MODE_SOCKET;
     new_tzsp_udp_port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_tzsp_udp_port));
-    new_tzsp_interface = gtk_entry_get_text(GTK_ENTRY(p->e_tzsp_interface));
     new_tzsp_channel_width = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_tzsp_channel_width));
     new_tzsp_band = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->r_tzsp_band_2g)) ? MTSCAN_CONF_TZSP_BAND_2GHZ : MTSCAN_CONF_TZSP_BAND_5GHZ;
 
     if(ui.tzsp_rx &&
-       ((conf_get_preferences_tzsp_mode() != new_tzsp_mode) ||
-        (conf_get_preferences_tzsp_udp_port() != new_tzsp_udp_port) ||
-        (strcmp(conf_get_preferences_tzsp_interface(), new_tzsp_interface) != 0) ||
+        ((conf_get_preferences_tzsp_udp_port() != new_tzsp_udp_port) ||
         (conf_get_preferences_tzsp_channel_width() != new_tzsp_channel_width) ||
         (conf_get_preferences_tzsp_band() != new_tzsp_band)))
     {
-
+        /* TODO */
     }
 
-    conf_set_preferences_tzsp_mode(new_tzsp_mode);
     conf_set_preferences_tzsp_udp_port(new_tzsp_udp_port);
-    conf_set_preferences_tzsp_interface(new_tzsp_interface);
     conf_set_preferences_tzsp_channel_width(new_tzsp_channel_width);
     conf_set_preferences_tzsp_band(new_tzsp_band);
 

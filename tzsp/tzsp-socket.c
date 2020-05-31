@@ -18,7 +18,9 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <stdbool.h>
+#ifdef HAVE_PCAP
 #include <pcap.h>
+#endif
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -48,8 +50,10 @@ typedef int socket_t;
 typedef struct tzsp_socket
 {
     socket_t         socket;
+#ifdef HAVE_PCAP
     pcap_t          *dump;
     pcap_dumper_t   *dumper;
+#endif
     volatile bool    canceled;
     volatile bool    enabled;
     uint32_t         src;
@@ -101,6 +105,7 @@ tzsp_socket_init(tzsp_socket_t *context,
 
     if(output)
     {
+#ifdef HAVE_PCAP
         if((context->dump = pcap_open_dead(DLT_IEEE802_11, BUFSIZ)) == NULL)
         {
             ret = TZSP_SOCKET_ERROR_DUMP_OPEN_DEAD;
@@ -112,13 +117,16 @@ tzsp_socket_init(tzsp_socket_t *context,
             ret = TZSP_SOCKET_ERROR_DUMP_OPEN;
             goto free_dump;
         }
+#endif
     }
 
     return TZSP_SOCKET_OK;
 
+#ifdef HAVE_PCAP
 free_dump:
     pcap_close(context->dump);
     context->dump = NULL;
+#endif
 free_socket:
     tzsp_socket_close(context);
     return ret;
@@ -141,12 +149,15 @@ tzsp_socket_loop(tzsp_socket_t *context)
     struct sockaddr_in addr;
     socklen_t len;
     struct timeval timeout;
+#ifdef HAVE_PCAP
     struct pcap_pkthdr header;
+#endif
     fd_set input;
     const int8_t *rssi;
     const uint8_t *channel;
     const uint8_t *sensor_mac;
     ssize_t ret;
+    uint32_t data_len;
 
     while(!context->canceled)
     {
@@ -180,21 +191,26 @@ tzsp_socket_loop(tzsp_socket_t *context)
             if(context->src != INADDR_NONE && context->src != addr.sin_addr.s_addr)
                 continue;
 
+#ifdef HAVE_PCAP
             gettimeofday(&header.ts, NULL);
             header.caplen = (uint32_t)ret;
+#endif
 
             rssi = NULL;
-            if((ptr = decap_tzsp(packet, &header.caplen, &rssi, &channel, &sensor_mac)) == NULL)
+            data_len = (uint32_t)ret;
+            if((ptr = decap_tzsp(packet, &data_len, &rssi, &channel, &sensor_mac)) == NULL)
                 continue;
 
+#ifdef HAVE_PCAP
             if(context->dumper)
             {
                 header.len = header.caplen;
                 pcap_dump((u_char*)context->dumper, &header, ptr);
             }
+#endif
 
             if(context->user_func)
-                context->user_func(ptr, header.caplen, rssi, channel, sensor_mac, context->user_data);
+                context->user_func(ptr, data_len, rssi, channel, sensor_mac, context->user_data);
         }
     }
 }
@@ -223,10 +239,12 @@ tzsp_socket_free(tzsp_socket_t *context)
     if(context)
     {
         tzsp_socket_close(context);
+#ifdef HAVE_PCAP
         if(context->dumper)
             pcap_dump_close(context->dumper);
         if(context->dump)
             pcap_close(context->dump);
+#endif
         free(context);
     }
 }

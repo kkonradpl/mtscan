@@ -57,6 +57,7 @@ static const char rc_string[] = "style \"minimal-toolbar-style\"\n"
                                 "}\n"
                                 "widget \"*.treeview-dark\" style\n\"treeview-dark-style\"\n";
 
+mtscan_gtk_t ui;
 
 static void ui_restore(void);
 static gboolean ui_key(GtkWidget*, GdkEventKey*, gpointer);
@@ -448,6 +449,8 @@ ui_disconnected(void)
     mtscan_model_buffer_clear(ui.model);
     mtscan_model_clear_active(ui.model);
     ui_status_update_networks();
+
+    ui_tzsp_destroy();
 }
 
 void
@@ -663,8 +666,6 @@ ui_toggle_connection(gint auto_connect_profile)
 void
 ui_tzsp(void)
 {
-    gboolean sniffer_pcap_mode;
-    const gchar *tzsp_interface;
     gint frequency_base;
     gint channel_width;
     guint8 tzsp_hwaddr[6];
@@ -684,14 +685,11 @@ ui_tzsp(void)
     }
 
     /* Read configuration */
-    sniffer_pcap_mode = conf_get_preferences_tzsp_mode() == MTSCAN_CONF_TZSP_MODE_PCAP;
-    tzsp_interface = sniffer_pcap_mode ? conf_get_preferences_tzsp_interface() : NULL;
     channel_width = conf_get_preferences_tzsp_channel_width();
     frequency_base = (conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_2GHZ) ? 2407 : 5000;
 
 
     ui.tzsp_rx = tzsp_receiver_new((guint16)conf_get_preferences_tzsp_udp_port(),
-                                   tzsp_interface,
                                    tzsp_hwaddr,
                                    channel_width,
                                    frequency_base,

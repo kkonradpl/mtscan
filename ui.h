@@ -95,7 +95,7 @@ typedef struct mtscan_gtk
     guint data_timeout;
 } mtscan_gtk_t;
 
-mtscan_gtk_t ui;
+extern mtscan_gtk_t ui;
 
 void ui_init(void);
 
