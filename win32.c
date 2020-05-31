@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2020  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 #include "ui-dialogs.h"
 #include "win32.h"
 
-#define WIN32_FONT_FILE "DejaVuSansMono.ttf"
+#define WIN32_FONT_FILE "..\\share\\fonts\\TTF\\DejaVuSansMono.ttf"
 static gint win32_font;
 
 void
