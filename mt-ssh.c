@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2020  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -22,6 +22,7 @@
 #include <libssh/libssh.h>
 #include "mt-ssh.h"
 #ifdef G_OS_WIN32
+#include <mstcpip.h>
 #include "win32.h"
 #else
 #include <netinet/tcp.h>
