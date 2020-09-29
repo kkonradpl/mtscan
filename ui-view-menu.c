@@ -193,7 +193,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     if(flags & FLAG_GEOLOC)
     {
         item_geoloc = gtk_image_menu_item_new_with_label("Show geolocation");
-        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_geoloc), gtk_image_new_from_icon_name("mtscan-wigle", GTK_ICON_SIZE_MENU));
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_geoloc), gtk_image_new_from_icon_name("mtscan-geoloc", GTK_ICON_SIZE_MENU));
         g_signal_connect(item_geoloc, "activate", (GCallback)ui_view_menu_geoloc, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_geoloc);
     }
