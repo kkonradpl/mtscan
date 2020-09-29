@@ -505,11 +505,13 @@ void
 ui_set_title(const gchar *filename)
 {
     gchar *title;
+    gchar *tmp = g_strdup(filename);
 
     g_free(ui.filename);
-    ui.filename = g_strdup(filename);
+    ui.filename = tmp;
+
     g_free(ui.name);
-    ui.name = (filename ? ui_get_name(filename) : NULL);
+    ui.name = (tmp ? ui_get_name(tmp) : NULL);
 
     if(!ui.filename)
     {
