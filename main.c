@@ -23,6 +23,7 @@
 #include "model.h"
 #include "oui.h"
 #include "log.h"
+#include "mtscan.h"
 
 #ifdef G_OS_WIN32
 #include "win32.h"
@@ -67,14 +68,36 @@ static const gchar *oui_files[] =
 
 
 static void
+mtscan_usage(void)
+{
+    printf("mtscan " APP_VERSION " - MikroTik RouterOS wireless scanner\n");
+    printf("usage: mtscan [-c config] [-o log] [-a profile] [-t port] [-b] [-S] [-A] [-G] log ...\n");
+    printf("options:\n");
+    printf("  -c  configuration file\n");
+    printf("  -o  output log file\n");
+    printf("  -a  auto-connect to a given profile id\n");
+    printf("  -t  override TZSP UDP port\n");
+    printf("  -b  headless batch mode, requires -o\n");
+    printf("output options:\n");
+    printf("  -S  strip signal samples\n");
+    printf("  -G  strip GPS data\n");
+    printf("  -A  strip azimuth data\n");
+}
+
+static void
 parse_args(gint   argc,
            gchar *argv[])
 {
     gint c;
-    while((c = getopt(argc, argv, "c:o:a:t:SGAb")) != -1)
+    while((c = getopt(argc, argv, "hc:o:a:t:SGAb")) != -1)
     {
         switch(c)
         {
+        case 'h':
+            mtscan_usage();
+            exit(0);
+            break;
+
         case 'c':
             args.config_path = optarg;
             break;
@@ -91,7 +114,7 @@ parse_args(gint   argc,
             args.tzsp_port = atoi(optarg);
             if(args.tzsp_port <= 0 || args.tzsp_port > 65535)
             {
-                fprintf(stderr, "Invalid TZSP UDP port given, using default.\n");
+                fprintf(stderr, "WARNING: Invalid TZSP UDP port given, using default.\n");
                 args.tzsp_port = 0;
             }
             break;
@@ -114,13 +137,15 @@ parse_args(gint   argc,
 
         case '?':
             if(optopt == 'c')
-                fprintf(stderr, "No configuration path given, using default.\n");
+                fprintf(stderr, "ERROR: No configuration path given, using default.\n");
             else if(optopt == 'o')
-                fprintf(stderr, "No output file specified.\n");
+                fprintf(stderr, "ERROR: No output file specified.\n");
             else if(optopt == 'a')
-                fprintf(stderr, "No auto-connect profile index given.\n");
+                fprintf(stderr, "ERROR: No auto-connect profile index given.\n");
             else if(optopt == 't')
-                fprintf(stderr, "No TZSP UDP port given, using default.\n");
+                fprintf(stderr, "ERROR: No TZSP UDP port given, using default.\n");
+
+            mtscan_usage();
             break;
 
         default:
@@ -155,20 +180,17 @@ log_open(gint   argc,
                 switch(count)
                 {
                     case LOG_READ_ERROR_OPEN:
-                        fprintf(stderr, "Failed to open a file: %s\n", argv[i]);
+                        fprintf(stderr, "ERROR: Failed to open a file: %s\n", argv[i]);
                         break;
 
                     case LOG_READ_ERROR_READ:
-                        fprintf(stderr, "Failed to read a file: %s\n", argv[i]);
+                        fprintf(stderr, "ERROR: Failed to read a file: %s\n", argv[i]);
                         break;
 
                     case LOG_READ_ERROR_PARSE:
                     case LOG_READ_ERROR_EMPTY:
-                        fprintf(stderr, "Failed to parse a file: %s\n", argv[i]);
-                        break;
-
                     default:
-                        fprintf(stderr, "Unknown error: %s\n", argv[i]);
+                        fprintf(stderr, "ERROR: Failed to parse a file: %s\n", argv[i]);
                         break;
                 }
             }
@@ -204,7 +226,8 @@ main(gint   argc,
 
     if(args.batch_mode && !args.output_file)
     {
-        fprintf(stderr, "Batch mode requires an output file, giving up.\n");
+        fprintf(stderr, "ERROR: Batch mode requires an output file, giving up.\n");
+        mtscan_usage();
         return -1;
     }
 
@@ -215,7 +238,8 @@ main(gint   argc,
     {
         if(!init)
         {
-            fprintf(stderr, "gtk_init: initialization failed\n");
+            fprintf(stderr, "ERROR: GTK initialization failed (no DISPLAY?)\n");
+            mtscan_usage();
             return -1;
         }
 
@@ -241,7 +265,7 @@ main(gint   argc,
             error = log_save(args.output_file, args.strip_samples, args.strip_gps, args.strip_azi, NULL);
             if(error)
             {
-                fprintf(stderr, "Failed to save the log: %s\n", args.output_file);
+                fprintf(stderr, "ERROR: Failed to save the log: %s\n", args.output_file);
                 g_free(error);
                 return -1;
             }
