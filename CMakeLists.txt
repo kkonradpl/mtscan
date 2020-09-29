@@ -35,7 +35,7 @@ add_definitions(${LIBCURL_CFLAGS_OTHER})
 
 INCLUDE (CheckIncludeFile)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wno-deprecated-declarations")
 
 set(SOURCE_FILES
         callbacks.c
