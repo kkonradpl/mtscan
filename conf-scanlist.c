@@ -158,7 +158,7 @@ conf_scanlist_find_default_foreach(GtkTreeModel *store,
                                    GtkTreeIter  *iter,
                                    gpointer      data)
 {
-    conf_scanlist_t **found = (conf_scanlist_t*)data;
+    conf_scanlist_t **found = (conf_scanlist_t**)data;
     conf_scanlist_t *sl;
 
     sl = conf_scanlist_list_get(GTK_LIST_STORE(store), iter);
