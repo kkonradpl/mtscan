@@ -16,6 +16,7 @@
 #ifndef MTSCAN_LOG_H_
 #define MTSCAN_LOG_H_
 #include <gtk/gtk.h>
+#include "network.h"
 
 #define LOG_READ_ERROR_EMPTY  0
 #define LOG_READ_ERROR_OPEN  -1
@@ -31,6 +32,6 @@ typedef struct log_save_error
 
 
 gint log_read(const gchar*, void (*)(network_t*, gpointer), gpointer, gboolean);
-log_save_error_t* log_save(gchar*, gboolean, gboolean, gboolean, GList*);
+log_save_error_t* log_save(const gchar*, gboolean, gboolean, gboolean, GList*);
 
 #endif

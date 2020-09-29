@@ -500,8 +500,8 @@ ui_toolbar_save_as(GtkWidget *widget,
     ui_dialog_save_t *s = ui_dialog_save(GTK_WINDOW(ui.window));
     if(s)
     {
-        if(!ui_log_save_full(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, NULL, TRUE))
-            g_free(s->filename);
+        ui_log_save_full(s->filename, s->strip_signals, s->strip_gps, s->strip_azi, NULL, TRUE);
+        g_free(s->filename);
         g_free(s);
     }
 }

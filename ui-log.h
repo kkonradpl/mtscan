@@ -19,7 +19,7 @@
 
 void ui_log_open(GSList*, gboolean, gboolean);
 
-gboolean ui_log_save(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
-gboolean ui_log_save_full(gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
+gboolean ui_log_save(const gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
+gboolean ui_log_save_full(const gchar*, gboolean, gboolean, gboolean, GList*, gboolean);
 
 #endif

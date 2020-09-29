@@ -328,7 +328,6 @@ ui_idle_timeout_autosave(gpointer user_data)
         if((ts - ui->log_ts) >= conf_get_preferences_autosave_interval()*60)
         {
             filename = (!ui->filename ? timestamp_to_filename(conf_get_path_autosave(), ui->log_ts) : NULL);
-
             if(!ui_log_save_full((!filename ? ui->filename : filename), FALSE, FALSE, FALSE, NULL, FALSE))
             {
                 g_signal_emit_by_name(ui->b_autosave, "clicked");
@@ -338,9 +337,8 @@ ui_idle_timeout_autosave(gpointer user_data)
                           "Error",
                           "Unable to save a file:\n%s\n\n<b>Autosave has been disabled.</b>",
                           (!filename ? ui->filename : filename));
-
-                g_free(filename);
             }
+            g_free(filename);
         }
     }
 
@@ -504,17 +502,14 @@ ui_status_update_networks(void)
 }
 
 void
-ui_set_title(gchar *filename)
+ui_set_title(const gchar *filename)
 {
     gchar *title;
 
-    if(filename != ui.filename)
-    {
-        g_free(ui.filename);
-        ui.filename = filename;
-        g_free(ui.name);
-        ui.name = (filename ? ui_get_name(filename) : NULL);
-    }
+    g_free(ui.filename);
+    ui.filename = g_strdup(filename);
+    g_free(ui.name);
+    ui.name = (filename ? ui_get_name(filename) : NULL);
 
     if(!ui.filename)
     {

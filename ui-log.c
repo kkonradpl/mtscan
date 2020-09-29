@@ -89,7 +89,7 @@ ui_log_open(GSList   *list,
             }
         }
         else if(!context.merge)
-            ui_set_title(g_strdup(filename));
+            ui_set_title(filename);
 
         list = list->next;
     }
@@ -136,12 +136,12 @@ ui_log_open_net_cb(network_t *network,
 }
 
 gboolean
-ui_log_save(gchar    *filename,
-            gboolean  strip_signals,
-            gboolean  strip_gps,
-            gboolean  strip_azi,
-            GList    *iterlist,
-            gboolean  show_message)
+ui_log_save(const gchar *filename,
+            gboolean     strip_signals,
+            gboolean     strip_gps,
+            gboolean     strip_azi,
+            GList       *iterlist,
+            gboolean     show_message)
 {
     log_save_error_t *error;
     error = log_save(filename, strip_signals, strip_gps, strip_azi, iterlist);
@@ -176,12 +176,12 @@ ui_log_save(gchar    *filename,
 }
 
 gboolean
-ui_log_save_full(gchar    *filename,
-                 gboolean  strip_signals,
-                 gboolean  strip_gps,
-                 gboolean  strip_azi,
-                 GList    *iterlist,
-                 gboolean  show_message)
+ui_log_save_full(const gchar *filename,
+                 gboolean     strip_signals,
+                 gboolean     strip_gps,
+                 gboolean     strip_azi,
+                 GList       *iterlist,
+                 gboolean     show_message)
 {
     if(ui_log_save(filename, strip_signals, strip_gps, strip_azi, iterlist, show_message))
     {

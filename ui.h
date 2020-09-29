@@ -105,7 +105,7 @@ void ui_changed(void);
 gboolean ui_can_discard_unsaved(void);
 void ui_status_update_networks(void);
 
-void ui_set_title(gchar*);
+void ui_set_title(const gchar*);
 void ui_clear(void);
 void ui_show_uri(const gchar*);
 void ui_screenshot(void);

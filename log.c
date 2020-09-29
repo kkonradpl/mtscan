@@ -454,7 +454,7 @@ parse_array_end(gpointer ptr)
 }
 
 log_save_error_t*
-log_save(gchar       *filename,
+log_save(const gchar *filename,
          gboolean     strip_signals,
          gboolean     strip_gps,
          gboolean     strip_azi,
@@ -545,6 +545,7 @@ log_save(gchar       *filename,
         return ret;
     }
 
+    g_free(tmp_name);
     return NULL;
 }
 
