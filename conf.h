@@ -181,6 +181,12 @@ void conf_set_preferences_blacklist_enabled(gboolean);
 gboolean conf_get_preferences_blacklist_inverted(void);
 void conf_set_preferences_blacklist_inverted(gboolean);
 
+gboolean conf_get_preferences_blacklist_external(void);
+void conf_set_preferences_blacklist_external(gboolean);
+
+const gchar* conf_get_preferences_blacklist_ext_path(void);
+void conf_set_preferences_blacklist_ext_path(const gchar*);
+
 gboolean conf_get_preferences_blacklist(gint64);
 void conf_set_preferences_blacklist(gint64);
 void conf_del_preferences_blacklist(gint64);
@@ -194,6 +200,12 @@ void conf_set_preferences_highlightlist_enabled(gboolean);
 gboolean conf_get_preferences_highlightlist_inverted(void);
 void conf_set_preferences_highlightlist_inverted(gboolean);
 
+gboolean conf_get_preferences_highlightlist_external(void);
+void conf_set_preferences_highlightlist_external(gboolean);
+
+const gchar* conf_get_preferences_highlightlist_ext_path(void);
+void conf_set_preferences_highlightlist_ext_path(const gchar*);
+
 gboolean conf_get_preferences_highlightlist(gint64);
 void conf_set_preferences_highlightlist(gint64);
 void conf_del_preferences_highlightlist(gint64);
@@ -203,6 +215,12 @@ void conf_set_preferences_highlightlist_from_liststore(GtkListStore*);
 
 gboolean conf_get_preferences_alarmlist_enabled(void);
 void conf_set_preferences_alarmlist_enabled(gboolean);
+
+gboolean conf_get_preferences_alarmlist_external(void);
+void conf_set_preferences_alarmlist_external(gboolean);
+
+const gchar* conf_get_preferences_alarmlist_ext_path(void);
+void conf_set_preferences_alarmlist_ext_path(const gchar*);
 
 gboolean conf_get_preferences_alarmlist(gint64);
 void conf_set_preferences_alarmlist(gint64);
@@ -242,6 +260,5 @@ void conf_set_preferences_location_min_distance(gint);
 
 gint conf_get_preferences_location_max_distance(void);
 void conf_set_preferences_location_max_distance(gint);
-
 
 #endif

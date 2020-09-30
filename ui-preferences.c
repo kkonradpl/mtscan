@@ -43,6 +43,8 @@ typedef struct ui_preferences_list
     GtkWidget *b_add;
     GtkWidget *b_remove;
     GtkWidget *b_clear;
+    GtkWidget *x_external;
+    GtkWidget *c_ext_path;
 } ui_preferences_list_t;
 
 typedef struct ui_preferences
@@ -168,6 +170,7 @@ static gboolean ui_preferences_key_list_add(GtkWidget*, GdkEventKey*, gpointer);
 static void ui_preferences_list_add(GtkWidget*, gpointer);
 static void ui_preferences_list_remove(GtkWidget*, gpointer);
 static void ui_preferences_list_clear(GtkWidget*, gpointer);
+static void ui_preferences_list_ext_toggled(GtkWidget*, gpointer);
 static void ui_preferences_file_add(GtkWidget*, gpointer);
 static void ui_preferences_location_acquire(GtkWidget*, gpointer);
 static void ui_preferences_load(ui_preferences_t*);
@@ -447,6 +450,7 @@ ui_preferences_dialog(void)
     p.x_gps_show_errors = gtk_check_button_new_with_label("Show error estimates");
     gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
+
     /* Blacklist */
     ui_preferences_list_create(&p.blacklist, p.notebook, "Blacklist", "Enable blacklist", "Invert to whitelist");
 
@@ -604,6 +608,9 @@ ui_preferences_list_create(ui_preferences_list_t *l,
 {
     GtkTreeViewColumn *column;
     GtkCellRenderer *renderer;
+    GtkFileFilter *filter;
+    GtkFileFilter *filter_all;
+
 
     l->page = gtk_vbox_new(FALSE, 5);
     gtk_container_set_border_width(GTK_CONTAINER(l->page), 4);
@@ -657,6 +664,24 @@ ui_preferences_list_create(ui_preferences_list_t *l,
     l->b_clear = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
     g_signal_connect(l->b_clear, "clicked", G_CALLBACK(ui_preferences_list_clear), l->view);
     gtk_box_pack_start(GTK_BOX(l->box_buttons), l->b_clear, TRUE, TRUE, 0);
+
+    l->x_external = gtk_check_button_new_with_label("Load networks from a MTscan log on startup");
+    gtk_box_pack_start(GTK_BOX(l->box), l->x_external, FALSE, FALSE, 0);
+    g_signal_connect(l->x_external, "toggled", G_CALLBACK(ui_preferences_list_ext_toggled), (gpointer)l);
+
+    l->c_ext_path = gtk_file_chooser_button_new("MTscan log", GTK_FILE_CHOOSER_ACTION_OPEN);
+    gtk_box_pack_start(GTK_BOX(l->box), l->c_ext_path, FALSE, FALSE, 0);
+
+    filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, APP_NAME " file");
+    gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT);
+    gtk_file_filter_add_pattern(filter, "*" APP_FILE_EXT APP_FILE_COMPRESS);
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(l->c_ext_path), filter);
+
+    filter_all = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter_all, "All files");
+    gtk_file_filter_add_pattern(filter_all, "*");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(l->c_ext_path), filter_all);
 }
 
 static void
@@ -814,6 +839,21 @@ ui_preferences_list_clear(GtkWidget *widget,
 }
 
 static void
+ui_preferences_list_ext_toggled(GtkWidget *widget,
+                                gpointer   data)
+{
+    ui_preferences_list_t *list = (ui_preferences_list_t*)data;
+    gboolean state = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+
+    gtk_widget_set_sensitive(list->b_add, !state);
+    gtk_widget_set_sensitive(list->b_remove, !state);
+    gtk_widget_set_sensitive(list->b_clear, !state);
+    gtk_widget_set_sensitive(list->view, !state);
+
+    gtk_widget_set_sensitive(list->c_ext_path, state);
+}
+
+static void
 ui_preferences_file_add(GtkWidget *widget,
                         gpointer   data)
 {
@@ -904,6 +944,9 @@ ui_preferences_load(ui_preferences_t *p)
     model = conf_get_preferences_blacklist_as_liststore();
     gtk_tree_view_set_model(GTK_TREE_VIEW(p->blacklist.view), GTK_TREE_MODEL(model));
     g_object_unref(model);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->blacklist.x_external), conf_get_preferences_blacklist_external());
+    if(strlen(conf_get_preferences_blacklist_ext_path()))
+        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->blacklist.c_ext_path), conf_get_preferences_blacklist_ext_path());
 
     /* Highlight list */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_enabled), conf_get_preferences_highlightlist_enabled());
@@ -911,12 +954,18 @@ ui_preferences_load(ui_preferences_t *p)
     model = conf_get_preferences_highlightlist_as_liststore();
     gtk_tree_view_set_model(GTK_TREE_VIEW(p->highlightlist.view), GTK_TREE_MODEL(model));
     g_object_unref(model);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_external), conf_get_preferences_highlightlist_external());
+    if(strlen(conf_get_preferences_highlightlist_ext_path()))
+        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->highlightlist.c_ext_path), conf_get_preferences_highlightlist_ext_path());
 
     /* Alarm list */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_enabled), conf_get_preferences_alarmlist_enabled());
     model = conf_get_preferences_alarmlist_as_liststore();
     gtk_tree_view_set_model(GTK_TREE_VIEW(p->alarmlist.view), GTK_TREE_MODEL(model));
     g_object_unref(model);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_external), conf_get_preferences_alarmlist_external());
+    if(strlen(conf_get_preferences_alarmlist_ext_path()))
+        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->alarmlist.c_ext_path), conf_get_preferences_alarmlist_ext_path());
 
     /* Location */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_latitude), conf_get_preferences_location_latitude());
@@ -977,6 +1026,7 @@ ui_preferences_apply(GtkWidget *widget,
     mtscan_conf_tzsp_band_t new_tzsp_band;
     const gchar *new_gps_hostname;
     gint new_gps_tcp_port;
+    gchar *ext_path;
     gdouble new_location_latitude;
     gdouble new_location_longitude;
     gboolean new_location_mtscan;
@@ -1081,15 +1131,27 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_blacklist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled)));
     conf_set_preferences_blacklist_inverted(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_inverted)));
     conf_set_preferences_blacklist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->blacklist.view))));
+    conf_set_preferences_blacklist_external(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_external)));
+    ext_path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->blacklist.c_ext_path));
+    conf_set_preferences_blacklist_ext_path((ext_path ? ext_path : ""));
+    g_free(ext_path);
 
     /* Highlight list */
     conf_set_preferences_highlightlist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_enabled)));
     conf_set_preferences_highlightlist_inverted(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_inverted)));
     conf_set_preferences_highlightlist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->highlightlist.view))));
+    conf_set_preferences_highlightlist_external(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_external)));
+    ext_path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->highlightlist.c_ext_path));
+    conf_set_preferences_highlightlist_ext_path((ext_path ? ext_path : ""));
+    g_free(ext_path);
 
     /* Alarm list */
     conf_set_preferences_alarmlist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_enabled)));
     conf_set_preferences_alarmlist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->alarmlist.view))));
+    conf_set_preferences_alarmlist_external(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_external)));
+    ext_path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->alarmlist.c_ext_path));
+    conf_set_preferences_alarmlist_ext_path((ext_path ? ext_path : ""));
+    g_free(ext_path);
 
     /* Location */
     new_location_latitude = gtk_spin_button_get_value(GTK_SPIN_BUTTON(p->s_location_latitude));

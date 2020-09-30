@@ -84,13 +84,13 @@ ui_view_menu(GtkWidget      *treeview,
                                          COL_DISTANCE, &distance,
                                          -1);
 
-        if(conf_get_preferences_blacklist_enabled())
+        if(conf_get_preferences_blacklist_enabled() && !conf_get_preferences_blacklist_external())
             flags |= conf_get_preferences_blacklist(address) ? FLAG_UNBLACKLIST : FLAG_BLACKLIST;
 
-        if(conf_get_preferences_highlightlist_enabled())
+        if(conf_get_preferences_highlightlist_enabled() && !conf_get_preferences_highlightlist_external())
             flags |= conf_get_preferences_highlightlist(address) ? FLAG_DEHIGHLIGHT : FLAG_HIGHLIGHT;
 
-        if(conf_get_preferences_alarmlist_enabled())
+        if(conf_get_preferences_alarmlist_enabled() && !conf_get_preferences_alarmlist_external())
             flags |= conf_get_preferences_alarmlist(address) ? FLAG_ALARM_UNSET : FLAG_ALARM_SET;
 
         if(!isnan(latitude) && !isnan(longitude))
@@ -103,13 +103,13 @@ ui_view_menu(GtkWidget      *treeview,
     }
     else
     {
-        if(conf_get_preferences_blacklist_enabled())
+        if(conf_get_preferences_blacklist_enabled() && !conf_get_preferences_blacklist_external())
             flags |= FLAG_BLACKLIST | FLAG_UNBLACKLIST;
 
-        if(conf_get_preferences_highlightlist_enabled())
+        if(conf_get_preferences_highlightlist_enabled() && !conf_get_preferences_highlightlist_external())
             flags |= FLAG_HIGHLIGHT | FLAG_DEHIGHLIGHT;
 
-        if(conf_get_preferences_alarmlist_enabled())
+        if(conf_get_preferences_alarmlist_enabled() && !conf_get_preferences_alarmlist_external())
             flags |= FLAG_ALARM_SET | FLAG_ALARM_UNSET;
 
         menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, -1, 0, flags);

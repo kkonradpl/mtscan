@@ -62,6 +62,8 @@ set(SOURCE_FILES
         gps.h
         log.c
         log.h
+        conf-extlist.c
+        conf-extlist.h
         main.c
         misc.c
         misc.h
