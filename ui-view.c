@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2020  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -65,7 +65,7 @@ static const gchar* mtscan_view_titles[] =
     "#",
     "Channel",
     "SSID",
-    "Radio name",
+    "Name",
     "S↑",
     "S",
     "NF",
@@ -204,10 +204,11 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_SSID], renderer, "text", COL_SSID, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
-    gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_expand(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_SSID), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_SSID));
@@ -217,10 +218,11 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_text_new();
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
+    g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_RADIO_NAME], renderer, "text", COL_RADIONAME, NULL);
     gtk_tree_view_column_set_clickable(column, TRUE);
-    gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_expand(column, TRUE);
+    gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_RADIONAME), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     g_signal_connect(column, "clicked", (GCallback)ui_view_column_clicked, GINT_TO_POINTER(COL_RADIONAME));
