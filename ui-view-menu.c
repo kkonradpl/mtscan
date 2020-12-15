@@ -145,6 +145,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_remove;
     gchar* string;
     const gchar* oui;
+    gint64 addr_masked;
 
     /* Header */
     string = (address < 0 ? g_strdup_printf("%d networks", count) : NULL);
@@ -158,11 +159,27 @@ ui_view_menu_create(GtkTreeView *treeview,
     /* OUI lookup */
     if(address >= 0)
     {
-        oui = oui_lookup(address);
+        addr_masked = address & ~(1L << 41);
+        oui = oui_lookup(addr_masked);
+
         if(oui)
         {
-            string = (strlen(oui) > 30) ? g_strdup_printf("%.*s…", 30, oui) : NULL;
-            item_oui = gtk_image_menu_item_new_with_label(string ? string : oui);
+            if(address == addr_masked)
+                string = (strlen(oui) > 32) ? g_strdup_printf("%.*s…", 32, oui) : g_strdup(oui);
+            else
+                string = (strlen(oui) > 28) ? g_strdup_printf("%.*s… (?)", 28, oui) : g_strdup_printf("%s (?)", oui);
+        }
+        else
+        {
+            if(address != addr_masked)
+                string = g_strdup("(locally administered)");
+            else
+                string = NULL;
+        }
+
+        if(string)
+        {
+            item_oui = gtk_image_menu_item_new_with_label(string);
             gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_oui);
             g_free(string);
         }
