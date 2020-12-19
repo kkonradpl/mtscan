@@ -4,6 +4,7 @@
 #include "tzsp/mac80211.h"
 #include "network.h"
 #include "tzsp-receiver.h"
+#include "tzsp/cambium.h"
 
 typedef struct tzsp_receiver
 {
@@ -86,6 +87,7 @@ tzsp_receiver_packet(const uint8_t *packet,
     tzsp_receiver_t *context = (tzsp_receiver_t*)user_data;
     mac80211_net_t *net_80211 = NULL;
     nv2_net_t *net_nv2 = NULL;
+    cambium_net_t *net_cambium = NULL;
     const uint8_t *src;
     tzsp_receiver_net_t *data;
 
@@ -105,12 +107,15 @@ tzsp_receiver_packet(const uint8_t *packet,
         net_80211 = mac80211_network(packet, len, &src);
         if(!net_80211)
         {
-            /* This is not a IEEE 802.11 frame at all */
-            return;
-        }
+            /* This is not a IEEE 802.11 frame */
 
-        if(net_80211->source != MAC80211_FRAME_BEACON &&
-           net_80211->source != MAC80211_FRAME_PROBE_RESPONSE)
+            /* Try cambium parser */
+            net_cambium = cambium_network(packet, len, &src);
+            if(!net_cambium)
+                return;
+        }
+        else if(net_80211->source != MAC80211_FRAME_BEACON &&
+                net_80211->source != MAC80211_FRAME_PROBE_RESPONSE)
         {
             /* This is other IEEE 802.11 frame */
             mac80211_net_free(net_80211);
@@ -259,6 +264,16 @@ tzsp_receiver_packet(const uint8_t *packet,
             data->network->mode = g_strdup("a");
         }
         nv2_net_free(net_nv2);
+    }
+
+    if(net_cambium)
+    {
+        data->network->ssid = g_strdup(cambium_net_get_ssid(net_cambium));
+
+        if(cambium_net_get_frequency(net_cambium))
+            data->network->frequency = cambium_net_get_frequency(net_cambium) * 1000;
+
+        cambium_net_free(net_cambium);
     }
 
     data->network->firstseen = g_get_real_time() / 1000000;

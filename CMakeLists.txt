@@ -110,6 +110,8 @@ set(SOURCE_FILES
         tzsp/nv2.h
         tzsp/mac80211.h
         tzsp/mac80211.c
+        tzsp/cambium.c
+        tzsp/cambium.h
         tzsp/ie-airmax.h
         tzsp/ie-airmax.c
         tzsp/ie-airmax-ac.h
