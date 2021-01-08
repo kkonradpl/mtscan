@@ -93,6 +93,10 @@ cambium_process_beacon(const uint8_t *data,
 
     context = calloc(sizeof(cambium_net_t), 1);
 
+    /* Only 0x08 seems to contain useful data */
+    if(data[1] != 0x08)
+        return context;
+
     for(i=CAMBIUM_BEACON_HEADER_LEN;
         i+CAMBIUM_BEACON_TAG_LEN <= len;
         i+=CAMBIUM_BEACON_TAG_LEN + data_len)

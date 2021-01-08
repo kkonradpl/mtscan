@@ -272,6 +272,8 @@ tzsp_receiver_packet(const uint8_t *packet,
 
         if(cambium_net_get_frequency(net_cambium))
             data->network->frequency = cambium_net_get_frequency(net_cambium) * 1000;
+        else if(channel)
+            data->network->frequency = (*channel * 5 + context->frequency_base) * 1000;
 
         cambium_net_free(net_cambium);
     }
