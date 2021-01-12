@@ -118,7 +118,7 @@ ui_scanlist(GtkWidget          *parent,
             ui_scanlist_page_t  page)
 {
     ui_scanlist_t *s;
-    GtkWidget *box_freq;
+    GtkWidget *box_freq = NULL;
     GtkWidget *b_freq;
     GtkWidget *l_freq;
     gchar buff[100];
