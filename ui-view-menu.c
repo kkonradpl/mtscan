@@ -159,7 +159,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     /* OUI lookup */
     if(address >= 0)
     {
-        addr_masked = address & ~(1L << 41);
+        addr_masked = address & ~((uint64_t)1 << 41);
         oui = oui_lookup(addr_masked);
 
         if(oui)
