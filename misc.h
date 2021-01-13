@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2021  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@ gint64 str_addr_to_gint64(const gchar*, gint);
 gboolean str_addr_to_guint8(const gchar*, gint, guint8*);
 
 void mtscan_sound(const gchar*);
-void mtscan_exec(const gchar*, guint, ...);
+gboolean mtscan_exec(const gchar*, guint, ...);
 gchar* timestamp_to_filename(const gchar*, gint64);
 
 #endif

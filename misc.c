@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2021  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -324,13 +324,14 @@ mtscan_sound(const gchar *filename)
 #ifdef G_OS_WIN32
     win32_play(path);
 #else
-    mtscan_exec(APP_SOUND_EXEC, 1, path);
+    if(!mtscan_exec("paplay", 1, path))
+        mtscan_exec("aplay", 1, path);
 #endif
 
     g_free(path);
 }
 
-void
+gboolean
 mtscan_exec(const gchar *exec,
             guint        argc,
             ...)
@@ -353,11 +354,13 @@ mtscan_exec(const gchar *exec,
 
     if(!g_spawn_async(NULL, (gchar**)command, NULL, G_SPAWN_SEARCH_PATH, 0, NULL, NULL, &error))
     {
-        fprintf(stderr, "Unable to spawn process '%s': %s\n", exec, error->message);
         g_error_free(error);
+        g_free(command);
+        return FALSE;
     }
 
     g_free(command);
+    return TRUE;
 }
 
 gchar*
