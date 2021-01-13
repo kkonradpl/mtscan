@@ -165,6 +165,8 @@ if(MINGW)
 ELSE()
     add_executable(mtscan ${SOURCE_FILES})
     install(TARGETS mtscan DESTINATION bin)
+    install(DIRECTORY sounds/ DESTINATION share/sounds/mtscan
+            PATTERN "INFO" EXCLUDE)
     install(DIRECTORY icons/ DESTINATION share/icons/hicolor
             PATTERN "INFO" EXCLUDE
             PATTERN "ico" EXCLUDE)
