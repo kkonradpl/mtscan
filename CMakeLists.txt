@@ -170,6 +170,7 @@ ELSE()
     add_executable(mtscan ${SOURCE_FILES})
     install(TARGETS mtscan DESTINATION bin)
     install(FILES manpages/mtscan.1 DESTINATION ${MAN_INSTALL_DIR})
+    install(FILES applications/mtscan.desktop DESTINATION share/applications)
     install(DIRECTORY sounds/ DESTINATION share/sounds/mtscan
             PATTERN "INFO" EXCLUDE)
     install(DIRECTORY icons/ DESTINATION share/icons/hicolor

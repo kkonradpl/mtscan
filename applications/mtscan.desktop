@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MTscan
+Comment=MikroTik RouterOS wireless scanner
+Icon=mtscan
+Exec=mtscan
+Terminal=false
+Categories=Network;
+StartupNotify=false
