@@ -1,0 +1,39 @@
+.TH MTSCAN 1 2021-01-12
+.SH NAME
+mtscan \- MikroTik RouterOS wireless scanner.
+.SH SYNOPSIS
+.B mtscan
+.RI [ options ] " logfiles" ...
+.SH DESCRIPTION
+MTscan is a wireless network scanning software dedicated for Mikrotik RouterOS devices, originally developed for Wi-Fi DXing and wardriving. Written in C/GTK+ for GNU/Linux and Windows OS.
+.SH "COMMAND-LINE OPTIONS"
+These programs follow the usual GNU command line syntax.
+.SS General options
+.TP
+.BI -c " CONFIG"
+Configuration file
+.TP
+.BI -o " OUTPUT LOG"
+Output log file
+.TP
+.BI -a " PROFILE ID"
+Auto-connect to a given profile id
+.TP
+.BI -t " PORT"
+Override TZSP UDP port
+.TP
+.B -b
+Headless batch mode, requires \fB-o\fP
+.LP
+.SS Output flags
+.TP
+.B -S
+Strip signal samples
+.TP
+.B -G
+Strip GPS data
+.TP
+.B -A
+Strip azimuth data
+.SH SEE ALSO
+Project website https://fmdx.pl/mtscan/

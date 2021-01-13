@@ -152,6 +152,10 @@ set(LIBRARIES_MINGW
         ws2_32
         winmm)
 
+if(NOT MAN_INSTALL_DIR)
+    set(MAN_INSTALL_DIR share/man/man1)
+endif()
+
 if(MINGW)
     IF(NOT (CMAKE_BUILD_TYPE MATCHES Debug))
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mwindows")
@@ -165,6 +169,7 @@ if(MINGW)
 ELSE()
     add_executable(mtscan ${SOURCE_FILES})
     install(TARGETS mtscan DESTINATION bin)
+    install(FILES manpages/mtscan.1 DESTINATION ${MAN_INSTALL_DIR})
     install(DIRECTORY sounds/ DESTINATION share/sounds/mtscan
             PATTERN "INFO" EXCLUDE)
     install(DIRECTORY icons/ DESTINATION share/icons/hicolor
