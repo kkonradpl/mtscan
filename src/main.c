@@ -71,17 +71,16 @@ static void
 mtscan_usage(void)
 {
     printf("mtscan " APP_VERSION " - MikroTik RouterOS wireless scanner\n");
-    printf("usage: mtscan [-c config] [-o log] [-a profile] [-t port] [-b] [-S] [-A] [-G] log ...\n");
+    printf("usage: mtscan [-c config] [-o log] [-a profile] [-t port] [-b] [-S] [-A] [-G] logs...\n");
     printf("options:\n");
     printf("  -c  configuration file\n");
     printf("  -o  output log file\n");
     printf("  -a  auto-connect to a given profile id\n");
     printf("  -t  override TZSP UDP port\n");
     printf("  -b  headless batch mode, requires -o\n");
-    printf("output options:\n");
-    printf("  -S  strip signal samples\n");
-    printf("  -G  strip GPS data\n");
-    printf("  -A  strip azimuth data\n");
+    printf("  -S  strip signal samples (input/output log)\n");
+    printf("  -G  strip GPS data (output log)\n");
+    printf("  -A  strip azimuth data (output log)\n");
 }
 
 static void
