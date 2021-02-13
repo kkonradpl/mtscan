@@ -273,7 +273,6 @@ ui_scanlist(GtkWidget          *parent,
     g_signal_connect(s->window, "destroy", G_CALLBACK(ui_scanlist_destroy), s);
 
     ui_scanlist_update_current(s);
-
     return s;
 }
 
@@ -320,6 +319,7 @@ ui_scanlist_add(ui_scanlist_t *s,
     gpointer button;
     guint frequency;
     gchar *endptr;
+    gint position;
 
     frequency = (gint)g_ascii_strtoull(channel, &endptr, 10);
 
@@ -332,9 +332,10 @@ ui_scanlist_add(ui_scanlist_t *s,
     else
     {
         custom = gtk_entry_get_text(GTK_ENTRY(s->e_custom));
+        position = strlen(custom);
         if(strlen(custom))
-            gtk_entry_append_text(GTK_ENTRY(s->e_custom), ",");
-        gtk_entry_append_text(GTK_ENTRY(s->e_custom), channel);
+            gtk_editable_insert_text(GTK_EDITABLE(s->e_custom), ",", 1, &position);
+        gtk_editable_insert_text(GTK_EDITABLE(s->e_custom), channel, strlen(channel), &position);
     }
 }
 
