@@ -36,7 +36,7 @@ typedef SOCKET gpsd_socket_t;
 typedef int gpsd_socket_t;
 #endif
 
-#define DEBUG       1
+#define DEBUG       0
 #define DEBUG_READ  0
 #define DEBUG_WRITE 0
 
