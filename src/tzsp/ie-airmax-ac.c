@@ -56,7 +56,7 @@ ie_airmax_ac_parse(const uint8_t *ie,
                    uint8_t        ie_len,
                    const uint8_t  addr[6])
 {
-    static const uint8_t magic[] = { 0x00, 0x27, 0x22, 0xff, 0xff, 0xff, 0x02, 0x01, 0x00 };
+    static const uint8_t magic[] = { 0x00, 0x27, 0x22, 0xff, 0xff, 0xff, 0x02 };
     static const uint8_t hmac_key[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     uint8_t data[UINT8_MAX];
     uint8_t data_len;
