@@ -264,4 +264,8 @@ void conf_set_preferences_location_min_distance(gint);
 gint conf_get_preferences_location_max_distance(void);
 void conf_set_preferences_location_max_distance(gint);
 
+/* Runtime settings */
+gboolean conf_get_runtime_skip_verification(void);
+void conf_set_runtime_skip_verification(gboolean);
+
 #endif

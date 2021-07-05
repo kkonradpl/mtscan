@@ -127,6 +127,7 @@ typedef struct mt_ssh
     gint          duration;
     gboolean      remote_mode;
     gboolean      background;
+    gboolean      skip_verification;
 
     /* Callback pointers */
     void (*cb)    (mt_ssh_t*, mt_ssh_ret_t, const gchar*);
@@ -260,7 +261,8 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
            const gchar   *iface,
            gint           duration,
            gboolean       remote,
-           gboolean       background)
+           gboolean       background,
+           gboolean       skip_verification)
 {
     mt_ssh_t *context;
     context = g_malloc0(sizeof(mt_ssh_t));
@@ -275,6 +277,7 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
     context->mode_default = mode_default;
     context->remote_mode = remote;
     context->background = background;
+    context->skip_verification = skip_verification;
 
     /* Callback pointers */
     context->cb = cb;
@@ -739,10 +742,13 @@ mt_ssh_thread(gpointer data)
 
     mt_ssh_conf_keepalive(session);
 
-    if(!mt_ssh_verify(context, session))
+    if(!context->skip_verification)
     {
-        context->return_state = MT_SSH_ERR_VERIFY;
-        goto cleanup_disconnect;
+        if(!mt_ssh_verify(context, session))
+        {
+            context->return_state = MT_SSH_ERR_VERIFY;
+            goto cleanup_disconnect;
+        }
     }
 
     if(context->canceled)

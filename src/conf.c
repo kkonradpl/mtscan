@@ -106,6 +106,8 @@
 #define CONF_DEFAULT_PREFERENCES_LOCATION_MIN_DISTANCE  0
 #define CONF_DEFAULT_PREFERENCES_LOCATION_MAX_DISTANCE  999
 
+#define CONF_DEFAULT_RUNTIME_SKIP_VERIFICATION          FALSE
+
 
 #define CONF_PROFILE_GROUP_PREFIX  "profile_"
 #define CONF_PROFILE_GROUP_DEFAULT "profile"
@@ -216,6 +218,9 @@ typedef struct conf
     gint       preferences_location_azimuth_error;
     gint       preferences_location_min_distance;
     gint       preferences_location_max_distance;
+
+    /* Runtime configuration */
+    gboolean   runtime_skip_verification;
 } conf_t;
 
 static conf_t conf;
@@ -385,6 +390,8 @@ conf_read(void)
     conf.preferences_location_azimuth_error = conf_read_integer("preferences", "location_azimuth_error", CONF_DEFAULT_PREFERENCES_LOCATION_AZIMUTH_ERROR);
     conf.preferences_location_min_distance = conf_read_integer("preferences", "location_min_distance", CONF_DEFAULT_PREFERENCES_LOCATION_MIN_DISTANCE);
     conf.preferences_location_max_distance = conf_read_integer("preferences", "location_max_distance", CONF_DEFAULT_PREFERENCES_LOCATION_MAX_DISTANCE);
+
+    conf.runtime_skip_verification = CONF_DEFAULT_RUNTIME_SKIP_VERIFICATION;
 
     if(!file_exists)
         conf_save();
@@ -1847,3 +1854,15 @@ conf_set_preferences_location_max_distance(gint value)
     conf.preferences_location_max_distance = value;
 }
 
+/* Runtime settings */
+gboolean
+conf_get_runtime_skip_verification(void)
+{
+    return conf.runtime_skip_verification;
+}
+
+void
+conf_set_runtime_skip_verification(gboolean value)
+{
+    conf.runtime_skip_verification = value;
+}

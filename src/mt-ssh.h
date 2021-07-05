@@ -89,7 +89,8 @@ mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const 
                               const gchar   *iface,
                               gint           duration,
                               gboolean       remote,
-                              gboolean       background);
+                              gboolean       background,
+                              gboolean       skip_verification);
 void               mt_ssh_free(mt_ssh_t*);
 void               mt_ssh_cancel(mt_ssh_t*);
 void               mt_ssh_cmd(mt_ssh_t*, mt_ssh_cmd_type_t, const gchar*);

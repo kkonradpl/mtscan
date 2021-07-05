@@ -21,6 +21,7 @@
 #include "ui-dialogs.h"
 #include "ui-callbacks.h"
 #include "callbacks.h"
+#include "conf.h"
 
 typedef struct ui_connection
 {
@@ -590,6 +591,7 @@ ui_connection_connect(GtkWidget *widget,
     gboolean duration_enabled = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c->c_duration));
     gint duration = (duration_enabled ? gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(c->s_duration)) : 0);
     mt_ssh_mode_t mode;
+    gboolean skip_verification;
 
     if(ui.conn)
         return;
@@ -631,6 +633,8 @@ ui_connection_connect(GtkWidget *widget,
         mtscan_model_set_active_timeout(ui.model, (remote ? duration : 2));
     }
 
+    skip_verification = conf_get_runtime_skip_verification();
+
     ui.conn = mt_ssh_new(callback_mt_ssh,
                          callback_mt_ssh_msg,
                          (c->reconnect_idle ? MT_SSH_MODE_NONE : mode),
@@ -641,7 +645,8 @@ ui_connection_connect(GtkWidget *widget,
                          iface,
                          duration,
                          remote,
-                         background);
+                         background,
+                         skip_verification);
 }
 
 static void

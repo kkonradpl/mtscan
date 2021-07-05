@@ -35,10 +35,11 @@ typedef struct mtscan_arg
     const gchar *output_file;
     gint auto_connect;
     gint tzsp_port;
+    gboolean batch_mode;
+    gboolean skip_verification;
     gboolean strip_samples;
     gboolean strip_gps;
     gboolean strip_azi;
-    gboolean batch_mode;
 } mtscan_arg_t;
 
 static mtscan_arg_t args =
@@ -47,10 +48,11 @@ static mtscan_arg_t args =
     .output_file = NULL,
     .auto_connect = 0,
     .tzsp_port = 0,
+    .batch_mode = FALSE,
+    .skip_verification = FALSE,
     .strip_samples = FALSE,
     .strip_gps = FALSE,
-    .strip_azi = FALSE,
-    .batch_mode = FALSE
+    .strip_azi = FALSE
 };
 
 static const gchar *oui_files[] =
@@ -78,6 +80,7 @@ mtscan_usage(void)
     printf("  -a  auto-connect to a given profile id\n");
     printf("  -t  override TZSP UDP port\n");
     printf("  -b  headless batch mode, requires -o\n");
+    printf("  -s  skip SSH key verification\n");
     printf("  -S  strip signal samples (input/output log)\n");
     printf("  -G  strip GPS data (output log)\n");
     printf("  -A  strip azimuth data (output log)\n");
@@ -88,7 +91,7 @@ parse_args(gint   argc,
            gchar *argv[])
 {
     gint c;
-    while((c = getopt(argc, argv, "hc:o:a:t:SGAb")) != -1)
+    while((c = getopt(argc, argv, "hc:o:a:t:bsSGA")) != -1)
     {
         switch(c)
         {
@@ -118,6 +121,14 @@ parse_args(gint   argc,
             }
             break;
 
+        case 'b':
+            args.batch_mode = 1;
+            break;
+
+        case 's':
+            args.skip_verification = 1;
+            break;
+
         case 'S':
             args.strip_samples = 1;
             break;
@@ -128,10 +139,6 @@ parse_args(gint   argc,
 
         case 'A':
             args.strip_azi = 1;
-            break;
-
-        case 'b':
-            args.batch_mode = 1;
             break;
 
         case '?':
@@ -276,6 +283,10 @@ main(gint   argc,
     /* Override the TZSP UDP port, if given */
     if(args.tzsp_port)
         conf_set_preferences_tzsp_udp_port(args.tzsp_port);
+
+    /* Skip SSH key verification */
+    if(args.skip_verification)
+        conf_set_runtime_skip_verification(TRUE);
 
     /* Perform auto-connect, if a profile number is given */
     if(args.auto_connect > 0)
