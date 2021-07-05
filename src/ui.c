@@ -419,7 +419,10 @@ ui_connected(const gchar *login,
 
     ui_toolbar_connect_set_state(TRUE);
 
-    status_text = g_strdup_printf("%s@%s/%s", login, host, iface);
+    if(conf_get_preferences_compact_status())
+        status_text = g_strdup_printf("%s", host);
+    else
+        status_text = g_strdup_printf("%s@%s/%s", login, host, iface);
     gtk_label_set_text(GTK_LABEL(ui.l_conn_status), status_text);
     g_free(status_text);
 
@@ -493,7 +496,11 @@ ui_status_update_networks(void)
     if(networks != last_networks ||
        active != last_active)
     {
-        text = g_strdup_printf("%d/%d networks", active, networks);
+        if(conf_get_preferences_compact_status())
+            text = g_strdup_printf("%d/%d", active, networks);
+        else
+            text = g_strdup_printf("%d/%d networks", active, networks);
+
         gtk_label_set_text(GTK_LABEL(ui.l_net_status), text);
         g_free(text);
         last_active = active;

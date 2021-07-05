@@ -72,6 +72,7 @@ typedef struct ui_preferences
     GtkWidget *x_general_no_style_override;
     GtkWidget *x_general_signals;
     GtkWidget *x_general_display_time_only;
+    GtkWidget *x_general_compact_status;
     GtkWidget *x_general_reconnect;
 
     GtkWidget *page_view;
@@ -209,7 +210,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(10, 3, TRUE);
+    p.table_general = gtk_table_new(11, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
@@ -275,6 +276,10 @@ ui_preferences_dialog(void)
     row++;
     p.x_general_display_time_only = gtk_check_button_new_with_label("Display time only");
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_display_time_only, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_general_compact_status = gtk_check_button_new_with_label("Compact statusbar information");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_compact_status, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_general_reconnect = gtk_check_button_new_with_label("Automatic reconnect");
@@ -909,6 +914,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_no_style_override), conf_get_preferences_no_style_override());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_signals), conf_get_preferences_signals());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only), conf_get_preferences_display_time_only());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_compact_status), conf_get_preferences_compact_status());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_reconnect), conf_get_preferences_reconnect());
 
     /* View */
@@ -1075,6 +1081,7 @@ ui_preferences_apply(GtkWidget *widget,
 
     conf_set_preferences_signals(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_signals)));
     conf_set_preferences_display_time_only(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only)));
+    conf_set_preferences_compact_status(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_compact_status)));
     conf_set_preferences_reconnect(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_reconnect)));
 
     /* View */
@@ -1126,6 +1133,7 @@ ui_preferences_apply(GtkWidget *widget,
     }
     conf_set_preferences_gps_show_altitude(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_altitude)));
     conf_set_preferences_gps_show_errors(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_errors)));
+
 
     /* Blacklist */
     conf_set_preferences_blacklist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled)));

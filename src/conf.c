@@ -68,6 +68,7 @@
 #define CONF_DEFAULT_PREFERENCES_NO_STYLE_OVERRIDE      FALSE
 #define CONF_DEFAULT_PREFERENCES_SIGNALS                TRUE
 #define CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY      FALSE
+#define CONF_DEFAULT_PREFERENCES_COMPACT_STATUS         FALSE
 #define CONF_DEFAULT_PREFERENCES_RECONNECT              FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
@@ -155,6 +156,7 @@ typedef struct conf
     gboolean  preferences_no_style_override;
     gboolean  preferences_signals;
     gboolean  preferences_display_time_only;
+    gboolean  preferences_compact_status;
     gboolean  preferences_reconnect;
 
     gchar   **preferences_view_cols_order;
@@ -326,6 +328,7 @@ conf_read(void)
     conf.preferences_no_style_override = conf_read_boolean("preferences", "no_style_override", CONF_DEFAULT_PREFERENCES_NO_STYLE_OVERRIDE);
     conf.preferences_signals = conf_read_boolean("preferences", "signals", CONF_DEFAULT_PREFERENCES_SIGNALS);
     conf.preferences_display_time_only = conf_read_boolean("preferences", "display_time_only", CONF_DEFAULT_PREFERENCES_DISPLAY_TIME_ONLY);
+    conf.preferences_compact_status = conf_read_boolean("preferences", "compact_status", CONF_DEFAULT_PREFERENCES_COMPACT_STATUS);
     conf.preferences_reconnect = conf_read_boolean("preferences", "reconnect", CONF_DEFAULT_PREFERENCES_RECONNECT);
 
     conf.preferences_view_cols_order = conf_read_columns(conf.keyfile, "preferences", "view_cols_order");
@@ -655,6 +658,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "no_style_override", conf.preferences_no_style_override);
     g_key_file_set_boolean(conf.keyfile, "preferences", "signals", conf.preferences_signals);
     g_key_file_set_boolean(conf.keyfile, "preferences", "display_time_only", conf.preferences_display_time_only);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "compact_status", conf.preferences_compact_status);
     g_key_file_set_boolean(conf.keyfile, "preferences", "reconnect", conf.preferences_reconnect);
 
     g_key_file_set_string_list(conf.keyfile, "preferences", "view_cols_order",
@@ -1178,6 +1182,18 @@ void
 conf_set_preferences_display_time_only(gboolean value)
 {
     conf.preferences_display_time_only = value;
+}
+
+gboolean
+conf_get_preferences_compact_status(void)
+{
+    return conf.preferences_compact_status;
+}
+
+void
+conf_set_preferences_compact_status(gboolean value)
+{
+    conf.preferences_compact_status = value;
 }
 
 gboolean

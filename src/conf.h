@@ -109,6 +109,9 @@ void conf_set_preferences_signals(gboolean);
 gboolean conf_get_preferences_display_time_only();
 void conf_set_preferences_display_time_only(gboolean);
 
+gboolean conf_get_preferences_compact_status(void);
+void conf_set_preferences_compact_status(gboolean);
+
 gboolean conf_get_preferences_reconnect(void);
 void conf_set_preferences_reconnect(gboolean);
 
