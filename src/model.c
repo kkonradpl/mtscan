@@ -470,6 +470,8 @@ model_update_network(mtscan_model_t *model,
     guint8 current_state;
     gboolean new_network_found;
     gfloat distance = NAN;
+    gchar *type;
+    gboolean gnss;
 
     if(g_hash_table_lookup_extended(model->map, &net->address, (gpointer*)&address, (gpointer*)&iter_ptr))
     {
@@ -637,32 +639,29 @@ model_update_network(mtscan_model_t *model,
         g_hash_table_insert(model->active, address, iter_ptr);
 
         if(conf_get_preferences_alarmlist_enabled() && conf_get_preferences_alarmlist(*address))
-        {
             new_network_found = MODEL_NETWORK_NEW_ALARM;
-            if(conf_get_preferences_events_new_network())
-                mtscan_exec(conf_get_preferences_events_new_network_exec(),
-                            2,
-                            model_format_address(*address, FALSE),
-                            "ALARM");
-        }
         else if(conf_get_preferences_highlightlist_enabled() && conf_get_preferences_highlightlist(*address))
-        {
             new_network_found = MODEL_NETWORK_NEW_HIGHLIGHT;
-            if(conf_get_preferences_events_new_network())
-                mtscan_exec(conf_get_preferences_events_new_network_exec(),
-                            2,
-                            model_format_address(*address, FALSE),
-                            "HIGHLIGHT");
-        }
         else
-        {
             new_network_found = MODEL_NETWORK_NEW;
-            if(conf_get_preferences_events_new_network())
-                mtscan_exec(conf_get_preferences_events_new_network_exec(),
-                            2,
-                            model_format_address(*address, FALSE),
-                            "NORMAL");
+
+        if(conf_get_preferences_events_new_network())
+        {
+            if(new_network_found == MODEL_NETWORK_NEW_ALARM)
+                type = "ALARM";
+            else if(new_network_found == MODEL_NETWORK_NEW_HIGHLIGHT)
+                type = "HIGHLIGHT";
+            else
+                type = "NORMAL";
+
+            gnss = !isnan(net->latitude) && !isnan(net->longitude);
+            mtscan_exec(conf_get_preferences_events_new_network_exec(),
+                        3,
+                        model_format_address(*address, FALSE),
+                        type,
+                        gnss ? "GNSS" : "NO_GNSS");
         }
+
     }
 
     /* Signals are stored in GtkListStore just as pointer,
