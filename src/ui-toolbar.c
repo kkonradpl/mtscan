@@ -384,7 +384,6 @@ ui_toolbar_scanlist_menu_foreach(GtkTreeModel *store,
     value = conf_scanlist_get_data(sl);
 
     item = gtk_image_menu_item_new();
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item), gtk_image_new_from_stock(GTK_STOCK_APPLY, GTK_ICON_SIZE_MENU));
     g_object_set_data_full(G_OBJECT(item), "mtscan_scanlist_name", (gpointer)g_strdup(name), g_free);
     g_object_set_data_full(G_OBJECT(item), "mtscan_scanlist_value", (gpointer)g_strdup(value), g_free);
 
@@ -403,17 +402,12 @@ ui_toolbar_scanlist_menu_foreach(GtkTreeModel *store,
 
     label = gtk_label_new(NULL);
     gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+    gtk_label_set_text(GTK_LABEL(label), name);
 
     if(conf_scanlist_get_main(sl))
-    {
-        text = g_strdup_printf("<b>%s</b>", name);
-        gtk_label_set_markup(GTK_LABEL(label), text);
-        g_free(text);
-    }
-    else
-    {
-        gtk_label_set_text(GTK_LABEL(label), name);
-    }
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item), gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_MENU));
+    else if(conf_scanlist_get_default(sl))
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item), gtk_image_new_from_stock(GTK_STOCK_HOME, GTK_ICON_SIZE_MENU));
 
     gtk_container_add(GTK_CONTAINER(item), label);
     gtk_widget_show(label);
