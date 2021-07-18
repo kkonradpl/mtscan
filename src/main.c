@@ -37,6 +37,7 @@ typedef struct mtscan_arg
     gint tzsp_port;
     gboolean batch_mode;
     gboolean skip_verification;
+    gboolean skip_scanlist_warning;
     gboolean strip_samples;
     gboolean strip_gps;
     gboolean strip_azi;
@@ -50,6 +51,7 @@ static mtscan_arg_t args =
     .tzsp_port = 0,
     .batch_mode = FALSE,
     .skip_verification = FALSE,
+    .skip_scanlist_warning = FALSE,
     .strip_samples = FALSE,
     .strip_gps = FALSE,
     .strip_azi = FALSE
@@ -73,7 +75,7 @@ static void
 mtscan_usage(void)
 {
     printf("mtscan " APP_VERSION " - MikroTik RouterOS wireless scanner\n");
-    printf("usage: mtscan [-c config] [-o log] [-a profile] [-t port] [-b] [-S] [-A] [-G] logs...\n");
+    printf("usage: mtscan [-c config] [-o log] [-a profile] [-t port] [-b] [-s] [-w] [-S] [-A] [-G] logs...\n");
     printf("options:\n");
     printf("  -c  configuration file\n");
     printf("  -o  output log file\n");
@@ -81,6 +83,7 @@ mtscan_usage(void)
     printf("  -t  override TZSP UDP port\n");
     printf("  -b  headless batch mode, requires -o\n");
     printf("  -s  skip SSH key verification\n");
+    printf("  -w  skip scan-list warning\n");
     printf("  -S  strip signal samples (input/output log)\n");
     printf("  -G  strip GPS data (output log)\n");
     printf("  -A  strip azimuth data (output log)\n");
@@ -91,7 +94,7 @@ parse_args(gint   argc,
            gchar *argv[])
 {
     gint c;
-    while((c = getopt(argc, argv, "hc:o:a:t:bsSGA")) != -1)
+    while((c = getopt(argc, argv, "hc:o:a:t:bswSGA")) != -1)
     {
         switch(c)
         {
@@ -127,6 +130,10 @@ parse_args(gint   argc,
 
         case 's':
             args.skip_verification = 1;
+            break;
+
+        case 'w':
+            args.skip_scanlist_warning = 1;
             break;
 
         case 'S':
@@ -287,6 +294,10 @@ main(gint   argc,
     /* Skip SSH key verification */
     if(args.skip_verification)
         conf_set_runtime_skip_verification(TRUE);
+
+    /* Skip scan-list warning */
+    if(args.skip_scanlist_warning)
+        conf_set_runtime_skip_scanlist_warning(TRUE);
 
     /* Perform auto-connect, if a profile number is given */
     if(args.auto_connect > 0)

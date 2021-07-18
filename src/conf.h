@@ -268,4 +268,7 @@ void conf_set_preferences_location_max_distance(gint);
 gboolean conf_get_runtime_skip_verification(void);
 void conf_set_runtime_skip_verification(gboolean);
 
+gboolean conf_get_runtime_skip_scanlist_warning(void);
+void conf_set_runtime_skip_scanlist_warning(gboolean);
+
 #endif

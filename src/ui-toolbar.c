@@ -274,6 +274,9 @@ ui_toolbar_scanlist_apply(const gchar *name,
 {
     static gboolean scanlist_set = FALSE;
 
+    if(conf_get_runtime_skip_scanlist_warning())
+        scanlist_set = TRUE;
+
     if(!scanlist_set)
         scanlist_set = ui_dialog_scanlist_warn(GTK_WINDOW(ui.window), name, value);
 

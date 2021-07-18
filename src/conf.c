@@ -107,6 +107,7 @@
 #define CONF_DEFAULT_PREFERENCES_LOCATION_MAX_DISTANCE  999
 
 #define CONF_DEFAULT_RUNTIME_SKIP_VERIFICATION          FALSE
+#define CONF_DEFAULT_RUNTIME_SKIP_SCANLIST_WARNING      FALSE
 
 
 #define CONF_PROFILE_GROUP_PREFIX  "profile_"
@@ -221,6 +222,7 @@ typedef struct conf
 
     /* Runtime configuration */
     gboolean   runtime_skip_verification;
+    gboolean   runtime_skip_scanlist_warning;
 } conf_t;
 
 static conf_t conf;
@@ -392,6 +394,7 @@ conf_read(void)
     conf.preferences_location_max_distance = conf_read_integer("preferences", "location_max_distance", CONF_DEFAULT_PREFERENCES_LOCATION_MAX_DISTANCE);
 
     conf.runtime_skip_verification = CONF_DEFAULT_RUNTIME_SKIP_VERIFICATION;
+    conf.runtime_skip_scanlist_warning = CONF_DEFAULT_RUNTIME_SKIP_SCANLIST_WARNING;
 
     if(!file_exists)
         conf_save();
@@ -1865,4 +1868,16 @@ void
 conf_set_runtime_skip_verification(gboolean value)
 {
     conf.runtime_skip_verification = value;
+}
+
+gboolean
+conf_get_runtime_skip_scanlist_warning(void)
+{
+    return conf.runtime_skip_scanlist_warning;
+}
+
+void
+conf_set_runtime_skip_scanlist_warning(gboolean value)
+{
+    conf.runtime_skip_scanlist_warning = value;
 }
