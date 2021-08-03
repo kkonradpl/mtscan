@@ -406,7 +406,8 @@ ui_gps(mtscan_gps_state_t       state,
 }
 
 void
-ui_connected(const gchar *login,
+ui_connected(const gchar *name,
+             const gchar *login,
              const gchar *host,
              const gchar *iface,
              const gchar *hwaddr)
@@ -419,10 +420,13 @@ ui_connected(const gchar *login,
 
     ui_toolbar_connect_set_state(TRUE);
 
-    if(conf_get_preferences_compact_status())
+    if(name && *name)
+        status_text = g_strdup_printf("%s", name);
+    else if(conf_get_preferences_compact_status())
         status_text = g_strdup_printf("%s", host);
     else
         status_text = g_strdup_printf("%s@%s/%s", login, host, iface);
+
     gtk_label_set_text(GTK_LABEL(ui.l_conn_status), status_text);
     g_free(status_text);
 

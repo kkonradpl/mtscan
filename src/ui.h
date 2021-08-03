@@ -99,7 +99,7 @@ extern mtscan_gtk_t ui;
 
 void ui_init(void);
 
-void ui_connected(const gchar*, const gchar*, const gchar*, const gchar*);
+void ui_connected(const gchar*, const gchar*, const gchar*, const gchar*, const gchar*);
 void ui_disconnected(void);
 void ui_changed(void);
 gboolean ui_can_discard_unsaved(void);

@@ -580,6 +580,7 @@ ui_connection_connect(GtkWidget *widget,
                       gpointer   user_data)
 {
     ui_connection_t *c = (ui_connection_t*)user_data;
+    gchar *name = NULL;
     const gchar *hostname = gtk_entry_get_text(GTK_ENTRY(c->e_host));
     gint port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(c->s_port));
     const gchar *login = gtk_entry_get_text(GTK_ENTRY(c->e_login));
@@ -592,6 +593,8 @@ ui_connection_connect(GtkWidget *widget,
     gint duration = (duration_enabled ? gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(c->s_duration)) : 0);
     mt_ssh_mode_t mode;
     gboolean skip_verification;
+    GtkTreeIter iter;
+    GtkTreeModel *model;
 
     if(ui.conn)
         return;
@@ -635,9 +638,14 @@ ui_connection_connect(GtkWidget *widget,
 
     skip_verification = conf_get_runtime_skip_verification();
 
+    model = gtk_combo_box_get_model(GTK_COMBO_BOX(c->c_profile));
+    if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(c->c_profile), &iter))
+        gtk_tree_model_get(model, &iter, CONF_PROFILE_COL_NAME, &name, -1);
+
     ui.conn = mt_ssh_new(callback_mt_ssh,
                          callback_mt_ssh_msg,
                          (c->reconnect_idle ? MT_SSH_MODE_NONE : mode),
+                         name,
                          hostname,
                          port,
                          login,
@@ -647,6 +655,8 @@ ui_connection_connect(GtkWidget *widget,
                          remote,
                          background,
                          skip_verification);
+
+    g_free(name);
 }
 
 static void

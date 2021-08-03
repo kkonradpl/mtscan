@@ -74,7 +74,8 @@ ui_callback_connected(const mt_ssh_t *context,
     if(ui.conn != context)
         return;
 
-    ui_connected(mt_ssh_get_login(context),
+    ui_connected(mt_ssh_get_name(context),
+                 mt_ssh_get_login(context),
                  mt_ssh_get_hostname(context),
                  mt_ssh_get_interface(context),
                  hwaddr);

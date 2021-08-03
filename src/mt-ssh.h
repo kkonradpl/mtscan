@@ -82,6 +82,7 @@ typedef enum mt_ssh_mode
 mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
                               void         (*cb_msg)(const mt_ssh_t*, mt_ssh_msg_type_t, gconstpointer),
                               mt_ssh_mode_t  mode_default,
+                              const gchar   *name,
                               const gchar   *hostname,
                               gint           port,
                               const gchar   *login,
@@ -94,6 +95,7 @@ mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const 
 void               mt_ssh_free(mt_ssh_t*);
 void               mt_ssh_cancel(mt_ssh_t*);
 void               mt_ssh_cmd(mt_ssh_t*, mt_ssh_cmd_type_t, const gchar*);
+const gchar*       mt_ssh_get_name(const mt_ssh_t*);
 const gchar*       mt_ssh_get_hostname(const mt_ssh_t*);
 const gchar*       mt_ssh_get_port(const mt_ssh_t*);
 const gchar*       mt_ssh_get_login(const mt_ssh_t*);

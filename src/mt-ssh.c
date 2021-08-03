@@ -119,6 +119,7 @@ typedef struct mt_ssh
 {
     /* Configuration */
     mt_ssh_mode_t mode_default;
+    gchar        *name;
     gchar        *hostname;
     gchar        *port;
     gchar        *login;
@@ -254,6 +255,7 @@ mt_ssh_t*
 mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
            void         (*cb_msg)(const mt_ssh_t*, mt_ssh_msg_type_t, gconstpointer),
            mt_ssh_mode_t  mode_default,
+           const gchar   *name,
            const gchar   *hostname,
            gint           port,
            const gchar   *login,
@@ -268,6 +270,7 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
     context = g_malloc0(sizeof(mt_ssh_t));
 
     /* Configuration */
+    context->name = g_strdup(name);
     context->hostname = g_strdup(hostname);
     context->port = g_strdup_printf("%d", port);
     context->login = g_strdup(login);
@@ -310,6 +313,7 @@ mt_ssh_free(mt_ssh_t *context)
     /* Configuration */
     if(context)
     {
+        g_free(context->name);
         g_free(context->hostname);
         g_free(context->port);
         g_free(context->login);
@@ -349,6 +353,12 @@ mt_ssh_cmd(mt_ssh_t          *context,
 {
     if(context)
         g_async_queue_push(context->queue, mt_ssh_cmd_new(type, g_strdup(data)));
+}
+
+const gchar*
+mt_ssh_get_name(const mt_ssh_t *context)
+{
+    return context->name;
 }
 
 const gchar*
