@@ -35,6 +35,7 @@ typedef struct mtscan_arg
     const gchar *output_file;
     gint auto_connect;
     gint tzsp_port;
+    const gchar *autosave_dir;
     gboolean batch_mode;
     gboolean skip_verification;
     gboolean skip_scanlist_warning;
@@ -49,6 +50,7 @@ static mtscan_arg_t args =
     .output_file = NULL,
     .auto_connect = 0,
     .tzsp_port = 0,
+    .autosave_dir = NULL,
     .batch_mode = FALSE,
     .skip_verification = FALSE,
     .skip_scanlist_warning = FALSE,
@@ -81,6 +83,7 @@ mtscan_usage(void)
     printf("  -o  output log file\n");
     printf("  -a  auto-connect to a given profile id\n");
     printf("  -t  override TZSP UDP port\n");
+    printf("  -d  override autosave directory and enable it\n");
     printf("  -b  headless batch mode, requires -o\n");
     printf("  -s  skip SSH key verification\n");
     printf("  -w  skip scan-list warning\n");
@@ -94,7 +97,7 @@ parse_args(gint   argc,
            gchar *argv[])
 {
     gint c;
-    while((c = getopt(argc, argv, "hc:o:a:t:bswSGA")) != -1)
+    while((c = getopt(argc, argv, "hc:o:a:t:d:bswSGA")) != -1)
     {
         switch(c)
         {
@@ -122,6 +125,10 @@ parse_args(gint   argc,
                 fprintf(stderr, "WARNING: Invalid TZSP UDP port given, using default.\n");
                 args.tzsp_port = 0;
             }
+            break;
+
+        case 'd':
+            args.autosave_dir = optarg;
             break;
 
         case 'b':
@@ -264,6 +271,17 @@ main(gint   argc,
         /* Load the configuration file */
         conf_init(args.config_path);
 
+        /* Override the TZSP UDP port, if given */
+        if(args.tzsp_port)
+            conf_set_preferences_tzsp_udp_port(args.tzsp_port);
+
+        /* Override the autosave directory, if given */
+        if(args.autosave_dir)
+        {
+            conf_set_interface_autosave(TRUE);
+            conf_set_path_autosave(args.autosave_dir);
+        }
+
         ui_init();
     }
 
@@ -286,10 +304,6 @@ main(gint   argc,
         }
         ui_log_save_full(args.output_file, args.strip_samples, args.strip_gps, args.strip_azi, NULL, TRUE);
     }
-
-    /* Override the TZSP UDP port, if given */
-    if(args.tzsp_port)
-        conf_set_preferences_tzsp_udp_port(args.tzsp_port);
 
     /* Skip SSH key verification */
     if(args.skip_verification)
