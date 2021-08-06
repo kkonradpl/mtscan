@@ -74,6 +74,7 @@ typedef struct ui_preferences
     GtkWidget *x_general_display_time_only;
     GtkWidget *x_general_compact_status;
     GtkWidget *x_general_reconnect;
+    GtkWidget *x_general_clip_invalid_signal;
 
     GtkWidget *page_view;
     GtkWidget *v_view;
@@ -95,16 +96,8 @@ typedef struct ui_preferences
 
     GtkWidget *page_tzsp;
     GtkWidget *table_tzsp;
-    GtkWidget *l_tzsp_mode;
-    GtkWidget *box_tzsp_mode;
-    GtkWidget *r_tzsp_mode_socket;
-    GtkWidget *r_tzsp_mode_pcap;
     GtkWidget *l_tzsp_udp_port;
     GtkWidget *s_tzsp_udp_port;
-    GtkWidget *box_tzsp_interface;
-    GtkWidget *l_tzsp_interface;
-    GtkWidget *e_tzsp_interface;
-    GtkWidget *b_tzsp_interface;
     GtkWidget *l_tzsp_channel_width;
     GtkWidget *s_tzsp_channel_width;
     GtkWidget *l_tzsp_channel_width_unit;
@@ -210,7 +203,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(11, 3, TRUE);
+    p.table_general = gtk_table_new(12, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
@@ -284,6 +277,10 @@ ui_preferences_dialog(void)
     row++;
     p.x_general_reconnect = gtk_check_button_new_with_label("Automatic reconnect");
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_reconnect, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_general_clip_invalid_signal = gtk_check_button_new_with_label("Clip invalid signal level (≤-100 dBm)");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_clip_invalid_signal, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     /* View */
     p.page_view = gtk_vbox_new(FALSE, 5);
@@ -454,7 +451,6 @@ ui_preferences_dialog(void)
     row++;
     p.x_gps_show_errors = gtk_check_button_new_with_label("Show error estimates");
     gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
 
     /* Blacklist */
     ui_preferences_list_create(&p.blacklist, p.notebook, "Blacklist", "Enable blacklist", "Invert to whitelist");
@@ -916,6 +912,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only), conf_get_preferences_display_time_only());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_compact_status), conf_get_preferences_compact_status());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_reconnect), conf_get_preferences_reconnect());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_clip_invalid_signal), conf_get_preferences_clip_invalid_signal());
 
     /* View */
     ui_preferences_load_view(p, conf_get_preferences_view_cols_order(), conf_get_preferences_view_cols_hidden());
@@ -1083,6 +1080,7 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_display_time_only(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_display_time_only)));
     conf_set_preferences_compact_status(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_compact_status)));
     conf_set_preferences_reconnect(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_reconnect)));
+    conf_set_preferences_clip_invalid_signal(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_clip_invalid_signal)));
 
     /* View */
     ui_preferences_apply_view(p);
@@ -1133,7 +1131,6 @@ ui_preferences_apply(GtkWidget *widget,
     }
     conf_set_preferences_gps_show_altitude(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_altitude)));
     conf_set_preferences_gps_show_errors(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_errors)));
-
 
     /* Blacklist */
     conf_set_preferences_blacklist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled)));

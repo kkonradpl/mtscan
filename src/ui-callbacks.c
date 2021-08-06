@@ -23,7 +23,6 @@
 #include "conf.h"
 #include "misc.h"
 #include "tzsp-receiver.h"
-#include "callbacks.h"
 
 static void ui_callback_network_real(network_t*);
 
@@ -171,6 +170,10 @@ ui_callback_network_real(network_t *net)
         net->latitude = gps_data->lat;
         net->longitude = gps_data->lon;
     }
+
+    if(conf_get_preferences_clip_invalid_signal())
+        if(net->rssi <= -100 && net->rssi != MODEL_NO_SIGNAL)
+            net->rssi = -99;
 
     mtscan_model_buffer_add(ui.model, net);
 }

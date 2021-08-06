@@ -115,6 +115,9 @@ void conf_set_preferences_compact_status(gboolean);
 gboolean conf_get_preferences_reconnect(void);
 void conf_set_preferences_reconnect(gboolean);
 
+gboolean conf_get_preferences_clip_invalid_signal(void);
+void conf_set_preferences_clip_invalid_signal(gboolean);
+
 const gchar* const* conf_get_preferences_view_cols_order(void);
 void conf_set_preferences_view_cols_order(const gchar* const*);
 
