@@ -70,10 +70,17 @@ void
 ui_callback_connected(const mt_ssh_t *context,
                       const gchar    *hwaddr)
 {
+    const gchar* name;
+
     if(ui.conn != context)
         return;
 
-    ui_connected(mt_ssh_get_name(context),
+    if(conf_get_preferences_show_identity())
+        name = mt_ssh_get_identity(context);
+    else
+        name = mt_ssh_get_name(context);
+
+    ui_connected(name,
                  mt_ssh_get_login(context),
                  mt_ssh_get_hostname(context),
                  mt_ssh_get_interface(context),

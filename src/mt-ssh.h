@@ -105,6 +105,8 @@ gint               mt_ssh_get_duration(const mt_ssh_t*);
 gboolean           mt_ssh_get_remote_mode(const mt_ssh_t*);
 gboolean           mt_ssh_get_background(const mt_ssh_t*);
 
+const gchar*       mt_ssh_get_identity(const mt_ssh_t*);
+
 mt_ssh_info_type_t mt_ssh_info_get_type(const mt_ssh_info_t*);
 const gchar*       mt_ssh_info_get_data(const mt_ssh_info_t*);
 

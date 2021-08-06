@@ -75,6 +75,7 @@ typedef struct ui_preferences
     GtkWidget *x_general_compact_status;
     GtkWidget *x_general_reconnect;
     GtkWidget *x_general_clip_invalid_signal;
+    GtkWidget *x_general_show_identity;
 
     GtkWidget *page_view;
     GtkWidget *v_view;
@@ -203,7 +204,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_general, gtk_label_new("General"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_general, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_general = gtk_table_new(12, 3, TRUE);
+    p.table_general = gtk_table_new(13, 3, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_general), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_general), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_general), 4);
@@ -281,6 +282,10 @@ ui_preferences_dialog(void)
     row++;
     p.x_general_clip_invalid_signal = gtk_check_button_new_with_label("Clip invalid signal level (≤-100 dBm)");
     gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_clip_invalid_signal, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_general_show_identity = gtk_check_button_new_with_label("Show device identity in statusbar");
+    gtk_table_attach(GTK_TABLE(p.table_general), p.x_general_show_identity, 0, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     /* View */
     p.page_view = gtk_vbox_new(FALSE, 5);
@@ -913,6 +918,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_compact_status), conf_get_preferences_compact_status());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_reconnect), conf_get_preferences_reconnect());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_clip_invalid_signal), conf_get_preferences_clip_invalid_signal());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_general_show_identity), conf_get_preferences_show_identity());
 
     /* View */
     ui_preferences_load_view(p, conf_get_preferences_view_cols_order(), conf_get_preferences_view_cols_hidden());
@@ -1081,6 +1087,7 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_compact_status(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_compact_status)));
     conf_set_preferences_reconnect(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_reconnect)));
     conf_set_preferences_clip_invalid_signal(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_clip_invalid_signal)));
+    conf_set_preferences_show_identity(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_general_show_identity)));
 
     /* View */
     ui_preferences_apply_view(p);

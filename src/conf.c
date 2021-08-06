@@ -71,6 +71,7 @@
 #define CONF_DEFAULT_PREFERENCES_COMPACT_STATUS         FALSE
 #define CONF_DEFAULT_PREFERENCES_RECONNECT              FALSE
 #define CONF_DEFAULT_PREFERENCES_CLIP_INVALID_SIGNAL    TRUE
+#define CONF_DEFAULT_PREFERENCES_SHOW_IDENTITY          FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
@@ -163,6 +164,7 @@ typedef struct conf
     gboolean  preferences_compact_status;
     gboolean  preferences_reconnect;
     gboolean  preferences_clip_invalid_signal;
+    gboolean  preferences_show_identity;
 
     gchar   **preferences_view_cols_order;
     gchar   **preferences_view_cols_hidden;
@@ -340,6 +342,7 @@ conf_read(void)
     conf.preferences_compact_status = conf_read_boolean("preferences", "compact_status", CONF_DEFAULT_PREFERENCES_COMPACT_STATUS);
     conf.preferences_reconnect = conf_read_boolean("preferences", "reconnect", CONF_DEFAULT_PREFERENCES_RECONNECT);
     conf.preferences_clip_invalid_signal = conf_read_boolean("preferences", "clip_invalid_signal", CONF_DEFAULT_PREFERENCES_CLIP_INVALID_SIGNAL);
+    conf.preferences_show_identity = conf_read_boolean("preferences", "show_identity", CONF_DEFAULT_PREFERENCES_SHOW_IDENTITY);
 
     conf.preferences_view_cols_order = conf_read_columns(conf.keyfile, "preferences", "view_cols_order");
     conf.preferences_view_cols_hidden = conf_read_string_list(conf.keyfile, "preferences", "view_cols_hidden", NULL);
@@ -674,6 +677,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "compact_status", conf.preferences_compact_status);
     g_key_file_set_boolean(conf.keyfile, "preferences", "reconnect", conf.preferences_reconnect);
     g_key_file_set_boolean(conf.keyfile, "preferences", "clip_invalid_signal", conf.preferences_clip_invalid_signal);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "show_identity", conf.preferences_show_identity);
 
     g_key_file_set_string_list(conf.keyfile, "preferences", "view_cols_order",
                                (const gchar * const *)conf.preferences_view_cols_order, g_strv_length(conf.preferences_view_cols_order));
@@ -1232,6 +1236,18 @@ void
 conf_set_preferences_clip_invalid_signal(gboolean value)
 {
     conf.preferences_clip_invalid_signal = value;
+}
+
+gboolean
+conf_get_preferences_show_identity(void)
+{
+    return conf.preferences_show_identity;
+}
+
+void
+conf_set_preferences_show_identity(gboolean value)
+{
+    conf.preferences_show_identity = value;
 }
 
 const gchar* const*

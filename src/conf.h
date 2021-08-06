@@ -118,6 +118,9 @@ void conf_set_preferences_reconnect(gboolean);
 gboolean conf_get_preferences_clip_invalid_signal(void);
 void conf_set_preferences_clip_invalid_signal(gboolean);
 
+gboolean conf_get_preferences_show_identity(void);
+void conf_set_preferences_show_identity(gboolean);
+
 const gchar* const* conf_get_preferences_view_cols_order(void);
 void conf_set_preferences_view_cols_order(const gchar* const*);
 

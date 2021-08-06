@@ -409,6 +409,12 @@ mt_ssh_get_background(const mt_ssh_t *context)
     return context->background;
 }
 
+const gchar*
+mt_ssh_get_identity(const mt_ssh_t *context)
+{
+    return context->identity;
+}
+
 static mt_ssh_cmd_t*
 mt_ssh_cmd_new(mt_ssh_cmd_type_t  type,
                gchar             *data)
