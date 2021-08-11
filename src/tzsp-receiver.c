@@ -79,7 +79,7 @@ static void
 tzsp_receiver_packet(const uint8_t *packet,
                      uint32_t       len,
                      const int8_t  *rssi,
-                     const uint8_t *channel,
+                     const uint8_t *tzsp_channel,
                      const uint8_t *sensor_mac,
                      gpointer       user_data)
 {
@@ -90,6 +90,7 @@ tzsp_receiver_packet(const uint8_t *packet,
     cambium_net_t *net_cambium = NULL;
     const uint8_t *src;
     tzsp_receiver_net_t *data;
+    gint channel = -1;
 
     /* Ignore pre-6.41 TZSP packets with no sensor address included */
     if(sensor_mac == NULL)
@@ -174,8 +175,60 @@ tzsp_receiver_packet(const uint8_t *packet,
             data->network->ubnt_mixed = ie_airmax_ac_is_mixed(net_80211->ie_airmax_ac);
         }
 
-        if(!data->network->frequency && channel)
-            data->network->frequency = (*channel * 5 + context->frequency_base) * 1000;
+        /* Network frequency based on TZSP channel on 5 GHz band */
+        if(!data->network->frequency &&
+           context->frequency_base == 5000 &&
+           tzsp_channel)
+        {
+            /* HACK! Workaround for 4.9 GHz */
+            if(net_80211->channel >= 160 && /* 4800 */
+               net_80211->channel <= 199 && /* 4995 */
+               *tzsp_channel >= 11 && /* 4800 */
+               *tzsp_channel <= 50 && /* 4995 */
+               (net_80211->channel - (int)*tzsp_channel) == (184 - 35))
+            {
+                /* Valid for Ubiquiti Airmax & Airmax AC (4920 - 4995 MHz) */
+                /* Not tested below 4920 MHz */
+                data->network->frequency = (4920 + ((net_80211->channel - 184) * 5)) * 1000;
+            }
+            else /* ≥ 5000 MHz */
+            {
+                data->network->frequency = (context->frequency_base + *tzsp_channel * 5) * 1000;
+            }
+        }
+
+        if(!data->network->frequency)
+        {
+            if(net_80211->channel >= 0)
+            {
+                /* Use channel from beacon tag for other bands (i.e. 2.4 GHz) due to DSSS channel overlap */
+                channel = net_80211->channel;
+            }
+            else if(tzsp_channel)
+            {
+                /* Fallback to TZSP channel, if beacon does not contain channel number */
+                channel = *tzsp_channel;
+            }
+
+            if(channel >= 0)
+            {
+                if(context->frequency_base == 2407 && channel >= 128)
+                {
+                    /* Sub 2.4 GHz (negative unsigned 8-bit value, i.e. ≥ 128) */
+                    data->network->frequency = (context->frequency_base - (256 - channel) * 5) * 1000;
+                }
+                else if(context->frequency_base == 2407 && channel == 14)
+                {
+                    /* Special case for channel 14 */
+                    data->network->frequency = 2484 * 1000;
+                }
+                else
+                {
+                    /* Regular channel */
+                    data->network->frequency = (context->frequency_base + channel * 5) * 1000;
+                }
+            }
+        }
 
         if(!data->network->ssid)
             data->network->ssid = g_strdup(net_80211->ssid);
@@ -272,8 +325,8 @@ tzsp_receiver_packet(const uint8_t *packet,
 
         if(cambium_net_get_frequency(net_cambium))
             data->network->frequency = cambium_net_get_frequency(net_cambium) * 1000;
-        else if(channel)
-            data->network->frequency = (*channel * 5 + context->frequency_base) * 1000;
+        else if(tzsp_channel)
+            data->network->frequency = (*tzsp_channel * 5 + context->frequency_base) * 1000;
 
         cambium_net_free(net_cambium);
     }

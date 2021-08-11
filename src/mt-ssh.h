@@ -54,6 +54,8 @@ typedef enum mt_ssh_info_type
     MT_SSH_INFO_CONNECTED,
     MT_SSH_INFO_IDENTITY,
     MT_SSH_INFO_INTERFACE,
+    MT_SSH_INFO_BAND,
+    MT_SSH_INFO_CHANNEL_WIDTH,
     MT_SSH_INFO_SCANLIST,
     MT_SSH_INFO_FAILURE,
     MT_SSH_INFO_HEARTBEAT,
@@ -78,6 +80,13 @@ typedef enum mt_ssh_mode
     MT_SSH_MODE_SCANNER,
     MT_SSH_MODE_SNIFFER
 } mt_ssh_mode_t;
+
+typedef enum mt_ssh_band
+{
+    MT_SSH_BAND_UNKNOWN,
+    MT_SSH_BAND_2GHZ,
+    MT_SSH_BAND_5GHZ
+} mt_ssh_band_t;
 
 mt_ssh_t*          mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
                               void         (*cb_msg)(const mt_ssh_t*, mt_ssh_msg_type_t, gconstpointer),
@@ -106,6 +115,9 @@ gboolean           mt_ssh_get_remote_mode(const mt_ssh_t*);
 gboolean           mt_ssh_get_background(const mt_ssh_t*);
 
 const gchar*       mt_ssh_get_identity(const mt_ssh_t*);
+gint64             mt_ssh_get_hwaddr(const mt_ssh_t*);
+mt_ssh_band_t      mt_ssh_get_band(const mt_ssh_t*);
+gint               mt_ssh_get_channel_width(const mt_ssh_t*);
 
 mt_ssh_info_type_t mt_ssh_info_get_type(const mt_ssh_info_t*);
 const gchar*       mt_ssh_info_get_data(const mt_ssh_info_t*);

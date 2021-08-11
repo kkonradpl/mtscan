@@ -295,6 +295,12 @@ ui_scanlist_show(ui_scanlist_t *s)
         gtk_window_set_position(GTK_WINDOW(s->window), GTK_WIN_POS_CENTER_ON_PARENT);
 
         gtk_widget_show_all(s->window);
+
+        if(ui.band == MTSCAN_BAND_2GHZ)
+            s->default_page = UI_SCANLIST_PAGE_2_GHZ;
+        else if(ui.band == MTSCAN_BAND_5GHZ)
+            s->default_page = UI_SCANLIST_PAGE_5_GHZ;
+
         gtk_notebook_set_current_page(GTK_NOTEBOOK(s->notebook), s->default_page);
 
         /* Scan-list window is now centered over parent, don't stay on top anymore */

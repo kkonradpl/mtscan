@@ -79,8 +79,6 @@
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
 #define CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK     FALSE
 #define CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT          0x9090
-#define CONF_DEFAULT_PREFERENCES_TZSP_CHANNEL_WIDTH     20
-#define CONF_DEFAULT_PREFERENCES_TZSP_BAND              MTSCAN_CONF_TZSP_BAND_5GHZ
 #define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
 #define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
 #define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE      TRUE
@@ -178,9 +176,7 @@ typedef struct conf
     gboolean  preferences_events_new_network;
     gchar    *preferences_events_new_network_exec;
 
-    gint                     preferences_tzsp_udp_port;
-    gint                     preferences_tzsp_channel_width;
-    mtscan_conf_tzsp_band_t  preferences_tzsp_band;
+    gint      preferences_tzsp_udp_port;
 
     gchar    *preferences_gps_hostname;
     gint      preferences_gps_tcp_port;
@@ -357,8 +353,6 @@ conf_read(void)
     conf.preferences_events_new_network_exec = conf_read_string("preferences", "events_new_network_exec", "");
 
     conf.preferences_tzsp_udp_port = conf_read_integer("preferences", "tzsp_udp_port", CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT);
-    conf.preferences_tzsp_channel_width = conf_read_integer("preferences", "tzsp_channel_width", CONF_DEFAULT_PREFERENCES_TZSP_CHANNEL_WIDTH);
-    conf.preferences_tzsp_band = (mtscan_conf_tzsp_band_t)conf_read_integer("preferences", "tzsp_band", CONF_DEFAULT_PREFERENCES_TZSP_BAND);
 
     conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
     conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
@@ -694,8 +688,6 @@ conf_save(void)
     g_key_file_set_string(conf.keyfile, "preferences", "events_new_network_exec", conf.preferences_events_new_network_exec);
 
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_udp_port", conf.preferences_tzsp_udp_port);
-    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_channel_width", conf.preferences_tzsp_channel_width);
-    g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_band", conf.preferences_tzsp_band);
 
     g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
@@ -1370,30 +1362,6 @@ void
 conf_set_preferences_tzsp_udp_port(gint value)
 {
     conf.preferences_tzsp_udp_port = value;
-}
-
-gint
-conf_get_preferences_tzsp_channel_width(void)
-{
-    return conf.preferences_tzsp_channel_width;
-}
-
-void
-conf_set_preferences_tzsp_channel_width(gint value)
-{
-    conf.preferences_tzsp_channel_width = value;
-}
-
-mtscan_conf_tzsp_band_t
-conf_get_preferences_tzsp_band(void)
-{
-    return conf.preferences_tzsp_band;
-}
-
-void
-conf_set_preferences_tzsp_band(mtscan_conf_tzsp_band_t value)
-{
-    conf.preferences_tzsp_band = value;
 }
 
 const gchar*

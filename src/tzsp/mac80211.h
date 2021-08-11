@@ -33,6 +33,7 @@ typedef struct mac80211_net
     int source;
     char *ssid;
     char *radioname;
+    int channel;
     uint16_t caps;
     uint8_t dsss_rates;
     uint8_t ofdm_rates;

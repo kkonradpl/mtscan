@@ -18,12 +18,6 @@
 #include <gtk/gtk.h>
 #include "conf-profile.h"
 
-typedef enum mtscan_conf_tzsp_band
-{
-    MTSCAN_CONF_TZSP_BAND_2GHZ,
-    MTSCAN_CONF_TZSP_BAND_5GHZ
-} mtscan_conf_tzsp_band_t;
-
 /* Configuration reading & writing */
 void conf_init(const gchar*);
 void conf_save(void);
@@ -150,12 +144,6 @@ void conf_set_preferences_events_new_network_exec(const gchar*);
 
 gint conf_get_preferences_tzsp_udp_port(void);
 void conf_set_preferences_tzsp_udp_port(gint);
-
-gint conf_get_preferences_tzsp_channel_width(void);
-void conf_set_preferences_tzsp_channel_width(gint);
-
-mtscan_conf_tzsp_band_t conf_get_preferences_tzsp_band(void);
-void conf_set_preferences_tzsp_band(mtscan_conf_tzsp_band_t);
 
 const gchar* conf_get_preferences_gps_hostname(void);
 void conf_set_preferences_gps_hostname(const gchar*);

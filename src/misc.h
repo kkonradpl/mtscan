@@ -31,7 +31,7 @@ gchar** create_strv_from_liststore(GtkListStore*);
 gboolean strv_equal(const gchar* const*, const gchar* const*);
 
 gint64 str_addr_to_gint64(const gchar*, gint);
-gboolean str_addr_to_guint8(const gchar*, gint, guint8*);
+gboolean addr_to_guint8(gint64, guint8*);
 
 void mtscan_sound(const gchar*);
 gboolean mtscan_exec(const gchar*, guint, ...);

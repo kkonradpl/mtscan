@@ -410,13 +410,17 @@ ui_connected(const gchar *name,
              const gchar *login,
              const gchar *host,
              const gchar *iface,
-             const gchar *hwaddr)
+             gint64       hwaddr,
+             gint         band,
+             gint         channel_width)
 {
     gchar *status_text;
 
     ui.connected = TRUE;
     ui.active = FALSE;
-    ui.hwaddr = g_strdup(hwaddr);
+    ui.hwaddr = hwaddr;
+    ui.band = band;
+    ui.channel_width = channel_width;
 
     ui_toolbar_connect_set_state(TRUE);
 
@@ -440,9 +444,9 @@ ui_disconnected(void)
     ui.mode = MTSCAN_MODE_NONE;
     ui.active = FALSE;
     ui.conn = NULL;
-
-    g_free(ui.hwaddr);
-    ui.hwaddr = NULL;
+    ui.hwaddr = -1;
+    ui.band = MT_SSH_BAND_UNKNOWN;
+    ui.channel_width = 0;
 
     ui_toolbar_connect_set_state(FALSE);
     ui_toolbar_scan_set_state(FALSE);
@@ -675,7 +679,6 @@ void
 ui_tzsp(void)
 {
     gint frequency_base;
-    gint channel_width;
     guint8 tzsp_hwaddr[6];
 
     if(ui.mode != MTSCAN_MODE_SNIFFER)
@@ -685,21 +688,25 @@ ui_tzsp(void)
     ui_tzsp_destroy();
 
     /* Make sure that sensor address is available */
-    if(!ui.hwaddr ||
-       !str_addr_to_guint8(ui.hwaddr, (gint)strlen(ui.hwaddr), tzsp_hwaddr))
+    if(!addr_to_guint8(ui.hwaddr, tzsp_hwaddr))
     {
         ui_dialog(NULL, GTK_MESSAGE_WARNING, "Error", "<b>Failed to create tzsp-receiver</b>\n\nSensor address is unavailable.");
         return;
     }
 
-    /* Read configuration */
-    channel_width = conf_get_preferences_tzsp_channel_width();
-    frequency_base = (conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_2GHZ) ? 2407 : 5000;
-
+    if(ui.band == MTSCAN_BAND_2GHZ)
+        frequency_base = 2407;
+    else if(ui.band == MTSCAN_BAND_5GHZ)
+        frequency_base = 5000;
+    else
+    {
+        ui_dialog(NULL, GTK_MESSAGE_WARNING, "Error", "<b>Failed to create tzsp-receiver</b>\n\nFrequency band is unknown.");
+        return;
+    }
 
     ui.tzsp_rx = tzsp_receiver_new((guint16)conf_get_preferences_tzsp_udp_port(),
                                    tzsp_hwaddr,
-                                   channel_width,
+                                   ui.channel_width,
                                    frequency_base,
                                    ui_callback_tzsp,
                                    ui_callback_tzsp_network);

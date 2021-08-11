@@ -99,13 +99,6 @@ typedef struct ui_preferences
     GtkWidget *table_tzsp;
     GtkWidget *l_tzsp_udp_port;
     GtkWidget *s_tzsp_udp_port;
-    GtkWidget *l_tzsp_channel_width;
-    GtkWidget *s_tzsp_channel_width;
-    GtkWidget *l_tzsp_channel_width_unit;
-    GtkWidget *l_tzsp_band;
-    GtkWidget *box_tzsp_band;
-    GtkWidget *r_tzsp_band_2g;
-    GtkWidget *r_tzsp_band_5g;
     GtkWidget *box_tzsp_info;
     GtkWidget *i_tzsp_info;
     GtkWidget *l_tzsp_info;
@@ -118,6 +111,7 @@ typedef struct ui_preferences
     GtkWidget *s_gps_tcp_port;
     GtkWidget *x_gps_show_altitude;
     GtkWidget *x_gps_show_errors;
+
 
     ui_preferences_list_t blacklist;
     ui_preferences_list_t highlightlist;
@@ -381,7 +375,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_tzsp, gtk_label_new("TZSP"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_tzsp, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_tzsp = gtk_table_new(5, 3, TRUE);
+    p.table_tzsp = gtk_table_new(5, 1, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_tzsp), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_tzsp), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_tzsp), 4);
@@ -393,26 +387,6 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_udp_port, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
     p.s_tzsp_udp_port = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 1024.0, 65535.0, 1.0, 10.0, 0.0)), 0, 0);
     gtk_table_attach(GTK_TABLE(p.table_tzsp), p.s_tzsp_udp_port, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
-    p.l_tzsp_channel_width = gtk_label_new("Channel width:");
-    gtk_misc_set_alignment(GTK_MISC(p.l_tzsp_channel_width), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_channel_width, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.s_tzsp_channel_width = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 5.0, 80.0, 5.0, 10.0, 0.0)), 0, 0);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.s_tzsp_channel_width, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.l_tzsp_channel_width_unit = gtk_label_new("MHz");
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_channel_width_unit, 2, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-
-    row++;
-    p.l_tzsp_band = gtk_label_new("Frequency band:");
-    gtk_misc_set_alignment(GTK_MISC(p.l_tzsp_band), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.l_tzsp_band, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.box_tzsp_band = gtk_hbox_new(FALSE, 6);
-    p.r_tzsp_band_2g = gtk_radio_button_new_with_label(NULL, "2.4 GHz");
-    gtk_box_pack_start(GTK_BOX(p.box_tzsp_band), p.r_tzsp_band_2g, FALSE, FALSE, 0);
-    p.r_tzsp_band_5g = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(p.r_tzsp_band_2g), "5 GHz");
-    gtk_box_pack_start(GTK_BOX(p.box_tzsp_band), p.r_tzsp_band_5g, FALSE, FALSE, 0);
-    gtk_table_attach(GTK_TABLE(p.table_tzsp), p.box_tzsp_band, 1, 3, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     p.box_tzsp_info = gtk_hbox_new(FALSE, 5);
     p.i_tzsp_info = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_MENU);
@@ -937,9 +911,6 @@ ui_preferences_load(ui_preferences_t *p)
 
     /* TZSP */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_tzsp_udp_port), conf_get_preferences_tzsp_udp_port());
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_tzsp_channel_width), conf_get_preferences_tzsp_channel_width());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_band_2g), conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_2GHZ);
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_tzsp_band_5g), conf_get_preferences_tzsp_band() == MTSCAN_CONF_TZSP_BAND_5GHZ);
 
     /* GPS */
     gtk_entry_set_text(GTK_ENTRY(p->e_gps_hostname), conf_get_preferences_gps_hostname());
@@ -1031,8 +1002,6 @@ ui_preferences_apply(GtkWidget *widget,
     gboolean new_no_style_override;
     gchar *new_network_exec;
     gint new_tzsp_udp_port;
-    gint new_tzsp_channel_width;
-    mtscan_conf_tzsp_band_t new_tzsp_band;
     const gchar *new_gps_hostname;
     gint new_gps_tcp_port;
     gchar *ext_path;
@@ -1107,20 +1076,14 @@ ui_preferences_apply(GtkWidget *widget,
 
     /* TZSP */
     new_tzsp_udp_port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_tzsp_udp_port));
-    new_tzsp_channel_width = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_tzsp_channel_width));
-    new_tzsp_band = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->r_tzsp_band_2g)) ? MTSCAN_CONF_TZSP_BAND_2GHZ : MTSCAN_CONF_TZSP_BAND_5GHZ;
 
     if(ui.tzsp_rx &&
-        ((conf_get_preferences_tzsp_udp_port() != new_tzsp_udp_port) ||
-        (conf_get_preferences_tzsp_channel_width() != new_tzsp_channel_width) ||
-        (conf_get_preferences_tzsp_band() != new_tzsp_band)))
+       ((conf_get_preferences_tzsp_udp_port() != new_tzsp_udp_port)))
     {
         /* TODO */
     }
 
     conf_set_preferences_tzsp_udp_port(new_tzsp_udp_port);
-    conf_set_preferences_tzsp_channel_width(new_tzsp_channel_width);
-    conf_set_preferences_tzsp_band(new_tzsp_band);
 
     /* GPS */
     new_gps_hostname = gtk_entry_get_text(GTK_ENTRY(p->e_gps_hostname));

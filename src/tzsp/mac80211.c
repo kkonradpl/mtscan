@@ -46,6 +46,7 @@
 #define MAC80211_MGMT_TAG_VHT_INFO  0xC0
 #define MAC80211_MGMT_TAG_VENDOR_IE 0xDD
 
+#define MAC80211_MGMT_TAG_CHANNEL_LEN    1
 #define MAC80211_MGMT_TAG_HT_CAPS_LEN   26
 #define MAC80211_MGMT_TAG_HT_INFO_LEN   22
 #define MAC80211_MGMT_TAG_CISCO_MIN_LEN 26
@@ -115,6 +116,7 @@ mac80211_network(const uint8_t  *data,
 
     net = calloc(sizeof(mac80211_net_t), 1);
     net->source = frame;
+    net->channel = -1;
 
     mac80211_process(net, data, len);
     return net;
@@ -200,7 +202,7 @@ mac80211_process_tag(mac80211_net_t *context,
     }
     else if((type == MAC80211_MGMT_TAG_RATES ||
              type == MAC80211_MGMT_TAG_RATES_EXT) &&
-            len)
+             len)
     {
         int i;
         for(i=0;i<len;i++)
@@ -231,6 +233,11 @@ mac80211_process_tag(mac80211_net_t *context,
             else if(rate == MAC80211_OFDM_RATE_54M)
                 context->ofdm_rates |= INTERNAL_OFDM_RATE_54M;
         }
+    }
+    else if(type == MAC80211_MGMT_TAG_CHANNEL &&
+            len == MAC80211_MGMT_TAG_CHANNEL_LEN)
+    {
+        context->channel = data[0];
     }
     else if(type == MAC80211_MGMT_TAG_HT_CAPS &&
             len == MAC80211_MGMT_TAG_HT_CAPS_LEN)

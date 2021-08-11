@@ -67,8 +67,7 @@ ui_callback_verify(const mt_ssh_t *context,
 }
 
 void
-ui_callback_connected(const mt_ssh_t *context,
-                      const gchar    *hwaddr)
+ui_callback_connected(const mt_ssh_t *context)
 {
     const gchar* name;
 
@@ -84,7 +83,9 @@ ui_callback_connected(const mt_ssh_t *context,
                  mt_ssh_get_login(context),
                  mt_ssh_get_hostname(context),
                  mt_ssh_get_interface(context),
-                 hwaddr);
+                 mt_ssh_get_hwaddr(context),
+                 mt_ssh_get_band(context),
+                 mt_ssh_get_channel_width(context));
 
     if(ui.conn_dialog)
         ui_connection_connected(ui.conn_dialog);

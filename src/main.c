@@ -77,7 +77,7 @@ static void
 mtscan_usage(void)
 {
     printf("mtscan " APP_VERSION " - MikroTik RouterOS wireless scanner\n");
-    printf("usage: mtscan [-c config] [-o log] [-a profile] [-t port] [-b] [-s] [-w] [-S] [-A] [-G] logs...\n");
+    printf("usage: mtscan [-c config] [-o log] [-a id] [-t port] [-d dir] [-b] [-s] [-w] [-S] [-A] [-G] logs...\n");
     printf("options:\n");
     printf("  -c  configuration file\n");
     printf("  -o  output log file\n");

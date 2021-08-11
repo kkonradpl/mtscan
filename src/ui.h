@@ -32,6 +32,13 @@ enum
     MTSCAN_MODE_SNIFFER
 };
 
+enum
+{
+    MTSCAN_BAND_UNKNOWN,
+    MTSCAN_BAND_2GHZ,
+    MTSCAN_BAND_5GHZ
+};
+
 typedef struct mtscan_gtk
 {
     GtkWidget *window;
@@ -82,8 +89,10 @@ typedef struct mtscan_gtk
     ui_scanlist_t *scanlist;
 
     mt_ssh_t *conn;
+    gint64 hwaddr;
     gint mode;
-    gchar *hwaddr;
+    gint band;
+    gint channel_width;
     gboolean connected;
     gboolean active;
     tzsp_receiver_t *tzsp_rx;
@@ -99,7 +108,7 @@ extern mtscan_gtk_t ui;
 
 void ui_init(void);
 
-void ui_connected(const gchar*, const gchar*, const gchar*, const gchar*, const gchar*);
+void ui_connected(const gchar*, const gchar*, const gchar*, const gchar*, gint64, gint, gint);
 void ui_disconnected(void);
 void ui_changed(void);
 gboolean ui_can_discard_unsaved(void);

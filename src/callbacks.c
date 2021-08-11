@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2021  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -130,7 +130,11 @@ callback_mt_ssh_info(const mt_ssh_t      *context,
             break;
 
         case MT_SSH_INFO_INTERFACE:
-            ui_callback_connected(context, data);
+        case MT_SSH_INFO_BAND:
+            break;
+
+        case MT_SSH_INFO_CHANNEL_WIDTH:
+            ui_callback_connected(context);
             break;
 
         case MT_SSH_INFO_SCANLIST:
