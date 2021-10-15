@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2021  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -35,6 +35,8 @@ static void ui_view_menu_blacklist(GtkWidget*, gpointer);
 static void ui_view_menu_unblacklist(GtkWidget*, gpointer);
 static void ui_view_menu_highlight(GtkWidget*, gpointer);
 static void ui_view_menu_dehighlight(GtkWidget*, gpointer);
+static void ui_view_menu_warning_set(GtkWidget*, gpointer);
+static void ui_view_menu_warning_unset(GtkWidget*, gpointer);
 static void ui_view_menu_alarm_set(GtkWidget*, gpointer);
 static void ui_view_menu_alarm_unset(GtkWidget*, gpointer);
 static void ui_view_menu_list(GtkTreeView*, gint);
@@ -43,14 +45,16 @@ static void ui_view_menu_remove(GtkWidget*, gpointer);
 
 enum
 {
-    FLAG_BLACKLIST   = (1 << 0),
-    FLAG_UNBLACKLIST = (1 << 1),
-    FLAG_HIGHLIGHT   = (1 << 2),
-    FLAG_DEHIGHLIGHT = (1 << 3),
-    FLAG_ALARM_SET   = (1 << 4),
-    FLAG_ALARM_UNSET = (1 << 5),
-    FLAG_POSITION    = (1 << 6),
-    FLAG_GEOLOC      = (1 << 7)
+    FLAG_BLACKLIST     = (1 << 0),
+    FLAG_UNBLACKLIST   = (1 << 1),
+    FLAG_HIGHLIGHT     = (1 << 2),
+    FLAG_DEHIGHLIGHT   = (1 << 3),
+    FLAG_WARNING_SET   = (1 << 4),
+    FLAG_WARNING_UNSET = (1 << 5),
+    FLAG_ALARM_SET     = (1 << 6),
+    FLAG_ALARM_UNSET   = (1 << 7),
+    FLAG_POSITION      = (1 << 8),
+    FLAG_GEOLOC        = (1 << 9)
 };
 
 void
@@ -90,6 +94,9 @@ ui_view_menu(GtkWidget      *treeview,
         if(conf_get_preferences_highlightlist_enabled() && !conf_get_preferences_highlightlist_external())
             flags |= conf_get_preferences_highlightlist(address) ? FLAG_DEHIGHLIGHT : FLAG_HIGHLIGHT;
 
+        if(conf_get_preferences_warninglist_enabled() && !conf_get_preferences_warninglist_external())
+            flags |= conf_get_preferences_warninglist(address) ? FLAG_WARNING_UNSET : FLAG_WARNING_SET;
+
         if(conf_get_preferences_alarmlist_enabled() && !conf_get_preferences_alarmlist_external())
             flags |= conf_get_preferences_alarmlist(address) ? FLAG_ALARM_UNSET : FLAG_ALARM_SET;
 
@@ -108,6 +115,9 @@ ui_view_menu(GtkWidget      *treeview,
 
         if(conf_get_preferences_highlightlist_enabled() && !conf_get_preferences_highlightlist_external())
             flags |= FLAG_HIGHLIGHT | FLAG_DEHIGHLIGHT;
+
+        if(conf_get_preferences_warninglist_enabled() && !conf_get_preferences_warninglist_external())
+            flags |= FLAG_WARNING_SET | FLAG_WARNING_UNSET;
 
         if(conf_get_preferences_alarmlist_enabled() && !conf_get_preferences_alarmlist_external())
             flags |= FLAG_ALARM_SET | FLAG_ALARM_UNSET;
@@ -140,6 +150,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     GtkWidget *item_scanlist;
     GtkWidget *item_blacklist, *item_unblacklist;
     GtkWidget *item_highlight, *item_dehighlight;
+    GtkWidget *item_warning_set, *item_warning_unset;
     GtkWidget *item_alarm_set, *item_alarm_unset;
     GtkWidget *item_save_as;
     GtkWidget *item_remove;
@@ -253,6 +264,23 @@ ui_view_menu_create(GtkTreeView *treeview,
         gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_dehighlight), gtk_image_new_from_stock(GTK_STOCK_NO, GTK_ICON_SIZE_MENU));
         g_signal_connect(item_dehighlight, "activate", (GCallback)ui_view_menu_dehighlight, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_dehighlight);
+    }
+
+    /* Add or remove from warning list */
+    if(flags & FLAG_WARNING_SET)
+    {
+        item_warning_set = gtk_image_menu_item_new_with_label("Set warning");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_warning_set), gtk_image_new_from_stock(GTK_STOCK_YES, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_warning_set, "activate", (GCallback)ui_view_menu_warning_set, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_warning_set);
+    }
+
+    if(flags & FLAG_WARNING_UNSET)
+    {
+        item_warning_unset = gtk_image_menu_item_new_with_label("Unset warning");
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_warning_unset), gtk_image_new_from_stock(GTK_STOCK_NO, GTK_ICON_SIZE_MENU));
+        g_signal_connect(item_warning_unset, "activate", (GCallback)ui_view_menu_warning_unset, treeview);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_warning_unset);
     }
 
     /* Add or remove from alarm list */
@@ -521,6 +549,23 @@ ui_view_menu_dehighlight(GtkWidget *menuitem,
 }
 
 static void
+ui_view_menu_warning_set(GtkWidget *menuitem,
+                         gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, FLAG_WARNING_SET);
+}
+
+static void
+ui_view_menu_warning_unset(GtkWidget *menuitem,
+                         gpointer   user_data)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(user_data);
+    ui_view_menu_list(treeview, FLAG_WARNING_UNSET);
+}
+
+
+static void
 ui_view_menu_alarm_set(GtkWidget *menuitem,
                        gpointer   user_data)
 {
@@ -550,9 +595,9 @@ ui_view_menu_list(GtkTreeView *treeview,
     if(!list)
         return;
 
-    if(g_list_length(list) == 1)
+    for(i = list; i; i = i->next)
     {
-        gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
+        gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
         gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
 
         if(mode == FLAG_BLACKLIST)
@@ -563,31 +608,14 @@ ui_view_menu_list(GtkTreeView *treeview,
             conf_set_preferences_highlightlist(address);
         else if(mode == FLAG_DEHIGHLIGHT)
             conf_del_preferences_highlightlist(address);
+        else if(mode == FLAG_WARNING_SET)
+            conf_set_preferences_warninglist(address);
+        else if(mode == FLAG_WARNING_UNSET)
+            conf_del_preferences_warninglist(address);
         else if(mode == FLAG_ALARM_SET)
             conf_set_preferences_alarmlist(address);
         else if(mode == FLAG_ALARM_UNSET)
             conf_del_preferences_alarmlist(address);
-    }
-    else
-    {
-        for(i = list; i; i = i->next)
-        {
-            gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
-            gtk_tree_model_get(model, &iter, COL_ADDRESS, &address, -1);
-
-            if(mode == FLAG_BLACKLIST)
-                conf_set_preferences_blacklist(address);
-            else if(mode == FLAG_UNBLACKLIST)
-                conf_del_preferences_blacklist(address);
-            else if(mode == FLAG_HIGHLIGHT)
-                conf_set_preferences_highlightlist(address);
-            else if(mode == FLAG_DEHIGHLIGHT)
-                conf_del_preferences_highlightlist(address);
-            else if(mode == FLAG_ALARM_SET)
-                conf_set_preferences_alarmlist(address);
-            else if(mode == FLAG_ALARM_UNSET)
-                conf_del_preferences_alarmlist(address);
-        }
     }
 
     g_list_foreach(list, (GFunc)gtk_tree_path_free, NULL);

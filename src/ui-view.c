@@ -635,6 +635,8 @@ ui_view_format_background(GtkTreeViewColumn *col,
                                             { 0, 0x8800, 0xeb00, 0x8800 }, { 0, 0x3100, 0x5e00, 0x3100 }};
     static const GdkColor c_highlight[4] = {{ 0, 0xff00, 0xff00, 0xd400 }, { 0, 0x3300, 0x3300, 0x1900 },
                                             { 0, 0xf000, 0xf000, 0xc500 }, { 0, 0x4700, 0x4700, 0x2b00 }};
+    static const GdkColor c_warning[4]   = {{ 0, 0xff00, 0xea00, 0xd400 }, { 0, 0x4d00, 0x3700, 0x2200 },
+                                            { 0, 0xf000, 0xdb00, 0xc500 }, { 0, 0x5e00, 0x4700, 0x3100 }};
     static const GdkColor c_alarm[4]     = {{ 0, 0xff00, 0xd400, 0xd400 }, { 0, 0x4d00, 0x2200, 0x2200 },
                                             { 0, 0xf000, 0xc500, 0xc500 }, { 0, 0x5e00, 0x3100, 0x3100 }};
     gint col_id, col_sorted, id;
@@ -655,6 +657,11 @@ ui_view_format_background(GtkTreeViewColumn *col,
             conf_get_preferences_alarmlist(address))
     {
         ptr = (col_id == col_sorted ? &c_alarm[id+2] : &c_alarm[id]);
+    }
+    else if(conf_get_preferences_warninglist_enabled() &&
+            conf_get_preferences_warninglist(address))
+    {
+        ptr = (col_id == col_sorted ? &c_warning[id+2] : &c_warning[id]);
     }
     else if(conf_get_preferences_highlightlist_enabled() &&
             conf_get_preferences_highlightlist(address))

@@ -29,11 +29,12 @@
 #define APP_SOUND_DIR "/usr/share/sounds/mtscan"
 #endif
 
-#define APP_SOUND_NETWORK  "network.wav"
-#define APP_SOUND_NETWORK2 "network2.wav"
-#define APP_SOUND_NETWORK3 "network3.wav"
-#define APP_SOUND_GPSLOST  "gpslost.wav"
-#define APP_SOUND_NODATA   "nodata.wav"
+#define APP_SOUND_NETWORK_NORMAL    "network.wav"
+#define APP_SOUND_NETWORK_HIGHLIGHT "network-highlight.wav"
+#define APP_SOUND_NETWORK_WARNING   "network-warning.wav"
+#define APP_SOUND_NETWORK_ALARM     "network-alarm.wav"
+#define APP_SOUND_GPSLOST           "gpslost.wav"
+#define APP_SOUND_NODATA            "nodata.wav"
 
 #define APP_LICENCE \
 "This program is free software; you can redistribute it and/or\n" \

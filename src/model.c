@@ -35,6 +35,7 @@ enum
     MODEL_NETWORK_UPDATE,
     MODEL_NETWORK_NEW,
     MODEL_NETWORK_NEW_HIGHLIGHT,
+    MODEL_NETWORK_NEW_WARNING,
     MODEL_NETWORK_NEW_ALARM
 };
 
@@ -434,6 +435,8 @@ mtscan_model_buffer_and_inactive_update(mtscan_model_t *model)
             status = model_update_network(model, net);
             if(status == MODEL_NETWORK_NEW_ALARM)
                 state |= MODEL_UPDATE_NEW_ALARM;
+            else if(status == MODEL_NETWORK_NEW_WARNING)
+                state |= MODEL_UPDATE_NEW_WARNING;
             else if(status == MODEL_NETWORK_NEW_HIGHLIGHT)
                 state |= MODEL_UPDATE_NEW_HIGHLIGHT;
             else if(status == MODEL_NETWORK_NEW)
@@ -640,6 +643,8 @@ model_update_network(mtscan_model_t *model,
 
         if(conf_get_preferences_alarmlist_enabled() && conf_get_preferences_alarmlist(*address))
             new_network_found = MODEL_NETWORK_NEW_ALARM;
+        else if(conf_get_preferences_warninglist_enabled() && conf_get_preferences_warninglist(*address))
+            new_network_found = MODEL_NETWORK_NEW_WARNING;
         else if(conf_get_preferences_highlightlist_enabled() && conf_get_preferences_highlightlist(*address))
             new_network_found = MODEL_NETWORK_NEW_HIGHLIGHT;
         else
@@ -649,6 +654,8 @@ model_update_network(mtscan_model_t *model,
         {
             if(new_network_found == MODEL_NETWORK_NEW_ALARM)
                 type = "ALARM";
+            else if(new_network_found == MODEL_NETWORK_NEW_WARNING)
+                type = "WARNING";
             else if(new_network_found == MODEL_NETWORK_NEW_HIGHLIGHT)
                 type = "HIGHLIGHT";
             else

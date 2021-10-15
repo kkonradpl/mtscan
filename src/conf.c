@@ -74,6 +74,7 @@
 #define CONF_DEFAULT_PREFERENCES_SHOW_IDENTITY          FALSE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_WA  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
@@ -94,6 +95,8 @@
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_ENABLED  FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_INVERTED FALSE
 #define CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_EXTERNAL FALSE
+#define CONF_DEFAULT_PREFERENCES_WARNINGLIST_ENABLED    FALSE
+#define CONF_DEFAULT_PREFERENCES_WARNINGLIST_EXTERNAL   FALSE
 #define CONF_DEFAULT_PREFERENCES_ALARMLIST_ENABLED      FALSE
 #define CONF_DEFAULT_PREFERENCES_ALARMLIST_EXTERNAL     FALSE
 #define CONF_DEFAULT_PREFERENCES_LOCATION_LATITUDE      NAN
@@ -169,6 +172,7 @@ typedef struct conf
 
     gboolean  preferences_sounds_new_network;
     gboolean  preferences_sounds_new_network_hi;
+    gboolean  preferences_sounds_new_network_wa;
     gboolean  preferences_sounds_new_network_al;
     gboolean  preferences_sounds_no_data;
     gboolean  preferences_sounds_no_gps_data;
@@ -202,6 +206,12 @@ typedef struct conf
     gchar    *preferences_highlightlist_ext_path;
     GTree    *highlightlist;
     GTree    *highlightlist_ext;
+
+    gboolean  preferences_warninglist_enabled;
+    gboolean  preferences_warninglist_external;
+    gchar    *preferences_warninglist_ext_path;
+    GTree    *warninglist;
+    GTree    *warninglist_ext;
 
     gboolean  preferences_alarmlist_enabled;
     gboolean  preferences_alarmlist_external;
@@ -274,6 +284,9 @@ conf_init(const gchar *custom_path)
     conf.highlightlist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf.highlightlist_ext = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
 
+    conf.warninglist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
+    conf.warninglist_ext = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
+
     conf.alarmlist = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
     conf.alarmlist_ext = g_tree_new_full((GCompareDataFunc)gint64cmp, NULL, g_free, NULL);
 
@@ -283,6 +296,8 @@ conf_init(const gchar *custom_path)
         conf_extlist_load(conf.blacklist_ext, conf_get_preferences_blacklist_ext_path());
     if(conf_get_preferences_highlightlist_external())
         conf_extlist_load(conf.highlightlist_ext, conf_get_preferences_highlightlist_ext_path());
+    if(conf_get_preferences_warninglist_external())
+        conf_extlist_load(conf.warninglist_ext, conf_get_preferences_warninglist_ext_path());
     if(conf_get_preferences_alarmlist_external())
         conf_extlist_load(conf.alarmlist_ext, conf_get_preferences_alarmlist_ext_path());
 }
@@ -345,6 +360,7 @@ conf_read(void)
 
     conf.preferences_sounds_new_network = conf_read_boolean("preferences", "sounds_new_network", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK);
     conf.preferences_sounds_new_network_hi = conf_read_boolean("preferences", "sounds_new_network_hi", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI);
+    conf.preferences_sounds_new_network_wa = conf_read_boolean("preferences", "sounds_new_network_wa", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_WA);
     conf.preferences_sounds_new_network_al = conf_read_boolean("preferences", "sounds_new_network_al", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL);
     conf.preferences_sounds_no_data = conf_read_boolean("preferences", "sounds_no_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA);
     conf.preferences_sounds_no_gps_data = conf_read_boolean("preferences", "sounds_no_gps_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA);
@@ -376,6 +392,11 @@ conf_read(void)
     conf.preferences_highlightlist_external = conf_read_boolean("preferences", "highlightlist_external", CONF_DEFAULT_PREFERENCES_HIGHLIGHTLIST_EXTERNAL);
     conf.preferences_highlightlist_ext_path = conf_read_string("preferences", "highlightlist_ext_path", "");
     conf_read_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
+
+    conf.preferences_warninglist_enabled = conf_read_boolean("preferences", "warninglist_enabled", CONF_DEFAULT_PREFERENCES_WARNINGLIST_ENABLED);
+    conf.preferences_warninglist_external = conf_read_boolean("preferences", "warninglist_external", CONF_DEFAULT_PREFERENCES_WARNINGLIST_EXTERNAL);
+    conf.preferences_warninglist_ext_path = conf_read_string("preferences", "warninglist_ext_path", "");
+    conf_read_gint64_tree(conf.keyfile, "preferences", "warninglist", conf.warninglist);
 
     conf.preferences_alarmlist_enabled = conf_read_boolean("preferences", "alarmlist_enabled", CONF_DEFAULT_PREFERENCES_ALARMLIST_ENABLED);
     conf.preferences_alarmlist_external = conf_read_boolean("preferences", "alarmlist_external", CONF_DEFAULT_PREFERENCES_ALARMLIST_EXTERNAL);
@@ -680,6 +701,7 @@ conf_save(void)
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network", conf.preferences_sounds_new_network);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_hi", conf.preferences_sounds_new_network_hi);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_wa", conf.preferences_sounds_new_network_wa);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_al", conf.preferences_sounds_new_network_al);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_data", conf.preferences_sounds_no_data);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gps_data", conf.preferences_sounds_no_gps_data);
@@ -711,6 +733,11 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "highlightlist_external", conf.preferences_highlightlist_external);
     g_key_file_set_string(conf.keyfile, "preferences", "highlightlist_ext_path", conf.preferences_highlightlist_ext_path);
     conf_save_gint64_tree(conf.keyfile, "preferences", "highlightlist", conf.highlightlist);
+
+    g_key_file_set_boolean(conf.keyfile, "preferences", "warninglist_enabled", conf.preferences_warninglist_enabled);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "warninglist_external", conf.preferences_warninglist_external);
+    g_key_file_set_string(conf.keyfile, "preferences", "warninglist_ext_path", conf.preferences_warninglist_ext_path);
+    conf_save_gint64_tree(conf.keyfile, "preferences", "warninglist", conf.warninglist);
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "alarmlist_enabled", conf.preferences_alarmlist_enabled);
     g_key_file_set_boolean(conf.keyfile, "preferences", "alarmlist_external", conf.preferences_alarmlist_external);
@@ -1293,6 +1320,18 @@ conf_set_preferences_sounds_new_network_hi(gboolean value)
 }
 
 gboolean
+conf_get_preferences_sounds_new_network_wa(void)
+{
+    return conf.preferences_sounds_new_network_wa;
+}
+
+void
+conf_set_preferences_sounds_new_network_wa(gboolean value)
+{
+    conf.preferences_sounds_new_network_wa = value;
+}
+
+gboolean
 conf_get_preferences_sounds_new_network_al(void)
 {
     return conf.preferences_sounds_new_network_al;
@@ -1654,6 +1693,80 @@ void
 conf_set_preferences_highlightlist_from_liststore(GtkListStore *model)
 {
     fill_tree_from_liststore(conf.highlightlist, model);
+}
+
+gboolean
+conf_get_preferences_warninglist_enabled(void)
+{
+    return conf.preferences_warninglist_enabled;
+}
+
+void
+conf_set_preferences_warninglist_enabled(gboolean value)
+{
+    conf.preferences_warninglist_enabled = value;
+}
+
+gboolean
+conf_get_preferences_warninglist_external(void)
+{
+    return conf.preferences_warninglist_external;
+}
+
+void
+conf_set_preferences_warninglist_external(gboolean value)
+{
+    conf.preferences_warninglist_external = value;
+}
+
+const gchar*
+conf_get_preferences_warninglist_ext_path(void)
+{
+    return conf.preferences_warninglist_ext_path;
+}
+
+void
+conf_set_preferences_warninglist_ext_path(const gchar *path)
+{
+    conf_change_string(&conf.preferences_warninglist_ext_path, path);
+}
+
+gboolean
+conf_get_preferences_warninglist(gint64 value)
+{
+    GTree *list = conf.preferences_warninglist_external ? conf.warninglist_ext : conf.warninglist;
+    gboolean found = GPOINTER_TO_INT(g_tree_lookup(list, &value));
+    return found;
+}
+
+void
+conf_set_preferences_warninglist(gint64 value)
+{
+    if(conf.preferences_warninglist_external)
+        return;
+
+    g_tree_insert(conf.warninglist, gint64dup(&value), GINT_TO_POINTER(TRUE));
+}
+
+void
+conf_del_preferences_warninglist(gint64 value)
+{
+    if(conf.preferences_warninglist_external)
+        return;
+
+    g_tree_remove(conf.warninglist, &value);
+}
+
+GtkListStore*
+conf_get_preferences_warninglist_as_liststore(void)
+{
+    return create_liststore_from_tree(conf.warninglist);
+}
+
+void
+conf_set_preferences_warninglist_from_liststore(GtkListStore *model)
+{
+    fill_tree_from_liststore(conf.warninglist, model);
 }
 
 gboolean

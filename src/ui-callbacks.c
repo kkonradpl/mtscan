@@ -205,11 +205,13 @@ ui_callback_heartbeat(const mt_ssh_t *context)
         if(conf_get_interface_sound())
         {
             if(conf_get_preferences_sounds_new_network_al() && (ret & MODEL_UPDATE_NEW_ALARM))
-                mtscan_sound(APP_SOUND_NETWORK3);
+                mtscan_sound(APP_SOUND_NETWORK_ALARM);
+            else if(conf_get_preferences_sounds_new_network_wa() && (ret & MODEL_UPDATE_NEW_WARNING))
+                mtscan_sound(APP_SOUND_NETWORK_WARNING);
             else if(conf_get_preferences_sounds_new_network_hi() && (ret & MODEL_UPDATE_NEW_HIGHLIGHT))
-                mtscan_sound(APP_SOUND_NETWORK2);
+                mtscan_sound(APP_SOUND_NETWORK_HIGHLIGHT);
             else if(conf_get_preferences_sounds_new_network() && (ret & MODEL_UPDATE_NEW))
-                mtscan_sound(APP_SOUND_NETWORK);
+                mtscan_sound(APP_SOUND_NETWORK_NORMAL);
         }
     }
 

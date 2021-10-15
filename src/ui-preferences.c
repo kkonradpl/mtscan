@@ -85,6 +85,7 @@ typedef struct ui_preferences
     GtkWidget *table_sounds;
     GtkWidget *x_sounds_new_network;
     GtkWidget *x_sounds_new_network_hi;
+    GtkWidget *x_sounds_new_network_wa;
     GtkWidget *x_sounds_new_network_al;
     GtkWidget *x_sounds_no_data;
     GtkWidget *x_sounds_no_gps_data;
@@ -115,6 +116,7 @@ typedef struct ui_preferences
 
     ui_preferences_list_t blacklist;
     ui_preferences_list_t highlightlist;
+    ui_preferences_list_t warninglist;
     ui_preferences_list_t alarmlist;
 
     GtkWidget *page_location;
@@ -318,7 +320,7 @@ ui_preferences_dialog(void)
     gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_sounds, gtk_label_new("Sounds"));
     gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_sounds, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_sounds = gtk_table_new(5, 1, TRUE);
+    p.table_sounds = gtk_table_new(6, 1, TRUE);
     gtk_table_set_homogeneous(GTK_TABLE(p.table_sounds), FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(p.table_sounds), 4);
     gtk_table_set_col_spacings(GTK_TABLE(p.table_sounds), 4);
@@ -331,6 +333,10 @@ ui_preferences_dialog(void)
     row++;
     p.x_sounds_new_network_hi = gtk_check_button_new_with_label("New network from highlight list");
     gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network_hi, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_sounds_new_network_wa = gtk_check_button_new_with_label("New network from warning list");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_new_network_wa, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
     p.x_sounds_new_network_al = gtk_check_button_new_with_label("New network from alarm list");
@@ -431,11 +437,15 @@ ui_preferences_dialog(void)
     p.x_gps_show_errors = gtk_check_button_new_with_label("Show error estimates");
     gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
+
     /* Blacklist */
     ui_preferences_list_create(&p.blacklist, p.notebook, "Blacklist", "Enable blacklist", "Invert to whitelist");
 
     /* Highlight list */
     ui_preferences_list_create(&p.highlightlist, p.notebook, "Highlight", "Enable highlight list", "Invert highlight list");
+
+    /* Warning list */
+    ui_preferences_list_create(&p.warninglist, p.notebook, "Warning", "Enable warning list", NULL);
 
     /* Alarm list */
     ui_preferences_list_create(&p.alarmlist, p.notebook, "Alarm", "Enable alarm list", NULL);
@@ -900,6 +910,7 @@ ui_preferences_load(ui_preferences_t *p)
     /* Sounds */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network), conf_get_preferences_sounds_new_network());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_hi), conf_get_preferences_sounds_new_network_hi());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_wa), conf_get_preferences_sounds_new_network_wa());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al), conf_get_preferences_sounds_new_network_al());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data), conf_get_preferences_sounds_no_data());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data), conf_get_preferences_sounds_no_gps_data());
@@ -937,6 +948,15 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_external), conf_get_preferences_highlightlist_external());
     if(strlen(conf_get_preferences_highlightlist_ext_path()))
         gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->highlightlist.c_ext_path), conf_get_preferences_highlightlist_ext_path());
+
+    /* Warning list */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->warninglist.x_enabled), conf_get_preferences_warninglist_enabled());
+    model = conf_get_preferences_warninglist_as_liststore();
+    gtk_tree_view_set_model(GTK_TREE_VIEW(p->warninglist.view), GTK_TREE_MODEL(model));
+    g_object_unref(model);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->warninglist.x_external), conf_get_preferences_warninglist_external());
+    if(strlen(conf_get_preferences_warninglist_ext_path()))
+        gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(p->warninglist.c_ext_path), conf_get_preferences_warninglist_ext_path());
 
     /* Alarm list */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->alarmlist.x_enabled), conf_get_preferences_alarmlist_enabled());
@@ -1064,6 +1084,7 @@ ui_preferences_apply(GtkWidget *widget,
     /* Sounds */
     conf_set_preferences_sounds_new_network(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network)));
     conf_set_preferences_sounds_new_network_hi(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_hi)));
+    conf_set_preferences_sounds_new_network_wa(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_wa)));
     conf_set_preferences_sounds_new_network_al(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al)));
     conf_set_preferences_sounds_no_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data)));
     conf_set_preferences_sounds_no_gps_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data)));
@@ -1118,6 +1139,14 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_highlightlist_external(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->highlightlist.x_external)));
     ext_path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->highlightlist.c_ext_path));
     conf_set_preferences_highlightlist_ext_path((ext_path ? ext_path : ""));
+    g_free(ext_path);
+
+    /* Warning list */
+    conf_set_preferences_warninglist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->warninglist.x_enabled)));
+    conf_set_preferences_warninglist_from_liststore(GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(p->warninglist.view))));
+    conf_set_preferences_warninglist_external(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->warninglist.x_external)));
+    ext_path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(p->warninglist.c_ext_path));
+    conf_set_preferences_warninglist_ext_path((ext_path ? ext_path : ""));
     g_free(ext_path);
 
     /* Alarm list */
