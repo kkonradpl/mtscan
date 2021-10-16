@@ -25,16 +25,33 @@
 #include "win32.h"
 
 #define WIN32_FONT_FILE "..\\share\\fonts\\TTF\\DejaVuSansMono.ttf"
+#define WIN32_QUICK_EDIT = 0x40;
+
 static gint win32_font;
+
 
 void
 win32_init(void)
 {
     WSADATA wsaData;
+    HANDLE consoleHandle;
+    DWORD consoleMode;
+
     if(WSAStartup(MAKEWORD(2,2), &wsaData))
         ui_dialog(NULL, GTK_MESSAGE_ERROR, "Error", "Unable to initialize Winsock");
 
     win32_font = AddFontResourceEx(WIN32_FONT_FILE, FR_PRIVATE, NULL);
+
+    /* Disable the console quick edit feature (debug build) */
+    consoleHandle = GetStdHandle(STD_INPUT_HANDLE);
+    if(consoleHandle)
+    {
+        if(GetConsoleMode(consoleHandle, &consoleMode))
+        {
+            consoleMode &= ~WIN32_QUICK_EDIT;
+            SetConsoleMode(consoleHandle, consoleMode);
+        }
+    }
 }
 
 void
