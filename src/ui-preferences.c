@@ -18,7 +18,7 @@
 #include "conf.h"
 #include "ui.h"
 #include "ui-view.h"
-#include "gps.h"
+#include "gnss.h"
 #include "ui-dialogs.h"
 #include "misc.h"
 #include "ui-callbacks.h"
@@ -88,7 +88,7 @@ typedef struct ui_preferences
     GtkWidget *x_sounds_new_network_wa;
     GtkWidget *x_sounds_new_network_al;
     GtkWidget *x_sounds_no_data;
-    GtkWidget *x_sounds_no_gps_data;
+    GtkWidget *x_sounds_no_gnss_data;
 
     GtkWidget *page_events;
     GtkWidget *table_events;
@@ -104,15 +104,20 @@ typedef struct ui_preferences
     GtkWidget *i_tzsp_info;
     GtkWidget *l_tzsp_info;
 
-    GtkWidget *page_gps;
-    GtkWidget *table_gps;
-    GtkWidget *l_gps_hostname;
-    GtkWidget *e_gps_hostname;
-    GtkWidget *l_gps_tcp_port;
-    GtkWidget *s_gps_tcp_port;
-    GtkWidget *x_gps_show_altitude;
-    GtkWidget *x_gps_show_errors;
-
+    GtkWidget *page_gnss;
+    GtkWidget *table_gnss;
+    GtkWidget *l_gnss_source;
+    GtkWidget *box_gnss_source;
+    GtkWidget *r_gnss_gpsd;
+    GtkWidget *r_gnss_wsa;
+    GtkWidget *l_gnss_gpsd_hostname;
+    GtkWidget *e_gnss_gpsd_hostname;
+    GtkWidget *l_gnss_gpsd_tcp_port;
+    GtkWidget *s_gnss_gpsd_tcp_port;
+    GtkWidget *l_gnss_wsa_id;
+    GtkWidget *s_gnss_wsa_id;
+    GtkWidget *x_gnss_show_altitude;
+    GtkWidget *x_gnss_show_errors;
 
     ui_preferences_list_t blacklist;
     ui_preferences_list_t highlightlist;
@@ -347,8 +352,8 @@ ui_preferences_dialog(void)
     gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_no_data, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
-    p.x_sounds_no_gps_data = gtk_check_button_new_with_label("No GPS data");
-    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_no_gps_data, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.x_sounds_no_gnss_data = gtk_check_button_new_with_label("No GNSS data");
+    gtk_table_attach(GTK_TABLE(p.table_sounds), p.x_sounds_no_gnss_data, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
 
     /* Events */
@@ -403,39 +408,57 @@ ui_preferences_dialog(void)
     gtk_box_pack_start(GTK_BOX(p.box_tzsp_info), p.l_tzsp_info, FALSE, FALSE, 1);
     gtk_box_pack_start(GTK_BOX(p.page_tzsp), p.box_tzsp_info, FALSE, FALSE, 1);
 
-    /* GPS */
-    p.page_gps = gtk_vbox_new(FALSE, 5);
-    gtk_container_set_border_width(GTK_CONTAINER(p.page_gps), 4);
-    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_gps, gtk_label_new("GPSd"));
-    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_gps, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
+    /* GNSS */
+    p.page_gnss = gtk_vbox_new(FALSE, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(p.page_gnss), 4);
+    gtk_notebook_append_page(GTK_NOTEBOOK(p.notebook), p.page_gnss, gtk_label_new("GNSS"));
+    gtk_container_child_set(GTK_CONTAINER(p.notebook), p.page_gnss, "tab-expand", FALSE, "tab-fill", FALSE, NULL);
 
-    p.table_gps = gtk_table_new(4, 2, TRUE);
-    gtk_table_set_homogeneous(GTK_TABLE(p.table_gps), FALSE);
-    gtk_table_set_row_spacings(GTK_TABLE(p.table_gps), 4);
-    gtk_table_set_col_spacings(GTK_TABLE(p.table_gps), 4);
-    gtk_container_add(GTK_CONTAINER(p.page_gps), p.table_gps);
+    p.table_gnss = gtk_table_new(6, 2, TRUE);
+    gtk_table_set_homogeneous(GTK_TABLE(p.table_gnss), FALSE);
+    gtk_table_set_row_spacings(GTK_TABLE(p.table_gnss), 4);
+    gtk_table_set_col_spacings(GTK_TABLE(p.table_gnss), 4);
+    gtk_container_add(GTK_CONTAINER(p.page_gnss), p.table_gnss);
 
     row = 0;
-    p.l_gps_hostname = gtk_label_new("Hostname:");
-    gtk_misc_set_alignment(GTK_MISC(p.l_gps_hostname), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(p.table_gps), p.l_gps_hostname, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.e_gps_hostname = gtk_entry_new();
-    gtk_table_attach(GTK_TABLE(p.table_gps), p.e_gps_hostname, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.l_gnss_source = gtk_label_new("Source:");
+    gtk_misc_set_alignment(GTK_MISC(p.l_gnss_source), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.l_gnss_source, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.box_gnss_source = gtk_hbox_new(FALSE, 6);
+    p.r_gnss_gpsd = gtk_radio_button_new_with_label(NULL, "gpsd");
+    gtk_box_pack_start(GTK_BOX(p.box_gnss_source), p.r_gnss_gpsd, FALSE, FALSE, 0);
+    p.r_gnss_wsa = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(p.r_gnss_gpsd), "sensor api");
+    gtk_box_pack_start(GTK_BOX(p.box_gnss_source), p.r_gnss_wsa, FALSE, FALSE, 0);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.box_gnss_source, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
     row++;
-    p.l_gps_tcp_port = gtk_label_new("TCP port:");
-    gtk_misc_set_alignment(GTK_MISC(p.l_gps_tcp_port), 0.0, 0.5);
-    gtk_table_attach(GTK_TABLE(p.table_gps), p.l_gps_tcp_port, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
-    p.s_gps_tcp_port = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(2947.0, 1024.0, 65535.0, 1.0, 10.0, 0.0)), 0, 0);
-    gtk_table_attach(GTK_TABLE(p.table_gps), p.s_gps_tcp_port, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.l_gnss_gpsd_hostname = gtk_label_new("Hostname (gpsd):");
+    gtk_misc_set_alignment(GTK_MISC(p.l_gnss_gpsd_hostname), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.l_gnss_gpsd_hostname, 0, 1, row, row + 1, GTK_EXPAND | GTK_FILL, 0, 0, 0);
+    p.e_gnss_gpsd_hostname = gtk_entry_new();
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.e_gnss_gpsd_hostname, 1, 2, row, row + 1, GTK_EXPAND | GTK_FILL, 0, 0, 0);
 
     row++;
-    p.x_gps_show_altitude = gtk_check_button_new_with_label("Show altitude");
-    gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_altitude, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.l_gnss_gpsd_tcp_port = gtk_label_new("TCP port (gpsd):");
+    gtk_misc_set_alignment(GTK_MISC(p.l_gnss_gpsd_tcp_port), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.l_gnss_gpsd_tcp_port, 0, 1, row, row + 1, GTK_EXPAND | GTK_FILL, 0, 0, 0);
+    p.s_gnss_gpsd_tcp_port = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(2947.0, 1024.0, 65535.0, 1.0, 10.0, 0.0)), 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.s_gnss_gpsd_tcp_port, 1, 2, row, row + 1, GTK_EXPAND | GTK_FILL, 0, 0, 0);
 
     row++;
-    p.x_gps_show_errors = gtk_check_button_new_with_label("Show error estimates");
-    gtk_table_attach(GTK_TABLE(p.table_gps), p.x_gps_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.l_gnss_wsa_id = gtk_label_new("Sensor ID (wsa):");
+    gtk_misc_set_alignment(GTK_MISC(p.l_gnss_wsa_id), 0.0, 0.5);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.l_gnss_wsa_id, 0, 1, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+    p.s_gnss_wsa_id = gtk_spin_button_new(GTK_ADJUSTMENT(gtk_adjustment_new(0.0, 0.0, 100.0, 1.0, 10.0, 0.0)), 0, 0);
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.s_gnss_wsa_id, 1, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_gnss_show_altitude = gtk_check_button_new_with_label("Show altitude");
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.x_gnss_show_altitude, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
+
+    row++;
+    p.x_gnss_show_errors = gtk_check_button_new_with_label("Show error estimates");
+    gtk_table_attach(GTK_TABLE(p.table_gnss), p.x_gnss_show_errors, 0, 2, row, row+1, GTK_EXPAND|GTK_FILL, 0, 0, 0);
 
 
     /* Blacklist */
@@ -570,6 +593,12 @@ ui_preferences_dialog(void)
     g_signal_connect(p.window, "key-press-event", G_CALLBACK(ui_preferences_key), NULL);
     ui_preferences_load(&p);
     gtk_widget_show_all(p.window);
+
+#ifndef G_OS_WIN32
+    gtk_widget_set_visible(p.r_gnss_wsa, FALSE);
+    gtk_widget_set_visible(p.l_gnss_wsa_id, FALSE);
+    gtk_widget_set_visible(p.s_gnss_wsa_id, FALSE);
+#endif
 }
 
 static void
@@ -867,20 +896,20 @@ ui_preferences_location_acquire(GtkWidget *widget,
                                 gpointer   data)
 {
     ui_preferences_t *p = (ui_preferences_t*)data;
-    const mtscan_gps_data_t *gps_data;
+    const mtscan_gnss_data_t *gnss_data;
     GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
 
-    if(gps_get_data(&gps_data) != GPS_OK)
+    if(gnss_get_data(&gnss_data) != GNSS_OK)
     {
         ui_dialog(GTK_WINDOW(toplevel),
                   GTK_MESSAGE_WARNING,
-                  "GPS position",
-                  "Failed to acquire GPS position.\nNo current position fix available.");
+                  "GNSS position",
+                  "Failed to acquire GNSS position.\nNo current position fix available.");
     }
     else
     {
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_latitude), gps_data->lat);
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_longitude), gps_data->lon);
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_latitude), gnss_data->lat);
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_location_longitude), gnss_data->lon);
     }
 }
 
@@ -913,7 +942,7 @@ ui_preferences_load(ui_preferences_t *p)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_wa), conf_get_preferences_sounds_new_network_wa());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al), conf_get_preferences_sounds_new_network_al());
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data), conf_get_preferences_sounds_no_data());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data), conf_get_preferences_sounds_no_gps_data());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gnss_data), conf_get_preferences_sounds_no_gnss_data());
 
     /* Events */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_events_new_network), conf_get_preferences_events_new_network());
@@ -923,11 +952,13 @@ ui_preferences_load(ui_preferences_t *p)
     /* TZSP */
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_tzsp_udp_port), conf_get_preferences_tzsp_udp_port());
 
-    /* GPS */
-    gtk_entry_set_text(GTK_ENTRY(p->e_gps_hostname), conf_get_preferences_gps_hostname());
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_gps_tcp_port), conf_get_preferences_gps_tcp_port());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_gps_show_altitude), conf_get_preferences_gps_show_altitude());
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_gps_show_errors), conf_get_preferences_gps_show_errors());
+    /* GNSS */
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->r_gnss_wsa), conf_get_preferences_gnss_source());
+    gtk_entry_set_text(GTK_ENTRY(p->e_gnss_gpsd_hostname), conf_get_preferences_gnss_gpsd_hostname());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_gnss_gpsd_tcp_port), conf_get_preferences_gnss_gpsd_tcp_port());
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(p->s_gnss_wsa_id), conf_get_preferences_gnss_wsa_id());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_gnss_show_altitude), conf_get_preferences_gnss_show_altitude());
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->x_gnss_show_errors), conf_get_preferences_gnss_show_errors());
 
     /* Blacklist */
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled), conf_get_preferences_blacklist_enabled());
@@ -1022,8 +1053,10 @@ ui_preferences_apply(GtkWidget *widget,
     gboolean new_no_style_override;
     gchar *new_network_exec;
     gint new_tzsp_udp_port;
-    const gchar *new_gps_hostname;
-    gint new_gps_tcp_port;
+    gint new_gnss_source;
+    const gchar *new_gnss_gpsd_hostname;
+    gint new_gnss_gpsd_tcp_port;
+    gint new_gnss_wsa_id;
     gchar *ext_path;
     gdouble new_location_latitude;
     gdouble new_location_longitude;
@@ -1087,7 +1120,7 @@ ui_preferences_apply(GtkWidget *widget,
     conf_set_preferences_sounds_new_network_wa(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_wa)));
     conf_set_preferences_sounds_new_network_al(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_new_network_al)));
     conf_set_preferences_sounds_no_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_data)));
-    conf_set_preferences_sounds_no_gps_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gps_data)));
+    conf_set_preferences_sounds_no_gnss_data(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_sounds_no_gnss_data)));
 
     /* Events */
     conf_set_preferences_events_new_network(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_events_new_network)));
@@ -1106,22 +1139,27 @@ ui_preferences_apply(GtkWidget *widget,
 
     conf_set_preferences_tzsp_udp_port(new_tzsp_udp_port);
 
-    /* GPS */
-    new_gps_hostname = gtk_entry_get_text(GTK_ENTRY(p->e_gps_hostname));
-    new_gps_tcp_port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_gps_tcp_port));
-    if(new_gps_tcp_port !=  conf_get_preferences_gps_tcp_port() ||
-       strcmp(new_gps_hostname, conf_get_preferences_gps_hostname()))
+    /* GNSS */
+    new_gnss_source = (gint)gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->r_gnss_wsa));
+    new_gnss_gpsd_hostname = gtk_entry_get_text(GTK_ENTRY(p->e_gnss_gpsd_hostname));
+    new_gnss_gpsd_tcp_port = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_gnss_gpsd_tcp_port));
+    new_gnss_wsa_id = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(p->s_gnss_wsa_id));
+
+    if(new_gnss_source != conf_get_preferences_gnss_source() ||
+       strcmp(new_gnss_gpsd_hostname, conf_get_preferences_gnss_gpsd_hostname()) ||
+       new_gnss_gpsd_tcp_port != conf_get_preferences_gnss_gpsd_tcp_port() ||
+       new_gnss_wsa_id != conf_get_preferences_gnss_wsa_id())
     {
-        conf_set_preferences_gps_hostname(new_gps_hostname);
-        conf_set_preferences_gps_tcp_port(new_gps_tcp_port);
-        if(conf_get_interface_gps())
-        {
-            gps_stop();
-            gps_start(new_gps_hostname, new_gps_tcp_port);
-        }
+        conf_set_preferences_gnss_source(new_gnss_source);
+        conf_set_preferences_gnss_gpsd_hostname(new_gnss_gpsd_hostname);
+        conf_set_preferences_gnss_gpsd_tcp_port(new_gnss_gpsd_tcp_port);
+        conf_set_preferences_gnss_wsa_id(new_gnss_wsa_id);
+
+        if(conf_get_interface_gnss())
+            gnss_start(new_gnss_source, new_gnss_gpsd_hostname, new_gnss_gpsd_tcp_port, new_gnss_wsa_id);
     }
-    conf_set_preferences_gps_show_altitude(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_altitude)));
-    conf_set_preferences_gps_show_errors(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gps_show_errors)));
+    conf_set_preferences_gnss_show_altitude(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gnss_show_altitude)));
+    conf_set_preferences_gnss_show_errors(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->x_gnss_show_errors)));
 
     /* Blacklist */
     conf_set_preferences_blacklist_enabled(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(p->blacklist.x_enabled)));

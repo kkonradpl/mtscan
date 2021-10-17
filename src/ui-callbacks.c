@@ -17,7 +17,7 @@
 #include "ui-callbacks.h"
 #include "ui-toolbar.h"
 #include "ui-view.h"
-#include "gps.h"
+#include "gnss.h"
 #include "ui-scanlist.h"
 #include "ui-dialogs.h"
 #include "conf.h"
@@ -172,11 +172,11 @@ ui_callback_network(const mt_ssh_t *context,
 static void
 ui_callback_network_real(network_t *net)
 {
-    const mtscan_gps_data_t *gps_data;
-    if(gps_get_data(&gps_data) == GPS_OK)
+    const mtscan_gnss_data_t *gnss_data;
+    if(gnss_get_data(&gnss_data) == GNSS_OK)
     {
-        net->latitude = gps_data->lat;
-        net->longitude = gps_data->lon;
+        net->latitude = gnss_data->lat;
+        net->longitude = gnss_data->lon;
     }
 
     if(conf_get_preferences_clip_invalid_signal())

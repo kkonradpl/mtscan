@@ -18,6 +18,9 @@
 #include <gtk/gtk.h>
 #include "conf-profile.h"
 
+#define CONF_PREFERENCES_GNSS_SOURCE_GPSD 0
+#define CONF_PREFERENCES_GNSS_SOURCE_WSA  1
+
 /* Configuration reading & writing */
 void conf_init(const gchar*);
 void conf_save(void);
@@ -44,8 +47,8 @@ void conf_set_interface_dark_mode(gboolean);
 gboolean conf_get_interface_autosave(void);
 void conf_set_interface_autosave(gboolean);
 
-gboolean conf_get_interface_gps(void);
-void conf_set_interface_gps(gboolean);
+gboolean conf_get_interface_gnss(void);
+void conf_set_interface_gnss(gboolean);
 
 gboolean conf_get_interface_geoloc(void);
 void conf_set_interface_geoloc(gboolean);
@@ -136,8 +139,8 @@ void conf_set_preferences_sounds_new_network_al(gboolean);
 gboolean conf_get_preferences_sounds_no_data(void);
 void conf_set_preferences_sounds_no_data(gboolean);
 
-gboolean conf_get_preferences_sounds_no_gps_data(void);
-void conf_set_preferences_sounds_no_gps_data(gboolean);
+gboolean conf_get_preferences_sounds_no_gnss_data(void);
+void conf_set_preferences_sounds_no_gnss_data(gboolean);
 
 gboolean conf_get_preferences_events_new_network(void);
 void conf_set_preferences_events_new_network(gboolean);
@@ -148,17 +151,23 @@ void conf_set_preferences_events_new_network_exec(const gchar*);
 gint conf_get_preferences_tzsp_udp_port(void);
 void conf_set_preferences_tzsp_udp_port(gint);
 
-const gchar* conf_get_preferences_gps_hostname(void);
-void conf_set_preferences_gps_hostname(const gchar*);
+gint conf_get_preferences_gnss_source(void);
+void conf_set_preferences_gnss_source(gint);
 
-gint conf_get_preferences_gps_tcp_port(void);
-void conf_set_preferences_gps_tcp_port(gint);
+const gchar* conf_get_preferences_gnss_gpsd_hostname(void);
+void conf_set_preferences_gnss_gpsd_hostname(const gchar*);
 
-gboolean conf_get_preferences_gps_show_altitude(void);
-void conf_set_preferences_gps_show_altitude(gboolean);
+gint conf_get_preferences_gnss_gpsd_tcp_port(void);
+void conf_set_preferences_gnss_gpsd_tcp_port(gint);
 
-gboolean conf_get_preferences_gps_show_errors(void);
-void conf_set_preferences_gps_show_errors(gboolean);
+gint conf_get_preferences_gnss_wsa_id(void);
+void conf_set_preferences_gnss_wsa_id(gint);
+
+gboolean conf_get_preferences_gnss_show_altitude(void);
+void conf_set_preferences_gnss_show_altitude(gboolean);
+
+gboolean conf_get_preferences_gnss_show_errors(void);
+void conf_set_preferences_gnss_show_errors(gboolean);
 
 const gchar* conf_get_preferences_rotator_hostname(void);
 void conf_set_preferences_rotator_hostname(const gchar*);

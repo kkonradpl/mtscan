@@ -19,10 +19,8 @@ set(SOURCE_FILES
         geoloc-database.h
         geoloc-utils.c
         geoloc-utils.h
-        gpsd.c
-        gpsd.h
-        gps.c
-        gps.h
+        gnss.c
+        gnss.h
         log.c
         log.h
         conf-extlist.c
@@ -65,6 +63,12 @@ set(SOURCE_FILES
         ui-view.h
         ui.c
         ui.h
+        gnss/data.c
+        gnss/data.h
+        gnss/gpsd.c
+        gnss/gpsd.h
+        gnss/msg.c
+        gnss/msg.h
         tzsp-receiver.c
         tzsp-receiver.h
         tzsp/tzsp-decap.c
@@ -100,6 +104,8 @@ set(SOURCE_FILES_MINGW
         win32.c
         win32.h
         icon.rc
+        gnss/wsa.c
+        gnss/wsa.h
         tzsp/win32.h)
 
 set(LIBRARIES
@@ -113,7 +119,8 @@ set(LIBRARIES
 
 set(LIBRARIES_MINGW
         ws2_32
-        winmm)
+        winmm
+        sensorsapi)
 
 if(MINGW)
     IF(NOT (CMAKE_BUILD_TYPE MATCHES Debug))

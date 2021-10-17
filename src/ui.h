@@ -65,7 +65,7 @@ typedef struct mtscan_gtk
     GtkToolItem *b_sound;
     GtkToolItem *b_mode;
     GtkToolItem *b_autosave;
-    GtkToolItem *b_gps;
+    GtkToolItem *b_gnss;
     GtkToolItem *b_geoloc;
     GtkToolItem *b_about;
 
@@ -77,7 +77,7 @@ typedef struct mtscan_gtk
     GtkWidget *activity_icon;
     GtkWidget *l_net_status;
     GtkWidget *l_conn_status;
-    GtkWidget *group_gps, *l_gps_status;
+    GtkWidget *group_gnss, *l_gnss_status;
 
     mtscan_model_t *model;
     gboolean changed;

@@ -28,7 +28,7 @@
 #include "ui-toolbar.h"
 #include "ui-preferences.h"
 #include "export.h"
-#include "gps.h"
+#include "gnss.h"
 #include "conf-scanlist.h"
 #include "ui-callbacks.h"
 
@@ -57,7 +57,7 @@ static void ui_toolbar_preferences(GtkWidget*, gpointer);
 static void ui_toolbar_sound(GtkWidget*, gpointer);
 static void ui_toolbar_mode(GtkWidget*, gpointer);
 static void ui_toolbar_autosave(GtkWidget*, gpointer);
-static void ui_toolbar_gps(GtkWidget*, gpointer);
+static void ui_toolbar_gnss(GtkWidget*, gpointer);
 static void ui_toolbar_geoloc(GtkWidget*, gpointer);
 static void ui_toolbar_about(GtkWidget*, gpointer);
 
@@ -192,12 +192,12 @@ ui_toolbar_create(void)
     g_signal_connect(ui.b_autosave, "clicked", G_CALLBACK(ui_toolbar_autosave), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_autosave, -1);
 
-    ui.b_gps = gtk_toggle_tool_button_new();
-    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_gps), gtk_image_new_from_icon_name("mtscan-gps", GTK_ICON_SIZE_BUTTON));
-    gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_gps), "Enable GPS");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_gps), "Enable GPS");
-    g_signal_connect(ui.b_gps, "clicked", G_CALLBACK(ui_toolbar_gps), NULL);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_gps, -1);
+    ui.b_gnss = gtk_toggle_tool_button_new();
+    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_gnss), gtk_image_new_from_icon_name("mtscan-gnss", GTK_ICON_SIZE_BUTTON));
+    gtk_tool_button_set_label(GTK_TOOL_BUTTON(ui.b_gnss), "Enable GNSS");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_gnss), "Enable GNSS");
+    g_signal_connect(ui.b_gnss, "clicked", G_CALLBACK(ui_toolbar_gnss), NULL);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_gnss, -1);
 
     ui.b_geoloc = gtk_toggle_tool_button_new();
     gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(ui.b_geoloc), gtk_image_new_from_icon_name("mtscan-geoloc", GTK_ICON_SIZE_BUTTON));
@@ -569,21 +569,24 @@ ui_toolbar_mode(GtkWidget *widget,
 }
 
 static void
-ui_toolbar_gps(GtkWidget *widget,
-               gpointer   data)
+ui_toolbar_gnss(GtkWidget *widget,
+                gpointer   data)
 {
     static gboolean pressed = FALSE;
     pressed = !pressed;
-    conf_set_interface_gps(pressed);
+    conf_set_interface_gnss(pressed);
 
     if(pressed)
-        gps_start(conf_get_preferences_gps_hostname(), conf_get_preferences_gps_tcp_port());
+        gnss_start(conf_get_preferences_gnss_source(),
+                   conf_get_preferences_gnss_gpsd_hostname(),
+                   conf_get_preferences_gnss_gpsd_tcp_port(),
+                   conf_get_preferences_gnss_wsa_id());
     else
-        gps_stop();
+        gnss_stop();
 
-    g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_gps), NULL);
+    g_signal_handlers_block_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_gnss), NULL);
     gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(widget), pressed);
-    g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_gps), NULL);
+    g_signal_handlers_unblock_by_func(G_OBJECT(widget), GINT_TO_POINTER(ui_toolbar_gnss), NULL);
 }
 
 static void

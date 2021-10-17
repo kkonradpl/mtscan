@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2021  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -13,21 +13,21 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_GPS_H_
-#define MTSCAN_GPS_H_
+#ifndef MTSCAN_GNSS_H_
+#define MTSCAN_GNSS_H_
 
-typedef enum mtscan_gps_state
+typedef enum mtscan_gnss_state
 {
-    GPS_OFF,
-    GPS_OPENING,
-    GPS_AWAITING,
-    GPS_NO_FIX,
-    GPS_OK
-} mtscan_gps_state_t;
+    GNSS_OFF,
+    GNSS_OPENING,
+    GNSS_ACCESS_DENIED,
+    GNSS_AWAITING,
+    GNSS_NO_FIX,
+    GNSS_OK
+} mtscan_gnss_state_t;
 
-typedef struct mtscan_gps_data
+typedef struct mtscan_gnss_data
 {
-    gboolean valid;
     gboolean fix;
     gdouble lat;
     gdouble lon;
@@ -35,11 +35,11 @@ typedef struct mtscan_gps_data
     gdouble epx;
     gdouble epy;
     gdouble epv;
-} mtscan_gps_data_t;
+} mtscan_gnss_data_t;
 
-void gps_start(const gchar*, gint);
-void gps_stop(void);
-void gps_set_callback(void (*cb)(mtscan_gps_state_t, const mtscan_gps_data_t*, gpointer), gpointer);
-mtscan_gps_state_t gps_get_data(const mtscan_gps_data_t**);
+void gnss_start(gint, const gchar*, gint, gint);
+void gnss_stop(void);
+void gnss_set_callback(void (*cb)(mtscan_gnss_state_t, const mtscan_gnss_data_t*, gpointer), gpointer);
+mtscan_gnss_state_t gnss_get_data(const mtscan_gnss_data_t**);
 
 #endif

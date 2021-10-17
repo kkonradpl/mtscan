@@ -27,7 +27,7 @@
 #include "log.h"
 #include "conf.h"
 #include "model.h"
-#include "gps.h"
+#include "gnss.h"
 #include "signals.h"
 #include "misc.h"
 #include "ui-callbacks.h"
@@ -65,7 +65,7 @@ static gboolean ui_delete_event(GtkWidget*, GdkEvent*, gpointer);
 static void ui_drag_data_received(GtkWidget*, GdkDragContext*, gint, gint, GtkSelectionData*, guint, guint);
 static gboolean ui_idle_timeout(gpointer);
 static gboolean ui_idle_timeout_autosave(gpointer);
-static void ui_gps(mtscan_gps_state_t, const mtscan_gps_data_t*, gpointer);
+static void ui_gnss(mtscan_gnss_state_t, const mtscan_gnss_data_t*, gpointer);
 static gchar* ui_get_name(const gchar*);
 
 void
@@ -128,16 +128,16 @@ ui_init(void)
     ui.l_conn_status = gtk_label_new(NULL);
     gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.l_conn_status, FALSE, FALSE, 0);
 
-    ui.group_gps = gtk_hbox_new(FALSE, 6);
-    gtk_box_pack_start(GTK_BOX(ui.group_gps), gtk_vseparator_new(), FALSE, FALSE, 5);
-    ui.l_gps_status = gtk_label_new(NULL);
-    gtk_box_pack_start(GTK_BOX(ui.group_gps), ui.l_gps_status, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.group_gps, FALSE, FALSE, 0);
+    ui.group_gnss = gtk_hbox_new(FALSE, 6);
+    gtk_box_pack_start(GTK_BOX(ui.group_gnss), gtk_vseparator_new(), FALSE, FALSE, 5);
+    ui.l_gnss_status = gtk_label_new(NULL);
+    gtk_box_pack_start(GTK_BOX(ui.group_gnss), ui.l_gnss_status, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(ui.statusbar), ui.group_gnss, FALSE, FALSE, 0);
 
     ui_idle_timeout(&ui);
     g_timeout_add(1000, ui_idle_timeout, &ui);
     g_timeout_add(1000, ui_idle_timeout_autosave, &ui);
-    gps_set_callback(ui_gps, &ui);
+    gnss_set_callback(ui_gnss, &ui);
 
     ui.scanlist = ui_scanlist(ui.window, UI_SCANLIST_PAGE_5_GHZ);
 
@@ -180,8 +180,8 @@ ui_restore(void)
     if(conf_get_interface_sound())
         g_signal_emit_by_name(ui.b_sound, "clicked");
 
-    if(conf_get_interface_gps())
-        g_signal_emit_by_name(ui.b_gps, "clicked");
+    if(conf_get_interface_gnss())
+        g_signal_emit_by_name(ui.b_gnss, "clicked");
 
     if(conf_get_interface_geoloc())
         g_signal_emit_by_name(ui.b_geoloc, "clicked");
@@ -289,7 +289,7 @@ ui_idle_timeout(gpointer user_data)
 {
     mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
     gint64 ts = UNIX_TIMESTAMP();
-    mtscan_gps_state_t state;
+    mtscan_gnss_state_t state;
 
     if(conf_get_interface_sound() &&
        conf_get_preferences_sounds_no_data() &&
@@ -297,17 +297,17 @@ ui_idle_timeout(gpointer user_data)
        (ts - ui->activity_ts) >= ACTIVITY_TIMEOUT &&
        (ts % 2) == 0)
     {
-        mtscan_sound(APP_SOUND_NODATA);
+        mtscan_sound(APP_SOUND_CONNECTION_LOST);
     }
 
-    state = gps_get_data(NULL);
+    state = gnss_get_data(NULL);
     if(conf_get_interface_sound() &&
-       conf_get_preferences_sounds_no_gps_data() &&
-       state > GPS_OFF &&
-       state < GPS_OK &&
+       conf_get_preferences_sounds_no_gnss_data() &&
+       state > GNSS_OFF &&
+       state < GNSS_OK &&
        (ts % 2) != 0)
     {
-        mtscan_sound(APP_SOUND_GPSLOST);
+        mtscan_sound(APP_SOUND_GNSS_LOST);
     }
 
     return G_SOURCE_CONTINUE;
@@ -346,9 +346,9 @@ ui_idle_timeout_autosave(gpointer user_data)
 }
 
 static void
-ui_gps(mtscan_gps_state_t       state,
-       const mtscan_gps_data_t *gps_data,
-       gpointer                 user_data)
+ui_gnss(mtscan_gnss_state_t       state,
+        const mtscan_gnss_data_t *gnss_data,
+        gpointer                  user_data)
 {
     mtscan_gtk_t *ui = (mtscan_gtk_t*)user_data;
     GString *string;
@@ -356,51 +356,62 @@ ui_gps(mtscan_gps_state_t       state,
 
     switch(state)
     {
-        case GPS_OFF:
-            gtk_label_set_text(GTK_LABEL(ui->l_gps_status), "GPS: off");
+        case GNSS_OFF:
+            gtk_label_set_text(GTK_LABEL(ui->l_gnss_status), "GNSS: off");
             break;
-        case GPS_OPENING:
-            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>opening…</b></span>");
+        case GNSS_OPENING:
+            gtk_label_set_markup(GTK_LABEL(ui->l_gnss_status), "GNSS: <span color=\"red\"><b>opening…</b></span>");
             break;
-        case GPS_AWAITING:
-            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>awaiting…</b></span>");
+        case GNSS_ACCESS_DENIED:
+            gtk_label_set_markup(GTK_LABEL(ui->l_gnss_status), "GNSS: <span color=\"red\"><b>access denied</b></span>");
             break;
-        case GPS_NO_FIX:
-            gtk_label_set_markup(GTK_LABEL(ui->l_gps_status), "GPS: <span color=\"red\"><b>no fix</b></span>");
+        case GNSS_AWAITING:
+            gtk_label_set_markup(GTK_LABEL(ui->l_gnss_status), "GNSS: <span color=\"red\"><b>awaiting…</b></span>");
             break;
-        case GPS_OK:
-            string = g_string_new("GPS: ");
+        case GNSS_NO_FIX:
+            gtk_label_set_markup(GTK_LABEL(ui->l_gnss_status), "GNSS: <span color=\"red\"><b>no fix</b></span>");
+            break;
+        case GNSS_OK:
+            string = g_string_new("GNSS: ");
             g_string_append_printf(string, " %c%.5f° %c%.5f°",
-                                   (gps_data->lat >= 0.0 ? 'N' : 'S'),
-                                   gps_data->lat,
-                                   (gps_data->lon >= 0.0 ? 'E' : 'W'),
-                                   gps_data->lon);
+                                   (gnss_data->lat >= 0.0 ? 'N' : 'S'),
+                                   gnss_data->lat,
+                                   (gnss_data->lon >= 0.0 ? 'E' : 'W'),
+                                   gnss_data->lon);
 
-            if(conf_get_preferences_gps_show_errors() &&
-               !isnan(gps_data->epx) && !isnan(gps_data->epy))
+            if(conf_get_preferences_gnss_show_errors() &&
+               !isnan(gnss_data->epx) && !isnan(gnss_data->epy))
             {
-                g_string_append_printf(string, " (±%.0f/%.0fm)",
-                                       round(gps_data->epy),
-                                       round(gps_data->epx));
+                if(fabs(gnss_data->epx - gnss_data->epy) < 10e-7)
+                {
+                    g_string_append_printf(string, " (±%.0fm)",
+                                           round(gnss_data->epy));
+                }
+                else
+                {
+                    g_string_append_printf(string, " (±%.0f/%.0fm)",
+                                           round(gnss_data->epy),
+                                           round(gnss_data->epx));
+                }
             }
 
-            if(conf_get_preferences_gps_show_altitude() &&
-               !isnan(gps_data->alt))
+            if(conf_get_preferences_gnss_show_altitude() &&
+               !isnan(gnss_data->alt))
             {
 
                 g_string_append_printf(string, " %.0fm",
-                                       round(gps_data->alt));
+                                       round(gnss_data->alt));
 
-                if(conf_get_preferences_gps_show_errors() &&
-                   !isnan(gps_data->epv))
+                if(conf_get_preferences_gnss_show_errors() &&
+                   !isnan(gnss_data->epv))
                 {
                     g_string_append_printf(string, " (±%.0fm)",
-                                           round(gps_data->epv));
+                                           round(gnss_data->epv));
                 }
             }
 
             text = g_string_free(string, FALSE);
-            gtk_label_set_text(GTK_LABEL(ui->l_gps_status), text);
+            gtk_label_set_text(GTK_LABEL(ui->l_gnss_status), text);
             g_free(text);
     }
 }

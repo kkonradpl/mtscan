@@ -18,7 +18,7 @@
 #include <glib.h>
 
 #define APP_NAME          "MTscan"
-#define APP_VERSION       "0.5-git"
+#define APP_VERSION       "0.6-git"
 #define APP_ICON          "mtscan"
 #define APP_FILE_EXT      ".mtscan"
 #define APP_FILE_COMPRESS ".gz"
@@ -33,8 +33,8 @@
 #define APP_SOUND_NETWORK_HIGHLIGHT "network-highlight.wav"
 #define APP_SOUND_NETWORK_WARNING   "network-warning.wav"
 #define APP_SOUND_NETWORK_ALARM     "network-alarm.wav"
-#define APP_SOUND_GPSLOST           "gpslost.wav"
-#define APP_SOUND_NODATA            "nodata.wav"
+#define APP_SOUND_GNSS_LOST         "gnss-lost.wav"
+#define APP_SOUND_CONNECTION_LOST   "conn-lost.wav"
 
 #define APP_LICENCE \
 "This program is free software; you can redistribute it and/or\n" \

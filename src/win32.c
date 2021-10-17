@@ -25,7 +25,7 @@
 #include "win32.h"
 
 #define WIN32_FONT_FILE "..\\share\\fonts\\TTF\\DejaVuSansMono.ttf"
-#define WIN32_QUICK_EDIT = 0x40;
+#define WIN32_QUICK_EDIT 0x40
 
 static gint win32_font;
 

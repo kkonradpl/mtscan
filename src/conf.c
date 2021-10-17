@@ -35,7 +35,7 @@
 #define CONF_DEFAULT_INTERFACE_SOUND         FALSE
 #define CONF_DEFAULT_INTERFACE_DARK_MODE     FALSE
 #define CONF_DEFAULT_INTERFACE_AUTOSAVE      FALSE
-#define CONF_DEFAULT_INTERFACE_GPS           FALSE
+#define CONF_DEFAULT_INTERFACE_GNSS          FALSE
 #define CONF_DEFAULT_INTERFACE_GEOLOC        FALSE
 #define CONF_DEFAULT_INTERFACE_ROTATOR       FALSE
 #define CONF_DEFAULT_INTERFACE_LAST_PROFILE  (-1)
@@ -61,7 +61,7 @@
 #define CONF_DEFAULT_PATH_AUTOSAVE   ""
 #define CONF_DEFAULT_PATH_SCREENSHOT ""
 
-#define CONF_DEFAULT_PREFERENCES_ICON_SIZE              18
+#define CONF_DEFAULT_PREFERENCES_ICON_SIZE              16
 #define CONF_DEFAULT_PREFERENCES_AUTOSAVE_INTERVAL      5
 #define CONF_DEFAULT_PREFERENCES_SEARCH_COLUMN          1
 #define CONF_DEFAULT_PREFERENCES_FALLBACK_ENCODING      "ISO-8859-2"
@@ -77,13 +77,19 @@
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_WA  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA         TRUE
-#define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA     TRUE
+#define CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GNSS_DATA    TRUE
 #define CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK     FALSE
 #define CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT          0x9090
-#define CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME           "localhost"
-#define CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT           2947
-#define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE      TRUE
-#define CONF_DEFAULT_PREFERENCES_GPS_SHOW_ERRORS        FALSE
+#ifdef G_OS_WIN32
+#define CONF_DEFAULT_PREFERENCES_GNSS_SOURCE            CONF_PREFERENCES_GNSS_SOURCE_WSA
+#else
+#define CONF_DEFAULT_PREFERENCES_GNSS_SOURCE            CONF_PREFERENCES_GNSS_SOURCE_GPSD
+#endif
+#define CONF_DEFAULT_PREFERENCES_GNSS_GPSD_HOSTNAME     "localhost"
+#define CONF_DEFAULT_PREFERENCES_GNSS_GPSD_TCP_PORT     2947
+#define CONF_DEFAULT_PREFERENCES_GNSS_WSA_ID            0
+#define CONF_DEFAULT_PREFERENCES_GNSS_SHOW_ALTITUDE     TRUE
+#define CONF_DEFAULT_PREFERENCES_GNSS_SHOW_ERROR        FALSE
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_HOSTNAME       "localhost"
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_TCP_PORT       7399
 #define CONF_DEFAULT_PREFERENCES_ROTATOR_PASSWORD       ""
@@ -133,7 +139,7 @@ typedef struct conf
     gboolean interface_sound;
     gboolean interface_dark_mode;
     gboolean interface_autosave;
-    gboolean interface_gps;
+    gboolean interface_gnss;
     gboolean interface_geoloc;
     gboolean interface_rotator;
     gint     interface_last_profile;
@@ -175,17 +181,19 @@ typedef struct conf
     gboolean  preferences_sounds_new_network_wa;
     gboolean  preferences_sounds_new_network_al;
     gboolean  preferences_sounds_no_data;
-    gboolean  preferences_sounds_no_gps_data;
+    gboolean  preferences_sounds_no_gnss_data;
 
     gboolean  preferences_events_new_network;
     gchar    *preferences_events_new_network_exec;
 
     gint      preferences_tzsp_udp_port;
 
-    gchar    *preferences_gps_hostname;
-    gint      preferences_gps_tcp_port;
-    gboolean  preferences_gps_show_altitude;
-    gboolean  preferences_gps_show_errors;
+    gint      preferences_gnss_source;
+    gchar    *preferences_gnss_gpsd_hostname;
+    gint      preferences_gnss_gpsd_tcp_port;
+    gint      preferences_gnss_wsa_id;
+    gboolean  preferences_gnss_show_altitude;
+    gboolean  preferences_gnss_show_errors;
 
     gchar    *preferences_rotator_hostname;
     gint      preferences_rotator_tcp_port;
@@ -325,7 +333,7 @@ conf_read(void)
     conf.interface_sound = conf_read_boolean("interface", "sound", CONF_DEFAULT_INTERFACE_SOUND);
     conf.interface_dark_mode = conf_read_boolean("interface", "dark_mode", CONF_DEFAULT_INTERFACE_DARK_MODE);
     conf.interface_autosave = conf_read_boolean("interface", "autosave", CONF_DEFAULT_INTERFACE_AUTOSAVE);
-    conf.interface_gps = conf_read_boolean("interface", "gps", CONF_DEFAULT_INTERFACE_GPS);
+    conf.interface_gnss = conf_read_boolean("interface", "gnss", CONF_DEFAULT_INTERFACE_GNSS);
     conf.interface_geoloc = conf_read_boolean("interface", "geoloc", CONF_DEFAULT_INTERFACE_GEOLOC);
     conf.interface_rotator = conf_read_boolean("interface", "rotator", CONF_DEFAULT_INTERFACE_ROTATOR);
     conf.interface_last_profile = conf_read_integer("interface", "last_profile", CONF_DEFAULT_INTERFACE_LAST_PROFILE);
@@ -363,17 +371,19 @@ conf_read(void)
     conf.preferences_sounds_new_network_wa = conf_read_boolean("preferences", "sounds_new_network_wa", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_WA);
     conf.preferences_sounds_new_network_al = conf_read_boolean("preferences", "sounds_new_network_al", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_AL);
     conf.preferences_sounds_no_data = conf_read_boolean("preferences", "sounds_no_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_DATA);
-    conf.preferences_sounds_no_gps_data = conf_read_boolean("preferences", "sounds_no_gps_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GPS_DATA);
+    conf.preferences_sounds_no_gnss_data = conf_read_boolean("preferences", "sounds_no_gnss_data", CONF_DEFAULT_PREFERENCES_SOUNDS_NO_GNSS_DATA);
 
     conf.preferences_events_new_network = conf_read_boolean("preferences", "events_new_network", CONF_DEFAULT_PREFERENCES_EVENTS_NEW_NETWORK);
     conf.preferences_events_new_network_exec = conf_read_string("preferences", "events_new_network_exec", "");
 
     conf.preferences_tzsp_udp_port = conf_read_integer("preferences", "tzsp_udp_port", CONF_DEFAULT_PREFERENCES_TZSP_UDP_PORT);
 
-    conf.preferences_gps_hostname = conf_read_string("preferences", "gps_hostname", CONF_DEFAULT_PREFERENCES_GPS_HOSTNAME);
-    conf.preferences_gps_tcp_port = conf_read_integer("preferences", "gps_tcp_port", CONF_DEFAULT_PREFERENCES_GPS_TCP_PORT);
-    conf.preferences_gps_show_altitude = conf_read_boolean("preferences", "gps_show_altitude", CONF_DEFAULT_PREFERENCES_GPS_SHOW_ALTITUDE);
-    conf.preferences_gps_show_errors = conf_read_boolean("preferences", "gps_show_errors", CONF_DEFAULT_PREFERENCES_GPS_SHOW_ERRORS);
+    conf.preferences_gnss_source = conf_read_integer("preferences", "gnss_source", CONF_DEFAULT_PREFERENCES_GNSS_SOURCE);
+    conf.preferences_gnss_gpsd_hostname = conf_read_string("preferences", "gnss_gpsd_hostname", CONF_DEFAULT_PREFERENCES_GNSS_GPSD_HOSTNAME);
+    conf.preferences_gnss_gpsd_tcp_port = conf_read_integer("preferences", "gnss_gpsd_tcp_port", CONF_DEFAULT_PREFERENCES_GNSS_GPSD_TCP_PORT);
+    conf.preferences_gnss_wsa_id = conf_read_integer("preferences", "gnss_wsa_id", CONF_DEFAULT_PREFERENCES_GNSS_WSA_ID);
+    conf.preferences_gnss_show_altitude = conf_read_boolean("preferences", "gnss_show_altitude", CONF_DEFAULT_PREFERENCES_GNSS_SHOW_ALTITUDE);
+    conf.preferences_gnss_show_errors = conf_read_boolean("preferences", "gnss_show_errors", CONF_DEFAULT_PREFERENCES_GNSS_SHOW_ERROR);
 
     conf.preferences_rotator_hostname = conf_read_string("preferences", "rotator_hostname", CONF_DEFAULT_PREFERENCES_ROTATOR_HOSTNAME);
     conf.preferences_rotator_tcp_port = conf_read_integer("preferences", "rotator_tcp_port", CONF_DEFAULT_PREFERENCES_ROTATOR_TCP_PORT);
@@ -667,7 +677,7 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "interface", "sound", conf.interface_sound);
     g_key_file_set_boolean(conf.keyfile, "interface", "dark_mode", conf.interface_dark_mode);
     g_key_file_set_boolean(conf.keyfile, "interface", "autosave", conf.interface_autosave);
-    g_key_file_set_boolean(conf.keyfile, "interface", "gps", conf.interface_gps);
+    g_key_file_set_boolean(conf.keyfile, "interface", "gnss", conf.interface_gnss);
     g_key_file_set_boolean(conf.keyfile, "interface", "geoloc", conf.interface_geoloc);
     g_key_file_set_boolean(conf.keyfile, "interface", "rotator", conf.interface_rotator);
     g_key_file_set_integer(conf.keyfile, "interface", "last_profile", conf.interface_last_profile);
@@ -704,17 +714,19 @@ conf_save(void)
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_wa", conf.preferences_sounds_new_network_wa);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_new_network_al", conf.preferences_sounds_new_network_al);
     g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_data", conf.preferences_sounds_no_data);
-    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gps_data", conf.preferences_sounds_no_gps_data);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "sounds_no_gnss_data", conf.preferences_sounds_no_gnss_data);
 
     g_key_file_set_boolean(conf.keyfile, "preferences", "events_new_network", conf.preferences_events_new_network);
     g_key_file_set_string(conf.keyfile, "preferences", "events_new_network_exec", conf.preferences_events_new_network_exec);
 
     g_key_file_set_integer(conf.keyfile, "preferences", "tzsp_udp_port", conf.preferences_tzsp_udp_port);
 
-    g_key_file_set_string(conf.keyfile, "preferences", "gps_hostname", conf.preferences_gps_hostname);
-    g_key_file_set_integer(conf.keyfile, "preferences", "gps_tcp_port", conf.preferences_gps_tcp_port);
-    g_key_file_set_boolean(conf.keyfile, "preferences", "gps_show_altitude", conf.preferences_gps_show_altitude);
-    g_key_file_set_boolean(conf.keyfile, "preferences", "gps_show_errors", conf.preferences_gps_show_errors);
+    g_key_file_set_integer(conf.keyfile, "preferences", "gnss_source", conf.preferences_gnss_source);
+    g_key_file_set_string(conf.keyfile, "preferences", "gnss_gpsd_hostname", conf.preferences_gnss_gpsd_hostname);
+    g_key_file_set_integer(conf.keyfile, "preferences", "gnss_gpsd_tcp_port", conf.preferences_gnss_gpsd_tcp_port);
+    g_key_file_set_integer(conf.keyfile, "preferences", "gnss_wsa_id", conf.preferences_gnss_wsa_id);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "gnss_show_altitude", conf.preferences_gnss_show_altitude);
+    g_key_file_set_boolean(conf.keyfile, "preferences", "gnss_show_errors", conf.preferences_gnss_show_errors);
 
     g_key_file_set_string(conf.keyfile, "preferences", "rotator_hostname", conf.preferences_rotator_hostname);
     g_key_file_set_integer(conf.keyfile, "preferences", "rotator_tcp_port", conf.preferences_rotator_tcp_port);
@@ -1005,15 +1017,15 @@ conf_set_interface_autosave(gboolean autosave)
 }
 
 gboolean
-conf_get_interface_gps(void)
+conf_get_interface_gnss(void)
 {
-    return conf.interface_gps;
+    return conf.interface_gnss;
 }
 
 void
-conf_set_interface_gps(gboolean gps)
+conf_set_interface_gnss(gboolean gnss)
 {
-    conf.interface_gps = gps;
+    conf.interface_gnss = gnss;
 }
 
 gboolean
@@ -1356,15 +1368,15 @@ conf_set_preferences_sounds_no_data(gboolean value)
 }
 
 gboolean
-conf_get_preferences_sounds_no_gps_data(void)
+conf_get_preferences_sounds_no_gnss_data(void)
 {
-    return conf.preferences_sounds_no_gps_data;
+    return conf.preferences_sounds_no_gnss_data;
 }
 
 void
-conf_set_preferences_sounds_no_gps_data(gboolean value)
+conf_set_preferences_sounds_no_gnss_data(gboolean value)
 {
-    conf.preferences_sounds_no_gps_data = value;
+    conf.preferences_sounds_no_gnss_data = value;
 }
 
 gboolean
@@ -1403,52 +1415,76 @@ conf_set_preferences_tzsp_udp_port(gint value)
     conf.preferences_tzsp_udp_port = value;
 }
 
-const gchar*
-conf_get_preferences_gps_hostname(void)
+gint
+conf_get_preferences_gnss_source(void)
 {
-    return conf.preferences_gps_hostname;
+    return conf.preferences_gnss_source;
 }
 
 void
-conf_set_preferences_gps_hostname(const gchar *value)
+conf_set_preferences_gnss_source(gint value)
 {
-    conf_change_string(&conf.preferences_gps_hostname, value);
+    conf.preferences_gnss_source = value;
+}
+
+const gchar*
+conf_get_preferences_gnss_gpsd_hostname(void)
+{
+    return conf.preferences_gnss_gpsd_hostname;
+}
+
+void
+conf_set_preferences_gnss_gpsd_hostname(const gchar *value)
+{
+    conf_change_string(&conf.preferences_gnss_gpsd_hostname, value);
 }
 
 gint
-conf_get_preferences_gps_tcp_port(void)
+conf_get_preferences_gnss_gpsd_tcp_port(void)
 {
-    return conf.preferences_gps_tcp_port;
+    return conf.preferences_gnss_gpsd_tcp_port;
 }
 
 void
-conf_set_preferences_gps_tcp_port(gint value)
+conf_set_preferences_gnss_gpsd_tcp_port(gint value)
 {
-    conf.preferences_gps_tcp_port = value;
+    conf.preferences_gnss_gpsd_tcp_port = value;
+}
+
+gint
+conf_get_preferences_gnss_wsa_id(void)
+{
+    return conf.preferences_gnss_wsa_id;
+}
+
+void
+conf_set_preferences_gnss_wsa_id(gint value)
+{
+    conf.preferences_gnss_wsa_id = value;
 }
 
 gboolean
-conf_get_preferences_gps_show_altitude(void)
+conf_get_preferences_gnss_show_altitude(void)
 {
-    return conf.preferences_gps_show_altitude;
+    return conf.preferences_gnss_show_altitude;
 }
 
 void
-conf_set_preferences_gps_show_altitude(gboolean value)
+conf_set_preferences_gnss_show_altitude(gboolean value)
 {
-    conf.preferences_gps_show_altitude = value;
+    conf.preferences_gnss_show_altitude = value;
 }
 
 gboolean
-conf_get_preferences_gps_show_errors(void)
+conf_get_preferences_gnss_show_errors(void)
 {
-    return conf.preferences_gps_show_errors;
+    return conf.preferences_gnss_show_errors;
 }
 
 void
-conf_set_preferences_gps_show_errors(gboolean value)
+conf_set_preferences_gnss_show_errors(gboolean value)
 {
-    conf.preferences_gps_show_errors = value;
+    conf.preferences_gnss_show_errors = value;
 }
 
 const gchar*
