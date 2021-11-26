@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2020  Konrad Kosmatka
+ *  Copyright (c) 2015-2021  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -153,14 +153,15 @@ typedef struct mt_ssh
     gint           channel_width;
     gchar         *str_prompt;
     gint           state;
-    gboolean       sent_command;
+    gchar         *sent_command;
+    gint           ignore_echo;
     gboolean       dispatch_interface_check;
     gboolean       dispatch_band_check;
     gboolean       dispatch_channel_width_check;
     gchar         *dispatch_scanlist_set;
     gboolean       dispatch_scanlist_get;
     gint           dispatch_mode;
-    GString       *scanlist;
+    GString       *string_buff;
     mt_ssh_shdr_t *scan_header;
     gint           scan_line;
     gboolean       scan_too_long;
@@ -233,6 +234,7 @@ static void mt_ssh_conf_keepalive(ssh_session);
 
 static void mt_ssh(mt_ssh_t*);
 static void mt_ssh_request(mt_ssh_t*, const gchar*);
+static void mt_ssh_request_full(mt_ssh_t*, gint, gboolean, const gchar*, ...);
 static void mt_ssh_set_state(mt_ssh_t*, gint);
 static void mt_ssh_interface(mt_ssh_t*, gchar*);
 static void mt_ssh_band(mt_ssh_t*, gchar*);
@@ -242,14 +244,8 @@ static void mt_ssh_sniffing(mt_ssh_t*, gchar*);
 static void mt_ssh_commands(mt_ssh_t*, guint);
 static void mt_ssh_dispatch(mt_ssh_t*);
 
-static void mt_ssh_interface_check(mt_ssh_t*);
-static void mt_ssh_band_check(mt_ssh_t*);
-static void mt_ssh_channel_width_check(mt_ssh_t*);
 static void mt_ssh_scan(mt_ssh_t*);
-static void mt_ssh_sniff(mt_ssh_t*);
 static void mt_ssh_stop(mt_ssh_t*, gboolean);
-static void mt_ssh_scanlist_get(mt_ssh_t*);
-static void mt_ssh_scanlist_set(mt_ssh_t*, const gchar*);
 
 static gint str_count_lines(const gchar*);
 static void str_remove_char(gchar*, gchar);
@@ -344,8 +340,9 @@ mt_ssh_free(mt_ssh_t *context)
         g_free(context->return_error);
 
         /* Private data */
-        if(context->scanlist)
-            g_string_free(context->scanlist, TRUE);
+        if(context->string_buff)
+            g_string_free(context->string_buff, TRUE);
+        g_free(context->sent_command);
         g_free(context->dispatch_scanlist_set);
         g_free(context->str_prompt);
         g_free(context->identity);
@@ -1069,7 +1066,7 @@ mt_ssh(mt_ssh_t *context)
 
             if(context->identity &&
                context->state != MT_SSH_STATE_PROMPT &&
-               !context->sent_command &&
+               !context->ignore_echo &&
                !strncmp(line, context->str_prompt, strlen(context->str_prompt)))
             {
                 if(context->state == MT_SSH_STATE_WAITING_FOR_PROMPT)
@@ -1102,16 +1099,28 @@ mt_ssh(mt_ssh_t *context)
                 break;
             }
 
-            if(context->sent_command)
+            if(context->ignore_echo)
             {
-                /* The command is echoed back to terminal, ignore it */
-                context->sent_command = FALSE;
+                if(strcmp(context->sent_command, line) == 0)
+                {
+                    /* The command is echoed back to terminal, ignore it */
+                    context->ignore_echo = 0;
+                }
+                else
+                {
+                    /* Workaround for v6.49+ */
+                    /* Each character is echoed incrementally in multiple lines */
+                    context->ignore_echo--;
+                }
                 continue;
             }
 
 #if DEBUG
             printf("[%d] %s\n", i, line);
 #endif
+
+            if(!length)
+                continue;
 
             if(context->state == MT_SSH_STATE_INTERFACE)
             {
@@ -1127,8 +1136,7 @@ mt_ssh(mt_ssh_t *context)
             }
             else if(context->state == MT_SSH_STATE_SCANLIST)
             {
-                /* Buffer the scan-list */
-                g_string_append(context->scanlist, line);
+                g_string_append(context->string_buff, line);
             }
             else if(context->state == MT_SSH_STATE_WAITING_FOR_SCAN ||
                     context->state == MT_SSH_STATE_SCANNING)
@@ -1155,107 +1163,136 @@ static void
 mt_ssh_request(mt_ssh_t    *context,
                const gchar *req)
 {
-    uint32_t len = (uint32_t)strlen(req);
-    ssh_channel_write(context->channel, req, len);
-    context->sent_command = TRUE;
+    gchar *buffer;
+
+    buffer = g_strdup_printf("%s\r", req);
+    ssh_channel_write(context->channel, buffer, (uint32_t)strlen(buffer));
+    g_free(buffer);
+
+    g_free(context->sent_command);
+    context->sent_command = g_strdup(req);
+    context->ignore_echo = strlen(req)+1;
 }
 
 static void
-mt_ssh_set_state(mt_ssh_t *context,
-                 gint      state)
+mt_ssh_request_full(mt_ssh_t    *context,
+                    gint         new_state,
+                    gboolean     alloc_string_buffer,
+                    const gchar *format,
+                    ...)
 {
-    gchar *buffered;
-    if(context->state == state)
+    va_list args;
+    gchar *str;
+
+    va_start(args, format);
+    str = g_strdup_vprintf(format, args);
+    mt_ssh_request(context, str);
+    g_free(str);
+
+    mt_ssh_set_state(context, new_state);
+
+    if(alloc_string_buffer)
+    {
+        if(context->string_buff)
+            g_string_free(context->string_buff, TRUE);
+
+        context->string_buff = g_string_new(NULL);
+    }
+}
+
+
+static void
+mt_ssh_set_state(mt_ssh_t *context,
+                 gint      new_state)
+{
+    gint last_state = context->state;
+    gchar *str = NULL;
+
+    if(last_state == new_state)
         return;
+
+    if(context->string_buff)
+    {
+        str = g_string_free(context->string_buff, FALSE);
+        context->string_buff = NULL;
+    }
 
 #if DEBUG
-    g_assert(state >= 0 && state < MT_SSH_N_STATES);
+    g_assert(new_state >= 0 && new_state < MT_SSH_N_STATES);
     printf("[!] Changing state from %s (%d) to %s (%d)\n",
-           str_states[context->state], context->state,
-           str_states[state], state);
+           str_states[last_state], last_state,
+           str_states[new_state], new_state);
 #endif
 
-    if(context->state == MT_SSH_STATE_INTERFACE &&
-       context->hwaddr < 0)
+    if(last_state == MT_SSH_STATE_SCANLIST)
     {
-        context->return_state = MT_SSH_ERR_INTERFACE;
-        context->canceled = TRUE;
-        return;
+        g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_SCANLIST, parse_scanlist(str))));
     }
 
-    if(context->state == MT_SSH_STATE_SCANLIST)
-    {
-        buffered = g_string_free(context->scanlist, FALSE);
-        context->scanlist = NULL;
-        g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_SCANLIST, parse_scanlist(buffered))));
-        g_free(buffered);
-    }
-
-    if(state == MT_SSH_STATE_SCANNING)
+    if(new_state == MT_SSH_STATE_SCANNING)
     {
         g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_SCANNER_START, NULL)));
     }
 
-    if(context->state == MT_SSH_STATE_SCANNING &&
+    if(last_state == MT_SSH_STATE_SCANNING &&
        !context->remote_mode)
     {
         g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_SCANNER_STOP, NULL)));
     }
 
-    if(state == MT_SSH_STATE_SNIFFING)
+    if(new_state == MT_SSH_STATE_SNIFFING)
     {
         context->sniffer = mt_ssh_snf_new();
         g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_SNIFFER_START, NULL)));
     }
 
-    if(context->state == MT_SSH_STATE_SNIFFING)
+    if(last_state == MT_SSH_STATE_SNIFFING)
     {
         g_free(context->sniffer);
         context->sniffer = NULL;
         g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_SNIFFER_STOP, NULL)));
     }
 
-    context->state = state;
+    context->state = new_state;
+    g_free(str);
 }
 
 static void
 mt_ssh_interface(mt_ssh_t *context,
                  gchar    *line)
 {
-    if((context->hwaddr = parse_scan_address(line, 0)) >= 0)
+    if((context->hwaddr = parse_scan_address(line, 0)) < 0)
     {
-        g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_INTERFACE, NULL)));
-        mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
+        context->return_state = MT_SSH_ERR_INTERFACE;
+        context->canceled = TRUE;
+        return;
     }
+
+    g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_INTERFACE, NULL)));
+    mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
 }
 
 static void
 mt_ssh_band(mt_ssh_t *context,
             gchar    *line)
 {
-    if(strlen(line))
-    {
-        if(g_strncasecmp(line, "2ghz", strlen("2ghz")) == 0)
-            context->band = MT_SSH_BAND_2GHZ;
-        else if(g_strncasecmp(line, "5ghz", strlen("5ghz")) == 0)
-            context->band = MT_SSH_BAND_5GHZ;
-        else
-            context->band = MT_SSH_BAND_UNKNOWN;
-        g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_BAND, NULL)));
-        mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
-    }
+    if(g_strncasecmp(line, "2ghz", strlen("2ghz")) == 0)
+        context->band = MT_SSH_BAND_2GHZ;
+    else if(g_strncasecmp(line, "5ghz", strlen("5ghz")) == 0)
+        context->band = MT_SSH_BAND_5GHZ;
+    else
+        context->band = MT_SSH_BAND_UNKNOWN;
+    g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_BAND, NULL)));
+    mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
 }
 
 static void
 mt_ssh_channel_width(mt_ssh_t *context,
                      gchar    *line)
 {
-    if(strlen(line))
-    {
-        context->channel_width = atoi(line);
-        g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_CHANNEL_WIDTH, NULL)));
-        mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
-    }
+    context->channel_width = atoi(line);
+    g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_INFO, mt_ssh_info_new(MT_SSH_INFO_CHANNEL_WIDTH, NULL)));
+    mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
 }
 
 static void
@@ -1531,29 +1568,58 @@ mt_ssh_dispatch(mt_ssh_t *context)
 
     if(context->dispatch_interface_check)
     {
-        mt_ssh_interface_check(context);
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_INTERFACE,
+                            FALSE,
+                            ":put [/interface wireless get \"%s\" mac-address ]",
+                            context->iface);
         context->dispatch_interface_check = FALSE;
     }
     else if(context->dispatch_band_check)
     {
-        mt_ssh_band_check(context);
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_BAND,
+                            FALSE,
+                            ":put [/interface wireless get \"%s\" band ]",
+                            context->iface);
         context->dispatch_band_check = FALSE;
     }
     else if(context->dispatch_channel_width_check)
     {
-        mt_ssh_channel_width_check(context);
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_CHANNEL_WIDTH,
+                            FALSE,
+                            ":put [/interface wireless get \"%s\" channel-width ]",
+                            context->iface);
         context->dispatch_channel_width_check = FALSE;
-    }
-    else if(context->dispatch_scanlist_set)
-    {
-        mt_ssh_scanlist_set(context, context->dispatch_scanlist_set);
-        g_free(context->dispatch_scanlist_set);
-        context->dispatch_scanlist_set = NULL;
     }
     else if(context->dispatch_scanlist_get)
     {
-        mt_ssh_scanlist_get(context);
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_SCANLIST,
+                            TRUE,
+                            "/interface wireless info scan-list \"%s\"",
+                            context->iface);
         context->dispatch_scanlist_get = FALSE;
+    }
+    else if(context->dispatch_scanlist_set)
+    {
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_WAITING_FOR_PROMPT,
+                            FALSE,
+                            "/interface wireless set \"%s\" scan-list=\"%s\"",
+                            context->iface, context->dispatch_scanlist_set);
+        g_free(context->dispatch_scanlist_set);
+        context->dispatch_scanlist_set = NULL;
+    }
+    else if(context->dispatch_mode == MT_SSH_MODE_SNIFFER)
+    {
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_SNIFFING,
+                            FALSE,
+                            "/interface wireless sniffer sniff \"%s\"",
+                            context->iface);
+        context->dispatch_mode = MT_SSH_MODE_NONE;
     }
     else if(context->dispatch_mode == MT_SSH_MODE_SCANNER ||
             context->remote_mode)
@@ -1561,47 +1627,6 @@ mt_ssh_dispatch(mt_ssh_t *context)
         mt_ssh_scan(context);
         context->dispatch_mode = MT_SSH_MODE_NONE;
     }
-    else if(context->dispatch_mode == MT_SSH_MODE_SNIFFER)
-    {
-        mt_ssh_sniff(context);
-        context->dispatch_mode = MT_SSH_MODE_NONE;
-    }
-}
-
-static void
-mt_ssh_interface_check(mt_ssh_t *context)
-{
-    gchar *str;
-
-    str = g_strdup_printf(" :put [/interface wireless get \"%s\" mac-address ]\r", context->iface);
-    mt_ssh_request(context, str);
-    g_free(str);
-
-    mt_ssh_set_state(context, MT_SSH_STATE_INTERFACE);
-}
-
-static void
-mt_ssh_band_check(mt_ssh_t *context)
-{
-    gchar *str;
-
-    str = g_strdup_printf(" :put [/interface wireless get \"%s\" band ]\r", context->iface);
-    mt_ssh_request(context, str);
-    g_free(str);
-
-    mt_ssh_set_state(context, MT_SSH_STATE_BAND);
-}
-
-static void
-mt_ssh_channel_width_check(mt_ssh_t *context)
-{
-    gchar *str;
-
-    str = g_strdup_printf(" :put [/interface wireless get \"%s\" channel-width ]\r", context->iface);
-    mt_ssh_request(context, str);
-    g_free(str);
-
-    mt_ssh_set_state(context, MT_SSH_STATE_CHANNEL_WIDTH);
 }
 
 static void
@@ -1610,30 +1635,19 @@ mt_ssh_scan(mt_ssh_t *context)
     gchar *str_scan;
 
     if(context->background && context->duration)
-        str_scan = g_strdup_printf(":delay 250ms; /interface wireless scan \"%s\" background=yes duration=%d\r", context->iface, context->duration);
+        str_scan = g_strdup_printf(":delay 250ms; /interface wireless scan \"%s\" background=yes duration=%d", context->iface, context->duration);
     else if(context->background)
-        str_scan = g_strdup_printf(":delay 250ms; /interface wireless scan \"%s\" background=yes\r", context->iface);
+        str_scan = g_strdup_printf(":delay 250ms; /interface wireless scan \"%s\" background=yes", context->iface);
     else if(context->duration)
-        str_scan = g_strdup_printf("/interface wireless scan \"%s\" duration=%d\r", context->iface, context->duration);
+        str_scan = g_strdup_printf("/interface wireless scan \"%s\" duration=%d", context->iface, context->duration);
     else
-        str_scan = g_strdup_printf("/interface wireless scan \"%s\"\r", context->iface);
+        str_scan = g_strdup_printf("/interface wireless scan \"%s\"", context->iface);
 
     mt_ssh_request(context, str_scan);
     g_free(str_scan);
 
     context->scan_line = -1;
     mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_SCAN);
-}
-
-static void
-mt_ssh_sniff(mt_ssh_t *context)
-{
-    gchar *str_sniff;
-    str_sniff = g_strdup_printf("/interface wireless sniffer sniff \"%s\"\r", context->iface);
-    mt_ssh_request(context, str_sniff);
-    g_free(str_sniff);
-
-    mt_ssh_set_state(context, MT_SSH_STATE_SNIFFING);
 }
 
 static void
@@ -1657,30 +1671,6 @@ mt_ssh_stop(mt_ssh_t *context,
     }
 
     mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT_DIRTY);
-}
-
-static void
-mt_ssh_scanlist_get(mt_ssh_t *context)
-{
-    gchar *str_scanlist_get;
-
-    str_scanlist_get = g_strdup_printf("/interface wireless info scan-list \"%s\"\r", context->iface);
-    mt_ssh_request(context, str_scanlist_get);
-    g_free(str_scanlist_get);
-    context->scanlist = g_string_new(NULL);
-    mt_ssh_set_state(context, MT_SSH_STATE_SCANLIST);
-}
-
-static void
-mt_ssh_scanlist_set(mt_ssh_t    *context,
-                    const gchar *scanlist)
-{
-    gchar *str_scanlist_set;
-
-    str_scanlist_set = g_strdup_printf("/interface wireless set \"%s\" scan-list=\"%s\"\r", context->iface, scanlist);
-    mt_ssh_request(context, str_scanlist_set);
-    g_free(str_scanlist_set);
-    mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
 }
 
 static gint
@@ -1813,6 +1803,9 @@ parse_scan_address(const gchar *buff,
     gchar *ptr;
     gint64 value;
     gint i;
+
+    if(!buff)
+        return -1;
 
     if(strlen(buff) < position+MAC_ADDR_HEX_LEN+5)
         return -1;
