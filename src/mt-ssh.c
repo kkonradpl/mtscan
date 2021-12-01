@@ -1078,6 +1078,9 @@ mt_ssh(mt_ssh_t *context)
                 {
                     mt_ssh_set_state(context, MT_SSH_STATE_WAITING_FOR_PROMPT);
                     ssh_channel_write(context->channel, "\03", 1); /* CTRL+C */
+#if DEBUG
+                    printf("<!> Clearing prompt with ^C\n");
+#endif
                 }
                 offset = 0;
 #if DEBUG
@@ -1101,17 +1104,30 @@ mt_ssh(mt_ssh_t *context)
 
             if(context->ignore_echo)
             {
-                if(strcmp(context->sent_command, line) == 0)
+                if(strncmp(context->sent_command + (strlen(context->sent_command) - context->ignore_echo + 1),
+                           line,
+                           strlen(line)) == 0)
                 {
-                    /* The command is echoed back to terminal, ignore it */
-                    context->ignore_echo = 0;
+                    /* Pre-v6.49 behavior */
+                    /* The command is simply echoed back to terminal, /
+                    /* but it may be divided into multiple lines... */
+                    /* This case also takes care of first echo line from v6.49 with a single character (!) */
+                    context->ignore_echo -= strlen(line);
+
+                    /* Do not expect additional iteration for new line here */
+                    if(context->ignore_echo == 1)
+                        context->ignore_echo = 0;
                 }
                 else
                 {
-                    /* Workaround for v6.49+ */
-                    /* Each character is echoed incrementally in multiple lines */
+                    /* Post-v6.49 behavior */
+                    /* Each character is echoed incrementally in subsequent lines */
+                    /* Just ignore them, including the last one with new line */
                     context->ignore_echo--;
                 }
+#if DEBUG
+                printf("/%d/ %s\n", i, line);
+#endif
                 continue;
             }
 
@@ -1170,8 +1186,12 @@ mt_ssh_request(mt_ssh_t    *context,
     g_free(buffer);
 
     g_free(context->sent_command);
+
+    /* Preserve command without '\r' at the end */
     context->sent_command = g_strdup(req);
-    context->ignore_echo = strlen(req)+1;
+    context->ignore_echo = strlen(req);
+    /* We need one more iteration for v6.49+ */
+    context->ignore_echo++;
 }
 
 static void
@@ -1593,15 +1613,7 @@ mt_ssh_dispatch(mt_ssh_t *context)
                             context->iface);
         context->dispatch_channel_width_check = FALSE;
     }
-    else if(context->dispatch_scanlist_get)
-    {
-        mt_ssh_request_full(context,
-                            MT_SSH_STATE_SCANLIST,
-                            TRUE,
-                            "/interface wireless info scan-list \"%s\"",
-                            context->iface);
-        context->dispatch_scanlist_get = FALSE;
-    }
+    /* Perform scanlist_set before scanlist_get */
     else if(context->dispatch_scanlist_set)
     {
         mt_ssh_request_full(context,
@@ -1611,6 +1623,15 @@ mt_ssh_dispatch(mt_ssh_t *context)
                             context->iface, context->dispatch_scanlist_set);
         g_free(context->dispatch_scanlist_set);
         context->dispatch_scanlist_set = NULL;
+    }
+    else if(context->dispatch_scanlist_get)
+    {
+        mt_ssh_request_full(context,
+                            MT_SSH_STATE_SCANLIST,
+                            TRUE,
+                            "/interface wireless info scan-list \"%s\"",
+                            context->iface);
+        context->dispatch_scanlist_get = FALSE;
     }
     else if(context->dispatch_mode == MT_SSH_MODE_SNIFFER)
     {
