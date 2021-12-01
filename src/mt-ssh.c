@@ -1109,8 +1109,8 @@ mt_ssh(mt_ssh_t *context)
                            strlen(line)) == 0)
                 {
                     /* Pre-v6.49 behavior */
-                    /* The command is simply echoed back to terminal, /
-                    /* but it may be divided into multiple lines... */
+                    /* The command is simply echoed back to terminal,
+                       but it may be divided into multiple lines... */
                     /* This case also takes care of first echo line from v6.49 with a single character (!) */
                     context->ignore_echo -= strlen(line);
 
