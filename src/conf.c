@@ -72,6 +72,7 @@
 #define CONF_DEFAULT_PREFERENCES_RECONNECT              FALSE
 #define CONF_DEFAULT_PREFERENCES_CLIP_INVALID_SIGNAL    TRUE
 #define CONF_DEFAULT_PREFERENCES_SHOW_IDENTITY          FALSE
+#define CONF_DEFAULT_PREFERENCES_VIEW_COLS_HIDDEN       default_view_cols_hidden
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK     TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI  TRUE
 #define CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_WA  TRUE
@@ -118,6 +119,21 @@
 #define CONF_DEFAULT_RUNTIME_SKIP_VERIFICATION          FALSE
 #define CONF_DEFAULT_RUNTIME_SKIP_SCANLIST_WARNING      FALSE
 
+static const gchar *const default_view_cols_hidden[] =
+{
+    "spatial-streams",
+    "noise",
+    "privacy",
+    "airmax",
+    "airmax-ac-ptp",
+    "airmax-ac-ptmp",
+    "airmax-ac-mixed",
+    "latitude",
+    "longitude",
+    "azimuth",
+    "distance",
+    NULL
+};
 
 #define CONF_PROFILE_GROUP_PREFIX  "profile_"
 #define CONF_PROFILE_GROUP_DEFAULT "profile"
@@ -364,7 +380,7 @@ conf_read(void)
     conf.preferences_show_identity = conf_read_boolean("preferences", "show_identity", CONF_DEFAULT_PREFERENCES_SHOW_IDENTITY);
 
     conf.preferences_view_cols_order = conf_read_columns(conf.keyfile, "preferences", "view_cols_order");
-    conf.preferences_view_cols_hidden = conf_read_string_list(conf.keyfile, "preferences", "view_cols_hidden", NULL);
+    conf.preferences_view_cols_hidden = conf_read_string_list(conf.keyfile, "preferences", "view_cols_hidden", CONF_DEFAULT_PREFERENCES_VIEW_COLS_HIDDEN);
 
     conf.preferences_sounds_new_network = conf_read_boolean("preferences", "sounds_new_network", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK);
     conf.preferences_sounds_new_network_hi = conf_read_boolean("preferences", "sounds_new_network_hi", CONF_DEFAULT_PREFERENCES_SOUNDS_NEW_NETWORK_HI);
