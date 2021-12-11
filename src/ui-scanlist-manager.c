@@ -19,8 +19,8 @@
 #include "conf-scanlist.h"
 #include "ui-dialogs.h"
 
-#define UI_SCANLIST_MANAGER_DEFAULT_WIDTH (-1)
-#define UI_SCANLIST_MANAGER_DEFAULT_HEIGHT 300
+#define UI_SCANLIST_MANAGER_DEFAULT_WIDTH  400
+#define UI_SCANLIST_MANAGER_DEFAULT_HEIGHT 350
 
 typedef struct scanlist_manager
 {
@@ -28,7 +28,8 @@ typedef struct scanlist_manager
     GtkWidget *content;
     GtkWidget *view;
     GtkWidget *scrolled;
-    GtkWidget *x_default;
+    GtkWidget *icon_default;
+    GtkWidget *icon_preset;
     GtkWidget *box_button;
     GtkWidget *b_clear;
     GtkWidget *b_remove;
@@ -88,17 +89,27 @@ ui_scanlist_manager(GtkWidget    *parent,
     gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(m->view), column);
 
-    renderer = gtk_cell_renderer_toggle_new();
-    gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
-    g_signal_connect(renderer, "toggled", G_CALLBACK(ui_scanlist_manager_main_toggled), m);
-    column = gtk_tree_view_column_new_with_attributes("*", renderer, "active", CONF_SCANLIST_COL_MAIN, NULL);
-    gtk_tree_view_column_set_alignment(column, 0.5);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(m->view), column);
+    m->icon_default = gtk_image_new_from_stock(GTK_STOCK_HOME, GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(GTK_WIDGET(m->icon_default), "Default scan-list");
+    gtk_widget_show(m->icon_default);
 
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
     g_signal_connect(renderer, "toggled", G_CALLBACK(ui_scanlist_manager_default_toggled), m);
-    column = gtk_tree_view_column_new_with_attributes("D", renderer, "active", CONF_SCANLIST_COL_DEFAULT, NULL);
+    column = gtk_tree_view_column_new_with_attributes("", renderer, "active", CONF_SCANLIST_COL_DEFAULT, NULL);
+    gtk_tree_view_column_set_widget(column, m->icon_default);
+    gtk_tree_view_column_set_alignment(column, 0.5);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(m->view), column);
+
+    m->icon_preset = gtk_image_new_from_stock(GTK_STOCK_SELECT_ALL, GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(GTK_WIDGET(m->icon_preset), "Preset scan-list");
+    gtk_widget_show(m->icon_preset);
+
+    renderer = gtk_cell_renderer_toggle_new();
+    gtk_cell_renderer_toggle_set_radio(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);
+    g_signal_connect(renderer, "toggled", G_CALLBACK(ui_scanlist_manager_main_toggled), m);
+    column = gtk_tree_view_column_new_with_attributes("", renderer, "active", CONF_SCANLIST_COL_MAIN, NULL);
+    gtk_tree_view_column_set_widget(column, m->icon_preset);
     gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_append_column(GTK_TREE_VIEW(m->view), column);
 
