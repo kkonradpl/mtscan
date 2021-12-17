@@ -49,24 +49,24 @@
 #define DEBUG    0
 #define DUMP_PTY 0
 
-#define SSID_LEN        32
-#define RADIO_NAME_LEN  16
-#define ROS_VERSION_LEN 16
-
 #define MAC_ADDR_HEX_LEN 12
 
 typedef struct mt_ssh_shdr
 {
-    guint address;
-    guint ssid;
-    guint channel;
-    guint band;          /* pre v6.30 */
-    guint channel_width; /* pre v6.30 */
-    guint rssi;
-    guint noise;
-    guint snr;
-    guint radioname;
-    guint ros_version;
+    guint    address;
+    guint    ssid;
+    guint    ssid_len;
+    guint    channel;
+    guint    band;          /* pre v6.30 */
+    guint    channel_width; /* pre v6.30 */
+    guint    rssi;
+    guint    noise;
+    guint    snr;
+    guint    radioname;
+    guint    radioname_len;
+    gboolean radioname_hack; /* ROS v7 */
+    guint    routeros_ver;
+    guint    routeros_ver_len;
 } mt_ssh_shdr_t;
 
 typedef struct mt_ssh_cmd
@@ -251,11 +251,12 @@ static gint str_count_lines(const gchar*);
 static void str_remove_char(gchar*, gchar);
 
 static mt_ssh_shdr_t* parse_scan_header(const gchar*);
+static guint          parse_scan_header_column(const gchar*, const gchar*, guint*);
 static guchar         parse_scan_flags(const gchar*, guint);
 static gint64         parse_scan_address(const gchar*, guint);
 static gint           parse_scan_channel(const gchar*, guint, gchar**, gchar**);
 static gint           parse_scan_int(const gchar*, guint, guint);
-static gchar*         parse_scan_string(const gchar*, guint, gint);
+static gchar*         parse_scan_string(const gchar*, guint, guint, gboolean);
 static gchar*         parse_scanlist(const gchar*);
 
 
@@ -275,6 +276,8 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
            gboolean       skip_verification)
 {
     mt_ssh_t *context;
+
+    /* Allocate memory and set all values to zero */
     context = g_malloc0(sizeof(mt_ssh_t));
 
     /* Configuration */
@@ -297,17 +300,12 @@ mt_ssh_new(void         (*cb)(mt_ssh_t*, mt_ssh_ret_t, const gchar*),
     /* Command queue */
     context->queue = g_async_queue_new_full((GDestroyNotify)mt_ssh_cmd_free);
 
-    /* Thread cancelation flag */
-    context->canceled = FALSE;
-
     /* Return values */
     context->return_state = MT_SSH_INVALID;
-    context->return_error = NULL;
 
     /* Private data */
     context->hwaddr = -1;
     context->band = MT_SSH_BAND_UNKNOWN;
-    context->channel_width = 0;
     context->str_prompt = g_strdup_printf("%s%s@", str_prompt_start, login);
     context->state = MT_SSH_STATE_WAITING_FOR_PROMPT;
     context->dispatch_scanlist_get = TRUE;
@@ -1325,6 +1323,7 @@ mt_ssh_scanning(mt_ssh_t *context,
     static const gchar str_scanlistempty[]  = "scanlist empty";
     static const gchar str_scannotrunning[] = "scan not running";
     static const gchar str_scanstart[]      = "Flags: ";
+    static const gchar str_scanstart2[]     = "Columns: ";
     static const gchar str_scanend[]        = "-- ";
 
     mt_ssh_net_t *net;
@@ -1396,18 +1395,26 @@ mt_ssh_scanning(mt_ssh_t *context,
         return;
     }
 
-    if(++context->scan_line == 1)
+    /* RouterOS v7 contains list of columns as second line, ignore it */
+    if(context->scan_line == 0 &&
+       strstr(line, str_scanstart2))
     {
-        /* Second line of scan results should contain a header */
-        if(!context->scan_header)
-        {
-            /* Try to parse the header */
-            context->scan_header = parse_scan_header(line);
+        return;
+    }
+
+    context->scan_line++;
+    if(context->scan_line == 1)
+    {
+        /* Header is always included before the scan results */
+        /* ROS v7 has dynamic headers, always parse them */
+
+        if(context->scan_header)
+            g_free(context->scan_header);
+        context->scan_header = parse_scan_header(line);
 #if DEBUG
-            if(context->scan_header)
-                printf("<!> Found header. Address index = %d\n", context->scan_header->address);
+        if(context->scan_header)
+            printf("<!> Found header. Address index = %d\n", context->scan_header->address);
 #endif
-        }
         return;
     }
 
@@ -1447,7 +1454,12 @@ mt_ssh_scanning(mt_ssh_t *context,
     net->flags = flags;
 
     if(context->scan_header->ssid)
-        net->ssid = parse_scan_string(line, context->scan_header->ssid, SSID_LEN);
+    {
+        net->ssid = parse_scan_string(line,
+                                      context->scan_header->ssid,
+                                      context->scan_header->ssid_len,
+                                      FALSE);
+    }
 
     if(context->scan_header->channel)
         net->frequency = parse_scan_channel(line, context->scan_header->channel, &net->channel, &net->mode);
@@ -1462,10 +1474,20 @@ mt_ssh_scanning(mt_ssh_t *context,
         net->noise = (gint8)parse_scan_int(line, context->scan_header->noise-2, 4); // __NF !
 
     if(context->scan_header->radioname)
-        net->radioname = parse_scan_string(line, context->scan_header->radioname, RADIO_NAME_LEN);
+    {
+        net->radioname = parse_scan_string(line,
+                                           context->scan_header->radioname,
+                                           context->scan_header->radioname_len,
+                                           context->scan_header->radioname_hack);
+    }
 
-    if(context->scan_header->ros_version)
-        net->routeros_ver = parse_scan_string(line, context->scan_header->ros_version, ROS_VERSION_LEN);
+    if(context->scan_header->routeros_ver)
+    {
+        net->routeros_ver = parse_scan_string(line,
+                                              context->scan_header->routeros_ver,
+                                              context->scan_header->routeros_ver_len,
+                                              FALSE);
+    }
 
     g_idle_add(mt_ssh_cb_msg, mt_ssh_msg_new(context, MT_SSH_MSG_NET, net));
 }
@@ -1720,10 +1742,13 @@ str_remove_char(gchar *str,
 static mt_ssh_shdr_t*
 parse_scan_header(const gchar *buff)
 {
-    mt_ssh_shdr_t *p;
-    gchar *ptr;
+    mt_ssh_shdr_t *h;
+    guint address;
+    const gchar *ptr;
 
-    if(!(ptr = strstr(buff, "ADDRESS")))
+    address = parse_scan_header_column(buff, "ADDRESS", NULL);
+
+    if(!address)
     {
 #if DEBUG
         printf("ADDRESS position not found!");
@@ -1731,44 +1756,98 @@ parse_scan_header(const gchar *buff)
         return NULL;
     }
 
-    p = g_malloc0(sizeof(mt_ssh_shdr_t));
-    p->address = (guint)(ptr-buff);
+    h = g_malloc0(sizeof(mt_ssh_shdr_t));
+    h->address = address;
 
-    if((ptr = strstr(buff, "SSID")))
-        p->ssid = (guint)(ptr-buff);
+    /* Preserve length of some columns */
+    h->ssid = parse_scan_header_column(buff, "SSID", &h->ssid_len);
+    h->radioname = parse_scan_header_column(buff, "RADIO-NAME", &h->radioname_len);
+    h->routeros_ver = parse_scan_header_column(buff, "ROUTEROS-VER", &h->routeros_ver_len);
+
+    h->rssi = parse_scan_header_column(buff, "SIG", NULL);
+    h->noise = parse_scan_header_column(buff, "NF", NULL);
+    h->snr = parse_scan_header_column(buff, "SNR", NULL);
 
     /* Pre v6.30 */
-    if((ptr = strstr(buff, "BAND")))
-        p->band = (guint)(ptr-buff);
-
-    if((ptr = strstr(buff, "CHANNEL-WIDTH")))
-        p->channel_width = (guint)(ptr-buff);
-
-    if((ptr = strstr(buff, "FREQ")))
-        p->channel = (guint)(ptr-buff);
-    /* --------- */
+    h->channel = parse_scan_header_column(buff, "FREQ", NULL);
+    h->channel_width = parse_scan_header_column(buff, "CHANNEL-WIDTH", NULL);
+    h->band = parse_scan_header_column(buff, "BAND", NULL);
 
     /* Post v6.30 */
-    if(!p->channel && (ptr = strstr(buff, "CHANNEL")))
-        p->channel = (guint)(ptr-buff);
-    /* ---------- */
+    if(!h->channel)
+        h->channel = parse_scan_header_column(buff, "CHANNEL", NULL);
 
-    if((ptr = strstr(buff, "SIG")))
-        p->rssi = (guint)(ptr-buff);
+    /* HACK for RouterOS v7 */
+    /* The RADIO-NAME column is right aligned */
+    if(h->radioname &&
+       h->snr &&
+       h->radioname > h->snr &&
+       h->radioname - h->snr > 5)
+    {
+        /* Skip whitespaces after SNR column */
+        ptr = buff + h->snr + strlen("SNR");
+        while(isspace(*ptr))
+            ptr++;
 
-    if((ptr = strstr(buff, "NF")))
-        p->noise = (guint)(ptr-buff);
+        /* RADIO-NAME should be placed just after SNR */
+        if(strncmp(ptr, "RADIO-NAME", strlen("RADIO-NAME")) == 0)
+        {
+            /* Apply the hack */
+            h->radioname_len += h->radioname - h->snr - strlen("SNR") - 2;
+            h->radioname = h->snr+5;
+            h->radioname_hack = TRUE;
+        }
+    }
 
-    if((ptr = strstr(buff, "SNR")))
-        p->snr = (guint)(ptr-buff);
+    return h;
+}
 
-    if((ptr = strstr(buff, "RADIO-NAME")))
-        p->radioname = (guint)(ptr-buff);
+static guint
+parse_scan_header_column(const gchar *buff,
+                         const gchar *title,
+                         guint       *length)
+{
+    const gchar *ptr;
+    guint pos;
 
-    if((ptr = strstr(buff, "ROUTEROS-VERSION")))
-        p->ros_version = (guint)(ptr-buff);
+    /* Length parameter is optional */
+    if(length)
+        *length = 0;
 
-    return p;
+    /* Find occurrence of a title in header */
+    ptr = strstr(buff, title);
+    if (!ptr)
+        return 0;
+
+    /* Found the position */
+    pos = (guint) (ptr - buff);
+
+    if(length)
+    {
+        /* Check column width (length) */
+        ptr += strlen(title);
+        *length += strlen(title);
+
+        /* Continue until next column */
+        while(isspace(*ptr))
+        {
+            ptr++;
+            (*length)++;
+        }
+
+        if (*ptr != '\0')
+        {
+            /* Another column was found */
+            *length = *length - 1;
+        }
+        else
+        {
+            /* This is the last column, it can expand to the end of a line */
+            *length = PTY_COLS - pos;
+        }
+    }
+
+    return pos;
 }
 
 static guchar
@@ -1917,25 +1996,37 @@ parse_scan_int(const gchar *buff,
 static gchar*
 parse_scan_string(const gchar *buff,
                   guint        position,
-                  gint         str_length)
+                  guint        str_length,
+                  gboolean     left_trim)
 {
-    gchar *output = NULL;
-    gint buff_length = (gint)strlen(buff);
-    size_t end;
+    guint buff_length = strlen(buff);
 
-    if(buff_length < position+str_length)
-        str_length = (gint)buff_length-position;
+    if(position >= buff_length)
+        return NULL;
 
-    if(str_length > 0)
+    buff += position;
+    buff_length -= position;
+
+    if(buff_length < str_length)
+        str_length = buff_length;
+
+    if(left_trim)
     {
-        /* right-side trim */
-        end = position + str_length;
-        while(end >= position && isspace(buff[end]))
-            end--;
-        output = g_strndup(buff+position, end-position+1);
+        /* Left-side trim */
+        while(isspace(*buff))
+        {
+            buff++;
+            str_length--;
+        }
+    }
+    else
+    {
+        /* Right-side trim */
+        while(str_length > 0 && isspace(buff[str_length-1]))
+            str_length--;
     }
 
-    return output;
+    return g_strndup(buff, str_length);
 }
 
 static gchar*
