@@ -212,7 +212,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     if(flags & FLAG_POSITION)
     {
         item_show_on_map = gtk_image_menu_item_new_with_label("Show on a map");
-        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_show_on_map), gtk_image_new_from_icon_name("mtscan-gps", GTK_ICON_SIZE_MENU));
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_show_on_map), gtk_image_new_from_icon_name("mtscan-gnss", GTK_ICON_SIZE_MENU));
         g_signal_connect(item_show_on_map, "activate", (GCallback)ui_view_menu_map, treeview);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_show_on_map);
     }
