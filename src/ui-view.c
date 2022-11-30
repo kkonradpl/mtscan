@@ -568,6 +568,7 @@ ui_view_key_press(GtkWidget   *widget,
                   GdkEventKey *event,
                   gpointer     data)
 {
+    guint key = gdk_keyval_to_upper(event->keyval);
     GtkTreeModel *model;
     GtkTreeSelection *selection;
     GtkTreeIter iter;
@@ -577,11 +578,11 @@ ui_view_key_press(GtkWidget   *widget,
     GString *str;
     gchar *string;
 
-    if(event->keyval == GDK_KEY_Delete)
+    if(key == GDK_KEY_Delete)
     {
         ui_view_remove_selection(widget);
     }
-    else if(event->keyval == GDK_KEY_c && event->state & GDK_CONTROL_MASK)
+    else if(key == GDK_KEY_C && event->state & GDK_CONTROL_MASK)
     {
         selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
         list = gtk_tree_selection_get_selected_rows(selection, &model);
@@ -592,11 +593,30 @@ ui_view_key_press(GtkWidget   *widget,
         str = g_string_new("");
         for(i=list; i; i=i->next)
         {
+            char *ssid;
+            char *name;
+
             gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)i->data);
-            gtk_tree_model_get(model, &iter, COL_SSID, &string, -1);
-            if(strlen(string))
-                g_string_append_printf(str, "%s, ", string);
-            g_free(string);
+            gtk_tree_model_get(model, &iter, COL_SSID, &ssid, -1);
+            gtk_tree_model_get(model, &iter, COL_RADIONAME, &name, -1);
+
+            if(event->state & GDK_SHIFT_MASK)
+            {
+                if(strlen(ssid) && strlen(name))
+                    g_string_append_printf(str, "%s %s, ", ssid, name);
+                else if(strlen(ssid))
+                    g_string_append_printf(str, "%s, ", ssid);
+                else if(strlen(name))
+                    g_string_append_printf(str, "%s, ", name);
+            }
+            else
+            {
+                if(strlen(ssid))
+                    g_string_append_printf(str, "%s, ", ssid);
+            }
+
+            g_free(ssid);
+            g_free(name);
         }
 
         string = g_string_free(str, FALSE);
