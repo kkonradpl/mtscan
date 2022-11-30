@@ -87,6 +87,8 @@ set(SOURCE_FILES
         tzsp/ie-mikrotik.h
         tzsp/ie-mikrotik-utils.c
         tzsp/ie-mikrotik-utils.h
+        tzsp/ie-wps.c
+        tzsp/ie-wps.h
         tzsp/tzsp-socket.c
         tzsp/tzsp-socket.h
         tzsp/utils.c

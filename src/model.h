@@ -81,6 +81,12 @@ enum
     COL_AIRMAX_AC_PTP,
     COL_AIRMAX_AC_PTMP,
     COL_AIRMAX_AC_MIXED,
+    COL_WPS,
+    COL_WPS_MANUFACTURER,
+    COL_WPS_MODEL_NAME,
+    COL_WPS_MODEL_NUMBER,
+    COL_WPS_SERIAL_NUMBER,
+    COL_WPS_DEVICE_NAME,
     COL_FIRSTLOG,
     COL_LASTLOG,
     COL_LATITUDE,
@@ -95,6 +101,7 @@ mtscan_model_t* mtscan_model_new(void);
 void mtscan_model_free(mtscan_model_t*);
 void mtscan_model_clear(mtscan_model_t*);
 void mtscan_model_clear_active(mtscan_model_t*);
+void mtscan_model_get(mtscan_model_t*, GtkTreeIter*, network_t*);
 void mtscan_model_remove(mtscan_model_t*, GtkTreeIter*);
 
 void mtscan_model_buffer_add(mtscan_model_t*, network_t*);

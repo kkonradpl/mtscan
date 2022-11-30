@@ -31,22 +31,29 @@ network_init(network_t *net)
     net->radioname = NULL;
     net->rssi = MODEL_NO_SIGNAL;
     net->noise = MODEL_NO_SIGNAL;
-    net->flags.routeros = FALSE;
-    net->flags.privacy = FALSE;
-    net->flags.nstreme = FALSE;
-    net->flags.tdma = FALSE;
-    net->flags.wds = FALSE;
-    net->flags.bridge = FALSE;
+    net->flags.routeros = -1;
+    net->flags.privacy = -1;
+    net->flags.nstreme = -1;
+    net->flags.tdma = -1;
+    net->flags.wds = -1;
+    net->flags.bridge = -1;
     net->routeros_ver = NULL;
-    net->ubnt_airmax = FALSE;
-    net->ubnt_ptp = FALSE;
-    net->ubnt_ptmp = FALSE;
-    net->ubnt_mixed = FALSE;
+    net->ubnt_airmax = -1;
+    net->ubnt_ptp = -1;
+    net->ubnt_ptmp = -1;
+    net->ubnt_mixed = -1;
+    net->wps = -1;
+    net->wps_manufacturer = NULL;
+    net->wps_model_name = NULL;
+    net->wps_model_number = NULL;
+    net->wps_serial_number = NULL;
+    net->wps_device_name = NULL;
     net->firstseen = 0;
     net->lastseen = 0;
     net->latitude = NAN;
     net->longitude = NAN;
     net->azimuth = NAN;
+    net->distance = NAN;
     net->signals = NULL;
 }
 
@@ -100,6 +107,11 @@ network_free(network_t *net)
         g_free(net->ssid);
         g_free(net->radioname);
         g_free(net->routeros_ver);
+        g_free(net->wps_manufacturer);
+        g_free(net->wps_model_name);
+        g_free(net->wps_model_number);
+        g_free(net->wps_serial_number);
+        g_free(net->wps_device_name);
         if (net->signals)
             signals_free(net->signals);
     }
@@ -114,5 +126,10 @@ network_free_null(network_t *net)
     net->ssid = NULL;
     net->radioname = NULL;
     net->routeros_ver = NULL;
+    net->wps_manufacturer = NULL;
+    net->wps_model_name = NULL;
+    net->wps_model_number = NULL;
+    net->wps_serial_number = NULL;
+    net->wps_device_name = NULL;
     net->signals = NULL;
 }

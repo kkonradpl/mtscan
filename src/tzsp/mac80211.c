@@ -316,6 +316,9 @@ mac80211_process_tag(mac80211_net_t *context,
 
         if(!context->ie_airmax_ac)
             context->ie_airmax_ac = ie_airmax_ac_parse(data, len, bssid);
+
+        if(!context->ie_wps)
+            context->ie_wps = ie_wps_parse(data, len);
     }
 }
 
@@ -419,5 +422,6 @@ mac80211_net_free(mac80211_net_t *context)
     ie_mikrotik_free(context->ie_mikrotik);
     ie_airmax_free(context->ie_airmax);
     ie_airmax_ac_free(context->ie_airmax_ac);
+    ie_wps_free(context->ie_wps);
     free(context);
 }

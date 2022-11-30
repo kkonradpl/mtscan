@@ -128,6 +128,7 @@ static const gchar *const default_view_cols_hidden[] =
     "airmax-ac-ptp",
     "airmax-ac-ptmp",
     "airmax-ac-mixed",
+    "wps-info",
     "latitude",
     "longitude",
     "azimuth",

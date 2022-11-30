@@ -63,6 +63,12 @@ static const gchar *const keys[] =
     "airmax-ac-ptp",
     "airmax-ac-ptmp",
     "airmax-ac-mixed",
+    "wps",
+    "wps-manufacturer",
+    "wps-model-name",
+    "wps-model-number",
+    "wps-serial-number",
+    "wps-device-name",
     "first",
     "last",
     "lat",
@@ -90,6 +96,12 @@ enum
     KEY_AIRMAX_AC_PTP,
     KEY_AIRMAX_AC_PTMP,
     KEY_AIRMAX_AC_MIXED,
+    KEY_WPS,
+    KEY_WPS_MANUFACTURER,
+    KEY_WPS_MODEL_NAME,
+    KEY_WPS_MODEL_NUMBER,
+    KEY_WPS_SERIAL_NUMBER,
+    KEY_WPS_DEVICE_NAME,
     KEY_FIRSTSEEN,
     KEY_LASTSEEN,
     KEY_LATITUDE,
@@ -276,6 +288,8 @@ parse_integer(gpointer ptr,
             ctx->network.ubnt_ptmp = value;
         else if(ctx->key == KEY_AIRMAX_AC_MIXED)
             ctx->network.ubnt_mixed = value;
+        else if(ctx->key == KEY_WPS)
+            ctx->network.wps = value;
         else if(ctx->key == KEY_FIRSTSEEN)
             ctx->network.firstseen = value;
         else if(ctx->key == KEY_LASTSEEN)
@@ -336,6 +350,16 @@ parse_string(gpointer      ptr,
             ctx->network.flags.routeros = TRUE;
             ctx->network.routeros_ver = g_strndup((gchar*)string, length);
         }
+        else if(ctx->key == KEY_WPS_MANUFACTURER)
+            ctx->network.wps_manufacturer = g_strndup((gchar*)string, length);
+        else if(ctx->key == KEY_WPS_MODEL_NAME)
+            ctx->network.wps_model_name = g_strndup((gchar*)string, length);
+        else if(ctx->key == KEY_WPS_MODEL_NUMBER)
+            ctx->network.wps_model_number = g_strndup((gchar*)string, length);
+        else if(ctx->key == KEY_WPS_SERIAL_NUMBER)
+            ctx->network.wps_serial_number = g_strndup((gchar*)string, length);
+        else if(ctx->key == KEY_WPS_DEVICE_NAME)
+            ctx->network.wps_device_name = g_strndup((gchar*)string, length);
     }
     return 1;
 }
@@ -425,6 +449,16 @@ parse_key_end(gpointer ptr)
     {
         if(ctx->network.address >= 0)
         {
+            if (ctx->network.wps_manufacturer ||
+                ctx->network.wps_model_name ||
+                ctx->network.wps_model_number ||
+                ctx->network.wps_serial_number ||
+                ctx->network.wps_device_name)
+            {
+                /* WPS info available */
+                ctx->network.wps = 2;
+            }
+
             ctx->net_cb(&ctx->network, ctx->user_data);
             ctx->count++;
         }
@@ -561,33 +595,7 @@ log_save_foreach(GtkTreeModel *store,
     const gchar *buffer;
     const gchar *address;
 
-    gtk_tree_model_get(GTK_TREE_MODEL(ui.model->store), iter,
-                       COL_ADDRESS, &net.address,
-                       COL_FREQUENCY, &net.frequency,
-                       COL_CHANNEL, &net.channel,
-                       COL_MODE, &net.mode,
-                       COL_STREAMS, &net.streams,
-                       COL_SSID, &net.ssid,
-                       COL_RADIONAME, &net.radioname,
-                       COL_MAXRSSI, &net.rssi,
-                       COL_PRIVACY, &net.flags.privacy,
-                       COL_ROUTEROS, &net.flags.routeros,
-                       COL_NSTREME, &net.flags.nstreme,
-                       COL_TDMA, &net.flags.tdma,
-                       COL_WDS, &net.flags.wds,
-                       COL_BRIDGE, &net.flags.bridge,
-                       COL_ROUTEROS_VER, &net.routeros_ver,
-                       COL_AIRMAX, &net.ubnt_airmax,
-                       COL_AIRMAX_AC_PTP, &net.ubnt_ptp,
-                       COL_AIRMAX_AC_PTMP, &net.ubnt_ptmp,
-                       COL_AIRMAX_AC_MIXED, &net.ubnt_mixed,
-                       COL_FIRSTLOG, &net.firstseen,
-                       COL_LASTLOG, &net.lastseen,
-                       COL_LATITUDE, &net.latitude,
-                       COL_LONGITUDE, &net.longitude,
-                       COL_AZIMUTH, &net.azimuth,
-                       COL_SIGNALS, &net.signals,
-                       -1);
+    mtscan_model_get(ui.model, iter, &net);
 
     address = model_format_address(net.address, FALSE);
     yajl_gen_string(ctx->gen, (guchar*)address, strlen(address));
@@ -618,43 +626,100 @@ log_save_foreach(GtkTreeModel *store,
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_RSSI], strlen(keys[KEY_RSSI]));
     yajl_gen_integer(ctx->gen, net.rssi);
 
-    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_PRIVACY], strlen(keys[KEY_PRIVACY]));
-    yajl_gen_integer(ctx->gen, net.flags.privacy);
+    if(net.flags.privacy >= 0)
+    {
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_PRIVACY], strlen(keys[KEY_PRIVACY]));
+        yajl_gen_integer(ctx->gen, net.flags.privacy);
+    }
 
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_ROUTEROS], strlen(keys[KEY_ROUTEROS]));
     if(net.routeros_ver && strlen(net.routeros_ver))
         yajl_gen_string(ctx->gen, (guchar*)net.routeros_ver, strlen(net.routeros_ver));
-    else
+    else if(net.flags.routeros >= 0)
         yajl_gen_integer(ctx->gen, net.flags.routeros);
 
-    if(net.flags.routeros)
+    if(net.flags.nstreme >= 0)
     {
-        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_NSTREME], strlen(keys[KEY_NSTREME]));
+        yajl_gen_string(ctx->gen, (guchar *) keys[KEY_NSTREME], strlen(keys[KEY_NSTREME]));
         yajl_gen_integer(ctx->gen, net.flags.nstreme);
+    }
 
+    if(net.flags.tdma >= 0)
+    {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_TDMA], strlen(keys[KEY_TDMA]));
         yajl_gen_integer(ctx->gen, net.flags.tdma);
+    }
 
+    if(net.flags.wds >= 0)
+    {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WDS], strlen(keys[KEY_WDS]));
         yajl_gen_integer(ctx->gen, net.flags.wds);
+    }
 
+    if(net.flags.bridge >= 0)
+    {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_BRIDGE], strlen(keys[KEY_BRIDGE]));
         yajl_gen_integer(ctx->gen, net.flags.bridge);
     }
 
-    yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX], strlen(keys[KEY_AIRMAX]));
-    yajl_gen_integer(ctx->gen, net.ubnt_airmax);
+    if(net.ubnt_airmax >= 0)
+    {
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX], strlen(keys[KEY_AIRMAX]));
+        yajl_gen_integer(ctx->gen, net.ubnt_airmax);
+    }
 
-    if(net.ubnt_airmax)
+    if(net.ubnt_ptp >= 0)
     {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX_AC_PTP], strlen(keys[KEY_AIRMAX_AC_PTP]));
         yajl_gen_integer(ctx->gen, net.ubnt_ptp);
+    }
 
+    if(net.ubnt_ptmp >= 0)
+    {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX_AC_PTMP], strlen(keys[KEY_AIRMAX_AC_PTMP]));
         yajl_gen_integer(ctx->gen, net.ubnt_ptmp);
+    }
 
+    if(net.ubnt_mixed >= 0)
+    {
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_AIRMAX_AC_MIXED], strlen(keys[KEY_AIRMAX_AC_MIXED]));
         yajl_gen_integer(ctx->gen, net.ubnt_mixed);
+    }
+
+    if (net.wps >= 0)
+    {
+        yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WPS], strlen(keys[KEY_WPS]));
+        yajl_gen_integer(ctx->gen, (net.wps > 0));
+
+        if(net.wps_manufacturer)
+        {
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WPS_MANUFACTURER], strlen(keys[KEY_WPS_MANUFACTURER]));
+            yajl_gen_string(ctx->gen, (guchar*)net.wps_manufacturer, strlen(net.wps_manufacturer));
+        }
+
+        if(net.wps_model_name)
+        {
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WPS_MODEL_NAME], strlen(keys[KEY_WPS_MODEL_NAME]));
+            yajl_gen_string(ctx->gen, (guchar*)net.wps_model_name, strlen(net.wps_model_name));
+        }
+
+        if(net.wps_model_number)
+        {
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WPS_MODEL_NUMBER], strlen(keys[KEY_WPS_MODEL_NUMBER]));
+            yajl_gen_string(ctx->gen, (guchar*)net.wps_model_number, strlen(net.wps_model_number));
+        }
+
+        if(net.wps_serial_number)
+        {
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WPS_SERIAL_NUMBER], strlen(keys[KEY_WPS_SERIAL_NUMBER]));
+            yajl_gen_string(ctx->gen, (guchar*)net.wps_serial_number, strlen(net.wps_serial_number));
+        }
+
+        if(net.wps_device_name)
+        {
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_WPS_DEVICE_NAME], strlen(keys[KEY_WPS_DEVICE_NAME]));
+            yajl_gen_string(ctx->gen, (guchar*)net.wps_device_name, strlen(net.wps_device_name));
+        }
     }
 
     yajl_gen_string(ctx->gen, (guchar*)keys[KEY_FIRSTSEEN], strlen(keys[KEY_FIRSTSEEN]));

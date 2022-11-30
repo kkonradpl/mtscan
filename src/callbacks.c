@@ -188,10 +188,13 @@ callback_mt_ssh_net(const mt_ssh_t     *context,
     net->routeros_ver = g_strdup(mt_ssh_net_get_routeros_ver(data));
     net->flags.privacy = mt_ssh_net_get_privacy(data);
     net->flags.routeros = mt_ssh_net_get_routeros(data);
-    net->flags.nstreme = mt_ssh_net_get_nstreme(data);
-    net->flags.tdma = mt_ssh_net_get_tdma(data);
-    net->flags.wds = mt_ssh_net_get_wds(data);
-    net->flags.bridge = mt_ssh_net_get_bridge(data);
+    if(net->flags.routeros)
+    {
+        net->flags.nstreme = mt_ssh_net_get_nstreme(data);
+        net->flags.tdma = mt_ssh_net_get_tdma(data);
+        net->flags.wds = mt_ssh_net_get_wds(data);
+        net->flags.bridge = mt_ssh_net_get_bridge(data);
+    }
     net->firstseen = mt_ssh_net_get_timestamp(data);
     net->lastseen = mt_ssh_net_get_timestamp(data);
 

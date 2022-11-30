@@ -24,7 +24,7 @@
 #include "oui.h"
 #include "ui-log.h"
 
-static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, gint64, gint, gint);
+static GtkWidget* ui_view_menu_create(GtkTreeView*, gint, const network_t *net, gint);
 static void ui_view_menu_addr(GtkWidget*, gpointer);
 static void ui_view_menu_lock(GtkWidget*, gpointer);
 static gboolean ui_view_menu_lock_foreach(gpointer, gpointer, gpointer);
@@ -67,10 +67,7 @@ ui_view_menu(GtkWidget      *treeview,
     GtkTreeIter iter;
     GList *list = gtk_tree_selection_get_selected_rows(selection, &model);
     gint count;
-    gint64 address;
-    gint frequency;
-    gdouble latitude, longitude;
-    gfloat distance;
+    network_t net;
     GtkWidget *menu;
     gint flags = 0;
 
@@ -81,32 +78,32 @@ ui_view_menu(GtkWidget      *treeview,
     if(count == 1)
     {
         gtk_tree_model_get_iter(model, &iter, (GtkTreePath*)list->data);
-        gtk_tree_model_get(model, &iter, COL_ADDRESS, &address,
-                                         COL_FREQUENCY, &frequency,
-                                         COL_LATITUDE, &latitude,
-                                         COL_LONGITUDE, &longitude,
-                                         COL_DISTANCE, &distance,
-                                         -1);
+        mtscan_model_get(ui.model, &iter, &net);
 
         if(conf_get_preferences_blacklist_enabled() && !conf_get_preferences_blacklist_external())
-            flags |= conf_get_preferences_blacklist(address) ? FLAG_UNBLACKLIST : FLAG_BLACKLIST;
+            flags |= conf_get_preferences_blacklist(net.address) ? FLAG_UNBLACKLIST : FLAG_BLACKLIST;
 
         if(conf_get_preferences_highlightlist_enabled() && !conf_get_preferences_highlightlist_external())
-            flags |= conf_get_preferences_highlightlist(address) ? FLAG_DEHIGHLIGHT : FLAG_HIGHLIGHT;
+            flags |= conf_get_preferences_highlightlist(net.address) ? FLAG_DEHIGHLIGHT : FLAG_HIGHLIGHT;
 
         if(conf_get_preferences_warninglist_enabled() && !conf_get_preferences_warninglist_external())
-            flags |= conf_get_preferences_warninglist(address) ? FLAG_WARNING_UNSET : FLAG_WARNING_SET;
+            flags |= conf_get_preferences_warninglist(net.address) ? FLAG_WARNING_UNSET : FLAG_WARNING_SET;
 
         if(conf_get_preferences_alarmlist_enabled() && !conf_get_preferences_alarmlist_external())
-            flags |= conf_get_preferences_alarmlist(address) ? FLAG_ALARM_UNSET : FLAG_ALARM_SET;
+            flags |= conf_get_preferences_alarmlist(net.address) ? FLAG_ALARM_UNSET : FLAG_ALARM_SET;
 
-        if(!isnan(latitude) && !isnan(longitude))
+        if(!isnan(net.latitude) && !isnan(net.longitude))
             flags |= FLAG_POSITION;
 
-        if(!isnan(distance))
+        if(!isnan(net.distance))
             flags |= FLAG_GEOLOC;
 
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, address, frequency, flags);
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, &net, flags);
+
+        /* Signals are stored in GtkListStore just as pointer,
+           so set it to NULL before freeing the struct */
+        net.signals = NULL;
+        network_free(&net);
     }
     else
     {
@@ -122,7 +119,7 @@ ui_view_menu(GtkWidget      *treeview,
         if(conf_get_preferences_alarmlist_enabled() && !conf_get_preferences_alarmlist_external())
             flags |= FLAG_ALARM_SET | FLAG_ALARM_UNSET;
 
-        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, -1, 0, flags);
+        menu = ui_view_menu_create(GTK_TREE_VIEW(treeview), count, NULL, flags);
     }
 
     gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
@@ -134,15 +131,19 @@ ui_view_menu(GtkWidget      *treeview,
 }
 
 static GtkWidget*
-ui_view_menu_create(GtkTreeView *treeview,
-                    gint         count,
-                    gint64       address,
-                    gint         frequency,
-                    gint         flags)
+ui_view_menu_create(GtkTreeView     *treeview,
+                    gint             count,
+                    const network_t *net,
+                    gint             flags)
 {
     GtkWidget *menu = gtk_menu_new();
     GtkWidget *item_header;
     GtkWidget *item_oui;
+    GtkWidget *item_wps_manufacturer;
+    GtkWidget *item_wps_model_name;
+    GtkWidget *item_wps_model_number;
+    GtkWidget *item_wps_serial_number;
+    GtkWidget *item_wps_device_name;
     GtkWidget *item_sep;
     GtkWidget *item_show_on_map;
     GtkWidget *item_geoloc;
@@ -159,30 +160,29 @@ ui_view_menu_create(GtkTreeView *treeview,
     gint64 addr_masked;
 
     /* Header */
-    string = (address < 0 ? g_strdup_printf("%d networks", count) : NULL);
-    item_header = gtk_image_menu_item_new_with_label(string ? string : model_format_address(address, TRUE));
+    string = (net == NULL ? g_strdup_printf("%d networks", count) : NULL);
+    item_header = gtk_image_menu_item_new_with_label(string ? string : model_format_address(net->address, TRUE));
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_header), gtk_image_new_from_stock(GTK_STOCK_NETWORK, GTK_ICON_SIZE_MENU));
     g_signal_connect(item_header, "activate", (GCallback)ui_view_menu_addr, treeview);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_header);
-    gtk_widget_set_sensitive(item_header, GPOINTER_TO_INT(address));
     g_free(string);
 
-    /* OUI lookup */
-    if(address >= 0)
+    if(net)
     {
-        addr_masked = address & ~((guint64)1 << 41);
+        /* OUI lookup */
+        addr_masked = net->address & ~((guint64)1 << 41);
         oui = oui_lookup(addr_masked);
 
         if(oui)
         {
-            if(address == addr_masked)
+            if(net->address == addr_masked)
                 string = (strlen(oui) > 32) ? g_strdup_printf("%.*s…", 32, oui) : g_strdup(oui);
             else
                 string = (strlen(oui) > 28) ? g_strdup_printf("%.*s… (?)", 28, oui) : g_strdup_printf("%s (?)", oui);
         }
         else
         {
-            if(address != addr_masked)
+            if(net->address != addr_masked)
                 string = g_strdup("(locally administered)");
             else
                 string = NULL;
@@ -194,6 +194,35 @@ ui_view_menu_create(GtkTreeView *treeview,
             gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_oui);
             g_free(string);
         }
+
+        /* WPS Info */
+        if (net->wps == 2)
+        {
+            string = g_strdup_printf("Manufacturer: %s", net->wps_manufacturer);
+            item_wps_manufacturer = gtk_menu_item_new_with_label(string);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_wps_manufacturer);
+            g_free(string);
+
+            string = g_strdup_printf("Model name: %s", net->wps_model_name);
+            item_wps_model_name = gtk_image_menu_item_new_with_label(string);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_wps_model_name);
+            g_free(string);
+
+            string = g_strdup_printf("Model version: %s", net->wps_model_number);
+            item_wps_model_number = gtk_image_menu_item_new_with_label(string);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_wps_model_number);
+            g_free(string);
+
+            string = g_strdup_printf("Serial number: %s", net->wps_serial_number);
+            item_wps_serial_number = gtk_image_menu_item_new_with_label(string);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_wps_serial_number);
+            g_free(string);
+
+            string = g_strdup_printf("Device name: %s", net->wps_device_name);
+            item_wps_device_name = gtk_image_menu_item_new_with_label(string);
+            gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_wps_device_name);
+            g_free(string);
+        }
     }
 
     /* Separator */
@@ -201,7 +230,7 @@ ui_view_menu_create(GtkTreeView *treeview,
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item_sep);
 
     /* Frequency lock */
-    string = (count == 1 ? g_strdup_printf("Lock to %s MHz",  model_format_frequency(frequency)) : NULL);
+    string = (net != NULL ? g_strdup_printf("Lock to %s MHz",  model_format_frequency(net->frequency)) : NULL);
     item_lock_to_freq = gtk_image_menu_item_new_with_label(string ? string : "Lock to frequencies");
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item_lock_to_freq), gtk_image_new_from_stock(GTK_STOCK_APPLY, GTK_ICON_SIZE_MENU));
     g_signal_connect(item_lock_to_freq, "activate", (GCallback)ui_view_menu_lock, treeview);

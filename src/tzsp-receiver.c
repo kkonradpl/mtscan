@@ -141,6 +141,11 @@ tzsp_receiver_packet(const uint8_t *packet,
     if(rssi)
         data->network->rssi = *rssi;
 
+    /* Default values */
+    data->network->flags.routeros = 0;
+    data->network->ubnt_airmax = 0;
+    data->network->wps = 0;
+
     if(net_80211)
     {
         if(net_80211->ie_mikrotik)
@@ -152,17 +157,19 @@ tzsp_receiver_packet(const uint8_t *packet,
                 data->network->routeros_ver = g_strdup(ie_mikrotik_get_version(net_80211->ie_mikrotik));
 
             data->network->frequency = ie_mikrotik_get_frequency(net_80211->ie_mikrotik) * 1000;
-            data->network->flags.routeros = TRUE;
+            data->network->flags.routeros = 1;
             data->network->flags.nstreme = ie_mikrotik_is_nstreme(net_80211->ie_mikrotik);
             data->network->flags.tdma = FALSE;
             data->network->flags.wds = ie_mikrotik_is_wds(net_80211->ie_mikrotik);
             data->network->flags.bridge = ie_mikrotik_is_bridge(net_80211->ie_mikrotik);
         }
 
-        data->network->ubnt_airmax = GPOINTER_TO_INT(net_80211->ie_airmax);
+        if(net_80211->ie_airmax)
+            data->network->ubnt_airmax = 1;
+
         if(net_80211->ie_airmax_ac)
         {
-            data->network->ubnt_airmax = TRUE;
+            data->network->ubnt_airmax = 1;
 
             if(!data->network->ssid)
                 data->network->ssid = g_strdup(ie_airmax_ac_get_ssid(net_80211->ie_airmax_ac));
@@ -173,6 +180,25 @@ tzsp_receiver_packet(const uint8_t *packet,
             data->network->ubnt_ptp = ie_airmax_ac_is_ptp(net_80211->ie_airmax_ac);
             data->network->ubnt_ptmp = ie_airmax_ac_is_ptmp(net_80211->ie_airmax_ac);
             data->network->ubnt_mixed = ie_airmax_ac_is_mixed(net_80211->ie_airmax_ac);
+        }
+
+        if(net_80211->ie_wps)
+        {
+            data->network->wps = 1;
+            if(net_80211->source == MAC80211_FRAME_PROBE_RESPONSE)
+            {
+                data->network->wps = 2;
+                if(!data->network->wps_manufacturer)
+                    data->network->wps_manufacturer = g_strdup(ie_wps_get_manufacturer(net_80211->ie_wps));
+                if(!data->network->wps_model_name)
+                    data->network->wps_model_name = g_strdup(ie_wps_get_model_name(net_80211->ie_wps));
+                if(!data->network->wps_model_number)
+                    data->network->wps_model_number = g_strdup(ie_wps_get_model_number(net_80211->ie_wps));
+                if(!data->network->wps_serial_number)
+                    data->network->wps_serial_number = g_strdup(ie_wps_get_serial_number(net_80211->ie_wps));
+                if(!data->network->wps_device_name)
+                    data->network->wps_device_name = g_strdup(ie_wps_get_device_name(net_80211->ie_wps));
+            }
         }
 
         /* Network frequency based on TZSP channel on 5 GHz band */
@@ -283,9 +309,9 @@ tzsp_receiver_packet(const uint8_t *packet,
             data->network->frequency = nv2_net_get_frequency(net_nv2) * 1000;
 
         data->network->flags.privacy = nv2_net_is_privacy(net_nv2);
-        data->network->flags.routeros = TRUE;
-        data->network->flags.nstreme = FALSE;
-        data->network->flags.tdma = TRUE;
+        data->network->flags.routeros = 1;
+        data->network->flags.nstreme = 0;
+        data->network->flags.tdma = 1;
         data->network->flags.wds = nv2_net_is_wds(net_nv2);
         data->network->flags.bridge = nv2_net_is_bridge(net_nv2);
 

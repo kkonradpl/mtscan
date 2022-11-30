@@ -19,6 +19,7 @@
 #include "ie-mikrotik.h"
 #include "nv2.h"
 #include "ie-airmax.h"
+#include "ie-wps.h"
 
 enum
 {
@@ -49,6 +50,7 @@ typedef struct mac80211_net
     ie_mikrotik_t *ie_mikrotik;
     ie_airmax_t *ie_airmax;
     ie_airmax_ac_t *ie_airmax_ac;
+    ie_wps_t *ie_wps;
 } mac80211_net_t;
 
 mac80211_net_t* mac80211_network(const uint8_t *, uint32_t, const uint8_t **);

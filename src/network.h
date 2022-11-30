@@ -20,12 +20,12 @@
 
 typedef struct network_flags
 {
-    gboolean privacy;
-    gboolean routeros;
-    gboolean nstreme;
-    gboolean tdma;
-    gboolean wds;
-    gboolean bridge;
+    gint privacy;
+    gint routeros;
+    gint nstreme;
+    gint tdma;
+    gint wds;
+    gint bridge;
 } network_flags_t;
 
 typedef struct network
@@ -41,15 +41,22 @@ typedef struct network
     gint8 noise;
     network_flags_t flags;
     gchar *routeros_ver;
-    gboolean ubnt_airmax;
-    gboolean ubnt_ptp;
-    gboolean ubnt_ptmp;
-    gboolean ubnt_mixed;
+    gint ubnt_airmax;
+    gint ubnt_ptp;
+    gint ubnt_ptmp;
+    gint ubnt_mixed;
+    gint wps;
+    gchar *wps_manufacturer;
+    gchar *wps_model_name;
+    gchar *wps_model_number;
+    gchar *wps_serial_number;
+    gchar *wps_device_name;
     gint64 firstseen;
     gint64 lastseen;
     gdouble latitude;
     gdouble longitude;
     gfloat azimuth;
+    gfloat distance;
     signals_t *signals;
 } network_t;
 

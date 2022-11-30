@@ -25,6 +25,7 @@ typedef struct mtscan_export
 {
     FILE *fp;
     GSList *cols;
+    mtscan_model_t *model;
 } mtscan_export_t;
 
 static const gchar *html_header =
@@ -130,6 +131,7 @@ export_html(const gchar        *filename,
         return FALSE;
 
     e.cols = NULL;
+    e.model = model;
 
     now = g_date_time_new_now_local();
     date = g_date_time_format(now, "%Y-%m-%d %H:%M:%S");
@@ -218,36 +220,8 @@ export_foreach(GtkTreeModel *store,
     GString *str;
     GSList *it;
     gint col;
-    gfloat distance;
 
-    network_init(&net);
-    gtk_tree_model_get(store, iter,
-                       COL_ADDRESS, &net.address,
-                       COL_FREQUENCY, &net.frequency,
-                       COL_CHANNEL, &net.channel,
-                       COL_MODE, &net.mode,
-                       COL_STREAMS, &net.streams,
-                       COL_SSID, &net.ssid,
-                       COL_RADIONAME, &net.radioname,
-                       COL_MAXRSSI, &net.rssi,
-                       COL_PRIVACY, &net.flags.privacy,
-                       COL_ROUTEROS, &net.flags.routeros,
-                       COL_NSTREME, &net.flags.nstreme,
-                       COL_TDMA, &net.flags.tdma,
-                       COL_WDS, &net.flags.wds,
-                       COL_BRIDGE, &net.flags.bridge,
-                       COL_ROUTEROS_VER, &net.routeros_ver,
-                       COL_AIRMAX, &net.ubnt_airmax,
-                       COL_AIRMAX_AC_PTP, &net.ubnt_ptp,
-                       COL_AIRMAX_AC_PTMP, &net.ubnt_ptmp,
-                       COL_AIRMAX_AC_MIXED, &net.ubnt_mixed,
-                       COL_FIRSTLOG, &net.firstseen,
-                       COL_LASTLOG, &net.lastseen,
-                       COL_LATITUDE, &net.latitude,
-                       COL_LONGITUDE, &net.longitude,
-                       COL_AZIMUTH, &net.azimuth,
-                       COL_DISTANCE, &distance,
-                       -1);
+    mtscan_model_get(e->model, iter, &net);
 
     str = g_string_new("<tr>");
     for(it = e->cols; it; it=it->next)
@@ -295,6 +269,8 @@ export_foreach(GtkTreeModel *store,
             g_string_append_printf(str, "<td>%s</td>", (net.ubnt_ptmp ? ui_view_get_column_title(col) : ""));
         else if(col == MTSCAN_VIEW_COL_AIRMAX_AC_MIXED)
             g_string_append_printf(str, "<td>%s</td>", (net.ubnt_mixed ? ui_view_get_column_title(col) : ""));
+        else if(col == MTSCAN_VIEW_COL_WPS)
+            g_string_append_printf(str, "<td>%s</td>", (net.wps ? ui_view_get_column_title(col) : ""));
         else if(col == MTSCAN_VIEW_COL_FIRST_LOG)
         {
             date = g_date_time_new_from_unix_local(net.firstseen);
@@ -314,7 +290,7 @@ export_foreach(GtkTreeModel *store,
         else if(col == MTSCAN_VIEW_COL_AZIMUTH)
             g_string_append_printf(str, "<td align=\"right\">%s</td>", model_format_azimuth(net.azimuth, TRUE));
         else if(col == MTSCAN_VIEW_COL_DISTANCE)
-            g_string_append_printf(str, "<td align=\"right\">%s</td>", model_format_distance(distance));
+            g_string_append_printf(str, "<td align=\"right\">%s</td>", model_format_distance(net.distance));
 
         if(cstr)
         {
@@ -328,6 +304,10 @@ export_foreach(GtkTreeModel *store,
     export_write(e, cstr);
     g_free(cstr);
 
+    /* Signals are stored in GtkListStore just as pointer,
+       so set it to NULL before freeing the struct */
+    net.signals = NULL;
     network_free(&net);
+
     return FALSE;
 }

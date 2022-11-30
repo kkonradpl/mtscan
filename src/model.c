@@ -68,17 +68,23 @@ mtscan_model_new(void)
                                       G_TYPE_CHAR,     /* COL_MAXRSSI   */
                                       G_TYPE_CHAR,     /* COL_RSSI      */
                                       G_TYPE_CHAR,     /* COL_NOISE     */
-                                      G_TYPE_BOOLEAN,  /* COL_PRIVACY   */
-                                      G_TYPE_BOOLEAN,  /* COL_ROUTEROS  */
-                                      G_TYPE_BOOLEAN,  /* COL_NSTREME   */
-                                      G_TYPE_BOOLEAN,  /* COL_TDMA      */
-                                      G_TYPE_BOOLEAN,  /* COL_WDS       */
-                                      G_TYPE_BOOLEAN,  /* COL_BRIDGE    */
+                                      G_TYPE_INT,      /* COL_PRIVACY   */
+                                      G_TYPE_INT,      /* COL_ROUTEROS  */
+                                      G_TYPE_INT,      /* COL_NSTREME   */
+                                      G_TYPE_INT,      /* COL_TDMA      */
+                                      G_TYPE_INT,      /* COL_WDS       */
+                                      G_TYPE_INT,      /* COL_BRIDGE    */
                                       G_TYPE_STRING,   /* COL_ROS_VER   */
-                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX          */
-                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX_AC_PTP   */
-                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX_AC_PTMP  */
-                                      G_TYPE_BOOLEAN,  /* COL_AIRMAX_AC_MIXED */
+                                      G_TYPE_INT,      /* COL_AIRMAX          */
+                                      G_TYPE_INT,      /* COL_AIRMAX_AC_PTP   */
+                                      G_TYPE_INT,      /* COL_AIRMAX_AC_PTMP  */
+                                      G_TYPE_INT,      /* COL_AIRMAX_AC_MIXED */
+                                      G_TYPE_INT,      /* COL_WPS       */
+                                      G_TYPE_STRING,   /* COL_WPS_MANUFACTURER  */
+                                      G_TYPE_STRING,   /* COL_WPS_MODEL_NAME    */
+                                      G_TYPE_STRING,   /* COL_WPS_MODEL_NUMBER  */
+                                      G_TYPE_STRING,   /* COL_WPS_SERIAL_NUMBER */
+                                      G_TYPE_STRING,   /* COL_WPS_DEVICE_NAME   */
                                       G_TYPE_INT64,    /* COL_FIRSTLOG  */
                                       G_TYPE_INT64,    /* COL_LASTLOG   */
                                       G_TYPE_DOUBLE,   /* COL_LATITUDE  */
@@ -368,6 +374,48 @@ model_clear_active_foreach(gpointer key,
 }
 
 void
+mtscan_model_get(mtscan_model_t *model,
+                 GtkTreeIter    *iter,
+                 network_t      *net)
+{
+
+    gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter,
+                       COL_ADDRESS, &net->address,
+                       COL_FREQUENCY, &net->frequency,
+                       COL_CHANNEL, &net->channel,
+                       COL_MODE, &net->mode,
+                       COL_STREAMS, &net->streams,
+                       COL_SSID, &net->ssid,
+                       COL_RADIONAME, &net->radioname,
+                       COL_MAXRSSI, &net->rssi,
+                       COL_PRIVACY, &net->flags.privacy,
+                       COL_ROUTEROS, &net->flags.routeros,
+                       COL_NSTREME, &net->flags.nstreme,
+                       COL_TDMA, &net->flags.tdma,
+                       COL_WDS, &net->flags.wds,
+                       COL_BRIDGE, &net->flags.bridge,
+                       COL_ROUTEROS_VER, &net->routeros_ver,
+                       COL_AIRMAX, &net->ubnt_airmax,
+                       COL_AIRMAX_AC_PTP, &net->ubnt_ptp,
+                       COL_AIRMAX_AC_PTMP, &net->ubnt_ptmp,
+                       COL_AIRMAX_AC_MIXED, &net->ubnt_mixed,
+                       COL_WPS, &net->wps,
+                       COL_WPS_MANUFACTURER, &net->wps_manufacturer,
+                       COL_WPS_MODEL_NAME, &net->wps_model_name,
+                       COL_WPS_MODEL_NUMBER, &net->wps_model_number,
+                       COL_WPS_SERIAL_NUMBER, &net->wps_serial_number,
+                       COL_WPS_DEVICE_NAME, &net->wps_device_name,
+                       COL_FIRSTLOG, &net->firstseen,
+                       COL_LASTLOG, &net->lastseen,
+                       COL_LATITUDE, &net->latitude,
+                       COL_LONGITUDE, &net->longitude,
+                       COL_AZIMUTH, &net->azimuth,
+                       COL_DISTANCE, &net->distance,
+                       COL_SIGNALS, &net->signals,
+                       -1);
+}
+
+void
 mtscan_model_remove(mtscan_model_t *model,
                     GtkTreeIter    *iter)
 {
@@ -470,6 +518,7 @@ model_update_network(mtscan_model_t *model,
     gchar *current_ssid;
     gchar *current_radioname;
     gint8 current_maxrssi;
+    gint current_wps;
     guint8 current_state;
     gboolean new_network_found;
     gfloat distance = NAN;
@@ -484,6 +533,7 @@ model_update_network(mtscan_model_t *model,
                            COL_SSID, &current_ssid,
                            COL_RADIONAME, &current_radioname,
                            COL_MAXRSSI, &current_maxrssi,
+                           COL_WPS, &current_wps,
                            COL_SIGNALS, &net->signals,
                            -1);
 
@@ -526,6 +576,18 @@ model_update_network(mtscan_model_t *model,
 
         if(conf_get_preferences_signals())
             signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
+
+        if(net->wps >= current_wps)
+        {
+            gtk_list_store_set(model->store, iter_ptr,
+                               COL_WPS, net->wps,
+                               COL_WPS_MANUFACTURER, net->wps_manufacturer,
+                               COL_WPS_MODEL_NAME, net->wps_model_name,
+                               COL_WPS_MODEL_NUMBER, net->wps_model_number,
+                               COL_WPS_SERIAL_NUMBER, net->wps_serial_number,
+                               COL_WPS_DEVICE_NAME, net->wps_device_name,
+                               -1);
+        }
 
         /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE, COL_LONGITUDE, COL_AZIMUTH and COL_DISTANCE */
         if(net->rssi > current_maxrssi)
@@ -626,6 +688,12 @@ model_update_network(mtscan_model_t *model,
                                           COL_AIRMAX_AC_PTP, net->ubnt_ptp,
                                           COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
                                           COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
+                                          COL_WPS, net->wps,
+                                          COL_WPS_MANUFACTURER, net->wps_manufacturer,
+                                          COL_WPS_MODEL_NAME, net->wps_model_name,
+                                          COL_WPS_MODEL_NUMBER, net->wps_model_number,
+                                          COL_WPS_SERIAL_NUMBER, net->wps_serial_number,
+                                          COL_WPS_DEVICE_NAME, net->wps_device_name,
                                           COL_FIRSTLOG, net->firstseen,
                                           COL_LASTLOG, net->firstseen,
                                           COL_LATITUDE, net->latitude,
@@ -685,6 +753,7 @@ mtscan_model_add(mtscan_model_t *model,
     GtkTreeIter *iter_merge;
     GtkTreeIter iter;
     gint8 current_maxrssi;
+    gint current_wps;
     gint64 current_firstseen;
     gint64 current_lastseen;
     signals_t *current_signals;
@@ -695,6 +764,7 @@ mtscan_model_add(mtscan_model_t *model,
         /* Merge a network, check current values first */
         gtk_tree_model_get(GTK_TREE_MODEL(model->store), iter_merge,
                            COL_MAXRSSI, &current_maxrssi,
+                           COL_WPS, &current_wps,
                            COL_FIRSTLOG, &current_firstseen,
                            COL_LASTLOG, &current_lastseen,
                            COL_SIGNALS, &current_signals,
@@ -748,6 +818,19 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_DISTANCE, NAN,
                                -1);
         }
+
+        if(net->wps >= current_wps)
+        {
+            gtk_list_store_set(model->store, iter_merge,
+                               COL_WPS, net->wps,
+                               COL_WPS_MANUFACTURER, net->wps_manufacturer,
+                               COL_WPS_MODEL_NAME, net->wps_model_name,
+                               COL_WPS_MODEL_NUMBER, net->wps_model_number,
+                               COL_WPS_SERIAL_NUMBER, net->wps_serial_number,
+                               COL_WPS_DEVICE_NAME, net->wps_device_name,
+                               -1);
+        }
+
     }
     else
     {
@@ -775,6 +858,12 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_AIRMAX_AC_PTP, net->ubnt_ptp,
                                           COL_AIRMAX_AC_PTMP, net->ubnt_ptmp,
                                           COL_AIRMAX_AC_MIXED, net->ubnt_mixed,
+                                          COL_WPS, net->wps,
+                                          COL_WPS_MANUFACTURER, net->wps_manufacturer,
+                                          COL_WPS_MODEL_NAME, net->wps_model_name,
+                                          COL_WPS_MODEL_NUMBER, net->wps_model_number,
+                                          COL_WPS_SERIAL_NUMBER, net->wps_serial_number,
+                                          COL_WPS_DEVICE_NAME, net->wps_device_name,
                                           COL_FIRSTLOG, net->firstseen,
                                           COL_LASTLOG, net->lastseen,
                                           COL_LATITUDE, net->latitude,
