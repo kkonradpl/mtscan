@@ -27,7 +27,7 @@
 #include "ui-connection.h"
 #include "ui-toolbar.h"
 #include "ui-preferences.h"
-#include "export.h"
+#include "export-html.h"
 #include "gnss.h"
 #include "conf-scanlist.h"
 #include "ui-callbacks.h"

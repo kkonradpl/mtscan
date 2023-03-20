@@ -9,8 +9,8 @@ set(SOURCE_FILES
         conf-scanlist.h
         conf.c
         conf.h
-        export.c
-        export.h
+        export-html.c
+        export-html.h
         geoloc.c
         geoloc.h
         geoloc-data.c

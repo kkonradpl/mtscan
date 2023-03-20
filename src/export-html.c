@@ -15,7 +15,7 @@
 
 #include <string.h>
 #include <glib/gstdio.h>
-#include "export.h"
+#include "export-html.h"
 #include "model.h"
 #include "mtscan.h"
 #include "ui-icons.h"

@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -13,8 +13,8 @@
  *  GNU General Public License for more details.
  */
 
-#ifndef MTSCAN_EXPORT_H_
-#define MTSCAN_EXPORT_H_
+#ifndef MTSCAN_EXPORT_HTML_H_
+#define MTSCAN_EXPORT_HTML_H_
 #include "model.h"
 
 gboolean export_html(const gchar*, const gchar*, mtscan_model_t*, const gchar* const*, const gchar* const*);
