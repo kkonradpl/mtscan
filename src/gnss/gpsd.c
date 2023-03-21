@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2021  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -43,17 +43,9 @@ typedef int gpsd_socket_t;
 #define DEBUG_READ  0
 #define DEBUG_WRITE 0
 
-/* The gpsd_json manual says:
- *
- * >The length limit for responses and reports is 1536 characters, including trailing
- * >newline; longer responses will be truncated, so client code must be prepared for
- * >the possibility of invalid JSON fragments.
- *
- * However, in year 2011, the GPS_JSON_RESPONSE_MAX was changed from 1536 to 4096.
- * https://git.savannah.gnu.org/cgit/gpsd.git/commit/?id=cd86d4410bcff417de15a0fc5eb905ef56c2659
- */
+/* Buffer length from gpsd gps.h (GPS_JSON_RESPONSE_MAX) */
+#define GPSD_DATA_BUFFER_LEN  10240
 
-#define GPSD_DATA_BUFFER_LEN  4096
 #define GPSD_DATA_TIMEOUT_SEC 10
 
 #define GPSD_TCP_KEEPCNT    2
