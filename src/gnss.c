@@ -261,14 +261,23 @@ static void
 gnss_cb_msg_data(const gnss_data_t *data)
 {
     gint mode = gnss_data_get_mode(data);
+    gdouble epx = gnss_data_get_epx(data);
+    gdouble epy = gnss_data_get_epy(data);
 
-    gnss.data_valid = (mode != GNSS_MODE_INVALID);
+    if ((mode == GNSS_MODE_2D || mode == GNSS_MODE_3D) &&
+        (isnan(epx) || isnan(epy)))
+    {
+        /* Discard incomplete data */
+        return;
+    }
+
+    gnss.data_valid = (mode == GNSS_MODE_3D);
     gnss.data.fix = (mode != GNSS_MODE_INVALID && mode != GNSS_MODE_NONE);
     gnss.data.lat = gnss_data_get_lat(data);
     gnss.data.lon = gnss_data_get_lon(data);
     gnss.data.alt = gnss_data_get_alt(data);
-    gnss.data.epx = gnss_data_get_epx(data);
-    gnss.data.epy = gnss_data_get_epy(data);
+    gnss.data.epx = epx;
+    gnss.data.epy = epy;
     gnss.data.epv = gnss_data_get_epv(data);
     gnss_update();
 
