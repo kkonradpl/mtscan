@@ -51,6 +51,7 @@ typedef struct mac80211_net
     ie_airmax_t *ie_airmax;
     ie_airmax_ac_t *ie_airmax_ac;
     ie_wps_t *ie_wps;
+    bool he;
 } mac80211_net_t;
 
 mac80211_net_t* mac80211_network(const uint8_t *, uint32_t, const uint8_t **);
@@ -60,6 +61,7 @@ bool mac80211_net_is_dsss(mac80211_net_t *);
 bool mac80211_net_is_ofdm(mac80211_net_t *);
 bool mac80211_net_is_ht(mac80211_net_t *);
 bool mac80211_net_is_vht(mac80211_net_t *);
+bool mac80211_net_is_he(mac80211_net_t *);
 
 uint8_t mac80211_net_get_chains(mac80211_net_t *);
 const char* mac80211_net_get_ext_channel(mac80211_net_t *);

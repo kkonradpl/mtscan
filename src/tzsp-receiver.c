@@ -273,7 +273,9 @@ tzsp_receiver_packet(const uint8_t *packet,
                 data->network->channel = g_strdup_printf("%d", context->channel_width);
         }
 
-        if(mac80211_net_is_vht(net_80211))
+        if(mac80211_net_is_he(net_80211))
+            data->network->mode = g_strdup("ax");
+        else if(mac80211_net_is_vht(net_80211))
             data->network->mode = g_strdup("ac");
         else if(mac80211_net_is_ht(net_80211))
         {

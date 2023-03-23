@@ -45,6 +45,9 @@
 #define MAC80211_MGMT_TAG_VHT_CAPS  0xBF
 #define MAC80211_MGMT_TAG_VHT_INFO  0xC0
 #define MAC80211_MGMT_TAG_VENDOR_IE 0xDD
+#define MAC80211_MGMT_TAG_EXT       0xFF
+
+#define MAC80211_MGMT_TAG_EXT_HE_CAPS 0x23
 
 #define MAC80211_MGMT_TAG_CHANNEL_LEN    1
 #define MAC80211_MGMT_TAG_HT_CAPS_LEN   26
@@ -320,6 +323,12 @@ mac80211_process_tag(mac80211_net_t *context,
         if(!context->ie_wps)
             context->ie_wps = ie_wps_parse(data, len);
     }
+    else if(type == MAC80211_MGMT_TAG_EXT &&
+            len)
+    {
+        if (data[0] == MAC80211_MGMT_TAG_EXT_HE_CAPS)
+            context->he = true;
+    }
 }
 
 bool
@@ -350,6 +359,12 @@ bool
 mac80211_net_is_vht(mac80211_net_t *context)
 {
     return context->vht;
+}
+
+bool
+mac80211_net_is_he(mac80211_net_t *context)
+{
+    return context->he;
 }
 
 uint8_t
