@@ -1967,6 +1967,17 @@ parse_scan_channel(const gchar  *buff,
             }
         }
     }
+
+    if (*mode)
+    {
+        /* Drop everything starting from bracket */
+        ptr = strchr(*mode, '(');
+        if (ptr)
+        {
+            *ptr = '\0';
+        }
+    }
+
     return (gint)round(frequency*1000.0);
 }
 
