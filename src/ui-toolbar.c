@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2020  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -31,6 +31,8 @@
 #include "gnss.h"
 #include "conf-scanlist.h"
 #include "ui-callbacks.h"
+#include "misc.h"
+#include "export-csv.h"
 
 static void ui_toolbar_connect(GtkWidget*, gpointer);
 static void ui_toolbar_scan(GtkWidget*, gpointer);
@@ -150,7 +152,7 @@ ui_toolbar_create(void)
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_save_as, -1);
 
     ui.b_export = gtk_tool_button_new(gtk_image_new_from_icon_name("mtscan-export", GTK_ICON_SIZE_BUTTON), "Export");
-    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_export), "Export as HTML (Ctrl+E)");
+    gtk_widget_set_tooltip_text(GTK_WIDGET(ui.b_export), "Export log (Ctrl+E)");
     gtk_tool_button_set_use_underline(GTK_TOOL_BUTTON(ui.b_export), TRUE);
     g_signal_connect(ui.b_export, "clicked", G_CALLBACK(ui_toolbar_export), NULL);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), ui.b_export, -1);
@@ -508,14 +510,25 @@ ui_toolbar_export(GtkWidget *widget,
                   gpointer   data)
 {
     gchar *filename = ui_dialog_export(GTK_WINDOW(ui.window));
-    if(filename)
-    {
-        if(!export_html(filename,
-                        ui.name,
-                        ui.model,
-                        conf_get_preferences_view_cols_order(),
-                        conf_get_preferences_view_cols_hidden()))
+    gboolean ret;
 
+    if (filename)
+    {
+
+        if (str_has_suffix(filename, ".csv"))
+        {
+            ret = export_csv(filename, ui.model);
+        }
+        else
+        {
+            ret = export_html(filename,
+                              ui.name,
+                              ui.model,
+                              conf_get_preferences_view_cols_order(),
+                              conf_get_preferences_view_cols_hidden());
+        }
+
+        if (!ret)
         {
             ui_dialog(GTK_WINDOW(ui.window),
                       GTK_MESSAGE_ERROR,
@@ -523,6 +536,7 @@ ui_toolbar_export(GtkWidget *widget,
                       "Unable to export the log to a file:\n%s",
                       filename);
         }
+
         g_free(filename);
     }
 }

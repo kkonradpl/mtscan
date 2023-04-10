@@ -754,11 +754,11 @@ log_save_foreach(GtkTreeModel *store,
 
     if(!isnan(net.latitude) && !isnan(net.longitude) && !ctx->strip_gps)
     {
-        buffer = model_format_coord(net.latitude, TRUE);
+        buffer = model_format_latitude(net.latitude, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LATITUDE], strlen(keys[KEY_LATITUDE]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-        buffer = model_format_coord(net.longitude, TRUE);
+        buffer = model_format_longitude(net.longitude, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LONGITUDE], strlen(keys[KEY_LONGITUDE]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
@@ -804,11 +804,11 @@ log_save_foreach(GtkTreeModel *store,
                 !isnan(sample->longitude) &&
                 !ctx->strip_gps)
             {
-                buffer = model_format_coord(sample->latitude, TRUE);
+                buffer = model_format_latitude(sample->latitude, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LATITUDE], strlen(keys_signals[KEY_SIGNALS_LATITUDE]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-                buffer = model_format_coord(sample->longitude, TRUE);
+                buffer = model_format_longitude(sample->longitude, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LONGITUDE], strlen(keys_signals[KEY_SIGNALS_LONGITUDE]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 

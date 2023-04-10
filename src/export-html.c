@@ -284,9 +284,9 @@ export_foreach(GtkTreeModel *store,
             g_date_time_unref(date);
         }
         else if(col == MTSCAN_VIEW_COL_LATITUDE)
-            g_string_append_printf(str, "<td>%s</td>", model_format_coord(net.latitude, FALSE));
+            g_string_append_printf(str, "<td>%s</td>", model_format_latitude(net.latitude, FALSE));
         else if(col == MTSCAN_VIEW_COL_LONGITUDE)
-            g_string_append_printf(str, "<td>%s</td>", model_format_coord(net.longitude, FALSE));
+            g_string_append_printf(str, "<td>%s</td>", model_format_longitude(net.longitude, FALSE));
         else if(col == MTSCAN_VIEW_COL_ALTITUDE)
             g_string_append_printf(str, "<td>%s</td>", model_format_altitude(net.altitude));
         else if(col == MTSCAN_VIEW_COL_ACCURACY)

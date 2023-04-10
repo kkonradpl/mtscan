@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2021  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -18,6 +18,7 @@
 #include "ui-dialogs.h"
 #include "conf.h"
 #include "mtscan.h"
+#include "misc.h"
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
@@ -27,7 +28,6 @@ static const gchar* filetype_default = APP_NAME " file";
 static void ui_dialog_save_response(GtkWidget*, gint, gpointer);
 static void ui_dialog_export_response(GtkWidget*, gint, gpointer);
 static gboolean ui_dialog_scanlist_name_key(GtkWidget*, GdkEventKey*, gpointer);
-static gboolean str_has_suffix(const gchar*, const gchar*);
 
 void
 ui_dialog(GtkWindow      *window,
@@ -275,7 +275,7 @@ ui_dialog_export(GtkWindow *window)
     gchar *new_dir;
     gchar *filename = NULL;
 
-    dialog = gtk_file_chooser_dialog_new("Export log as HTML",
+    dialog = gtk_file_chooser_dialog_new("Export log",
                                          window,
                                          GTK_FILE_CHOOSER_ACTION_SAVE,
                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -289,9 +289,15 @@ ui_dialog_export(GtkWindow *window)
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), dir);
 
     filter = gtk_file_filter_new();
-    gtk_file_filter_set_name(filter, "HTML file");
+    gtk_file_filter_set_name(filter, "HTML file (*.html)");
     gtk_file_filter_add_pattern(filter, "*.html");
-    gtk_file_filter_add_pattern(filter, "*.htm");
+    g_object_set_data_full(G_OBJECT(filter), "mtscan-ext", g_strdup(".html"), g_free);
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+    filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, "WiGLE (*.csv)");
+    gtk_file_filter_add_pattern(filter, "*.csv");
+    g_object_set_data_full(G_OBJECT(filter), "mtscan-ext", g_strdup(".csv"), g_free);
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
     g_signal_connect(dialog, "response", G_CALLBACK(ui_dialog_export_response), &filename);
@@ -314,9 +320,9 @@ ui_dialog_export_response(GtkWidget *dialog,
 {
     gchar **ret = (gchar**)user_data;
     gchar *filename;
-    gchar *ext;
+    GtkFileFilter *filter;
 
-    if(response_id != GTK_RESPONSE_ACCEPT)
+    if (response_id != GTK_RESPONSE_ACCEPT)
     {
         gtk_widget_destroy(dialog);
         return;
@@ -331,11 +337,12 @@ ui_dialog_export_response(GtkWidget *dialog,
         return;
     }
 
-    ext = strrchr(filename, '.');
-    if(!ext || (g_ascii_strcasecmp(ext, ".html") && g_ascii_strcasecmp(ext, ".htm")))
+    filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(dialog));
+    const gchar *ext = g_object_get_data(G_OBJECT(filter), "mtscan-ext");
+    if (!str_has_suffix(filename, ext))
     {
-        filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(".html") + 1);
-        strcat(filename, ".html");
+        filename = (gchar*)g_realloc(filename, strlen(filename) + strlen(ext) + 1);
+        strcat(filename, ext);
 
         /* After adding the suffix, the GTK should check whether we can overwrite something. */
         gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), filename);
@@ -490,7 +497,7 @@ ui_dialog_about(GtkWindow *window)
     gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dialog), APP_NAME);
     gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dialog), APP_VERSION);
     gtk_about_dialog_set_logo_icon_name(GTK_ABOUT_DIALOG(dialog), APP_ICON);
-    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2021  Konrad Kosmatka");
+    gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dialog), "Copyright © 2015-2023  Konrad Kosmatka");
     gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(dialog), "Mikrotik RouterOS wireless scanner");
     gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(dialog), "http://fmdx.pl/mtscan");
     gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(dialog), APP_LICENCE);
@@ -642,17 +649,4 @@ ui_dialog_scanlist_name_key(GtkWidget   *widget,
         return TRUE;
     }
     return FALSE;
-}
-
-static gboolean
-str_has_suffix(const gchar *string,
-               const gchar *suffix)
-{
-    size_t string_len = strlen(string);
-    size_t suffix_len = strlen(suffix);
-
-    if(string_len < suffix_len)
-        return FALSE;
-
-    return g_ascii_strncasecmp(string + string_len - suffix_len, suffix, suffix_len) == 0;
 }

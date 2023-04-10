@@ -1112,11 +1112,29 @@ model_format_date(gint64 value)
 }
 
 const gchar*
-model_format_coord(gdouble  value,
-                   gboolean trim)
+model_format_latitude(gdouble  value,
+                      gboolean trim)
 {
     static gchar output[12];
-    if(!isnan(value))
+    if (!isnan(value))
+    {
+        g_ascii_formatd(output, sizeof(output), "%.6f", value);
+        if(trim)
+            trim_zeros(output);
+    }
+    else
+    {
+        *output = '\0';
+    }
+    return output;
+}
+
+const gchar*
+model_format_longitude(gdouble  value,
+                       gboolean trim)
+{
+    static gchar output[12];
+    if (!isnan(value))
     {
         g_ascii_formatd(output, sizeof(output), "%.6f", value);
         if(trim)
