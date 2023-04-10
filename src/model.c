@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -89,6 +89,8 @@ mtscan_model_new(void)
                                       G_TYPE_INT64,    /* COL_LASTLOG   */
                                       G_TYPE_DOUBLE,   /* COL_LATITUDE  */
                                       G_TYPE_DOUBLE,   /* COL_LONGITUDE */
+                                      G_TYPE_FLOAT,    /* COL_ALTITUDE  */
+                                      G_TYPE_FLOAT,    /* COL_ACCURACY  */
                                       G_TYPE_FLOAT,    /* COL_AZIMUTH   */
                                       G_TYPE_FLOAT,    /* COL_DISTANCE  */
                                       G_TYPE_POINTER); /* COL_SIGNALS   */
@@ -98,6 +100,8 @@ mtscan_model_new(void)
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_RSSI, model_sort_rssi, NULL, NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LATITUDE, model_sort_double, GINT_TO_POINTER(COL_LATITUDE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_LONGITUDE, model_sort_double, GINT_TO_POINTER(COL_LONGITUDE), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ALTITUDE, model_sort_float, GINT_TO_POINTER(COL_ALTITUDE), NULL);
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ACCURACY, model_sort_float, GINT_TO_POINTER(COL_ACCURACY), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_AZIMUTH, model_sort_float, GINT_TO_POINTER(COL_AZIMUTH), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_DISTANCE, model_sort_float, GINT_TO_POINTER(COL_DISTANCE), NULL);
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model->store), COL_ROUTEROS_VER, model_sort_version, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
@@ -409,6 +413,8 @@ mtscan_model_get(mtscan_model_t *model,
                        COL_LASTLOG, &net->lastseen,
                        COL_LATITUDE, &net->latitude,
                        COL_LONGITUDE, &net->longitude,
+                       COL_ALTITUDE, &net->altitude,
+                       COL_ACCURACY, &net->accuracy,
                        COL_AZIMUTH, &net->azimuth,
                        COL_DISTANCE, &net->distance,
                        COL_SIGNALS, &net->signals,
@@ -575,7 +581,13 @@ model_update_network(mtscan_model_t *model,
 #endif
 
         if(conf_get_preferences_signals())
-            signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
+            signals_append(net->signals, signals_node_new(net->firstseen,
+                                                          net->rssi,
+                                                          net->latitude,
+                                                          net->longitude,
+                                                          net->altitude,
+                                                          net->accuracy,
+                                                          net->azimuth));
 
         if(net->wps >= current_wps)
         {
@@ -589,7 +601,8 @@ model_update_network(mtscan_model_t *model,
                                -1);
         }
 
-        /* At new signal peak, update additionally COL_MAXRSSI, COL_LATITUDE, COL_LONGITUDE, COL_AZIMUTH and COL_DISTANCE */
+        /* At new signal peak, update additionally:
+         * COL_MAXRSSI, COL_LATITUDE, COL_LONGITUDE, COL_ALTITUDE, COL_ACCURACY, COL_AZIMUTH and COL_DISTANCE */
         if(net->rssi > current_maxrssi)
         {
             if(conf_get_interface_geoloc())
@@ -620,6 +633,8 @@ model_update_network(mtscan_model_t *model,
                                COL_LASTLOG, net->firstseen,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
+                               COL_ALTITUDE, net->altitude,
+                               COL_ACCURACY, net->accuracy,
                                COL_AZIMUTH, net->azimuth,
                                COL_DISTANCE, distance,
                                -1);
@@ -663,7 +678,13 @@ model_update_network(mtscan_model_t *model,
 
         net->signals = signals_new();
         if(conf_get_preferences_signals())
-            signals_append(net->signals, signals_node_new(net->firstseen, net->rssi, net->latitude, net->longitude, net->azimuth));
+            signals_append(net->signals, signals_node_new(net->firstseen,
+                                                          net->rssi,
+                                                          net->latitude,
+                                                          net->longitude,
+                                                          net->altitude,
+                                                          net->accuracy,
+                                                          net->azimuth));
 
         gtk_list_store_insert_with_values(model->store, &iter, -1,
                                           COL_STATE, MODEL_STATE_NEW,
@@ -698,6 +719,8 @@ model_update_network(mtscan_model_t *model,
                                           COL_LASTLOG, net->firstseen,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
+                                          COL_ALTITUDE, net->altitude,
+                                          COL_ACCURACY, net->accuracy,
                                           COL_AZIMUTH, net->azimuth,
                                           COL_DISTANCE, distance,
                                           COL_SIGNALS, net->signals,
@@ -814,6 +837,8 @@ mtscan_model_add(mtscan_model_t *model,
                                COL_MAXRSSI, net->rssi,
                                COL_LATITUDE, net->latitude,
                                COL_LONGITUDE, net->longitude,
+                               COL_ALTITUDE, net->altitude,
+                               COL_ACCURACY, net->accuracy,
                                COL_AZIMUTH, net->azimuth,
                                COL_DISTANCE, NAN,
                                -1);
@@ -868,6 +893,8 @@ mtscan_model_add(mtscan_model_t *model,
                                           COL_LASTLOG, net->lastseen,
                                           COL_LATITUDE, net->latitude,
                                           COL_LONGITUDE, net->longitude,
+                                          COL_ALTITUDE, net->altitude,
+                                          COL_ACCURACY, net->accuracy,
                                           COL_AZIMUTH, net->azimuth,
                                           COL_DISTANCE, NAN,
                                           COL_SIGNALS, net->signals,
@@ -1085,8 +1112,8 @@ model_format_date(gint64 value)
 }
 
 const gchar*
-model_format_gps(gdouble  value,
-                 gboolean trim)
+model_format_coord(gdouble  value,
+                   gboolean trim)
 {
     static gchar output[12];
     if(!isnan(value))
@@ -1099,6 +1126,32 @@ model_format_gps(gdouble  value,
     {
         *output = '\0';
     }
+    return output;
+}
+
+const gchar*
+model_format_altitude(gfloat value)
+{
+    static gchar output[12];
+
+    if (!isnan(value))
+        g_snprintf(output, sizeof(output), "%d", (int)round(value));
+    else
+        *output = '\0';
+
+    return output;
+}
+
+const gchar*
+model_format_accuracy(gfloat value)
+{
+    static gchar output[12];
+
+    if (!isnan(value))
+        g_snprintf(output, sizeof(output), "%d", (int)round(value));
+    else
+        *output = '\0';
+
     return output;
 }
 

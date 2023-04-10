@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2020  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -131,6 +131,8 @@ static const gchar *const default_view_cols_hidden[] =
     "wps-info",
     "latitude",
     "longitude",
+    "altitude",
+    "accuracy",
     "azimuth",
     "distance",
     NULL

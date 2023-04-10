@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -91,6 +91,8 @@ enum
     COL_LASTLOG,
     COL_LATITUDE,
     COL_LONGITUDE,
+    COL_ALTITUDE,
+    COL_ACCURACY,
     COL_AZIMUTH,
     COL_DISTANCE,
     COL_SIGNALS,
@@ -123,7 +125,9 @@ const gchar* model_format_address(gint64, gboolean);
 const gchar* model_format_frequency(gint);
 const gchar* model_format_streams(gint8);
 const gchar* model_format_date(gint64);
-const gchar* model_format_gps(gdouble, gboolean);
+const gchar* model_format_coord(gdouble, gboolean);
+const gchar* model_format_altitude(gfloat);
+const gchar* model_format_accuracy(gfloat);
 const gchar* model_format_azimuth(gfloat, gboolean);
 const gchar* model_format_distance(gfloat);
 

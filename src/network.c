@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -52,6 +52,8 @@ network_init(network_t *net)
     net->lastseen = 0;
     net->latitude = NAN;
     net->longitude = NAN;
+    net->altitude = NAN;
+    net->accuracy = NAN;
     net->azimuth = NAN;
     net->distance = NAN;
     net->signals = NULL;

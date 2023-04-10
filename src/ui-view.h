@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -48,6 +48,8 @@ enum
     MTSCAN_VIEW_COL_LAST_LOG,
     MTSCAN_VIEW_COL_LATITUDE,
     MTSCAN_VIEW_COL_LONGITUDE,
+    MTSCAN_VIEW_COL_ALTITUDE,
+    MTSCAN_VIEW_COL_ACCURACY,
     MTSCAN_VIEW_COL_AZIMUTH,
     MTSCAN_VIEW_COL_DISTANCE,
     MTSCAN_VIEW_COLS

@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2020  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -73,6 +73,8 @@ static const gchar *const keys[] =
     "last",
     "lat",
     "lon",
+    "alt",
+    "acc",
     "azi",
     "signals"
 };
@@ -106,6 +108,8 @@ enum
     KEY_LASTSEEN,
     KEY_LATITUDE,
     KEY_LONGITUDE,
+    KEY_ALTITUDE,
+    KEY_ACCURACY,
     KEY_AZIMUTH,
     KEY_SIGNALS
 };
@@ -116,6 +120,8 @@ static const gchar *const keys_signals[] =
     "s",
     "lat",
     "lon",
+    "alt",
+    "acc",
     "azi"
 };
 
@@ -125,6 +131,8 @@ enum
     KEY_SIGNALS_RSSI,
     KEY_SIGNALS_LATITUDE,
     KEY_SIGNALS_LONGITUDE,
+    KEY_SIGNALS_ALTITUDE,
+    KEY_SIGNALS_ACCURACY,
     KEY_SIGNALS_AZIMUTH
 };
 
@@ -259,6 +267,10 @@ parse_integer(gpointer ptr,
             ctx->signal->timestamp = value;
         else if(ctx->key == KEY_SIGNALS_RSSI)
             ctx->signal->rssi = value;
+        else if(ctx->key == KEY_SIGNALS_ALTITUDE)
+            ctx->signal->altitude = (gfloat)value;
+        else if(ctx->key == KEY_SIGNALS_ACCURACY)
+            ctx->signal->accuracy = (gfloat)value;
     }
     else if(ctx->level == LEVEL_NETWORK)
     {
@@ -294,6 +306,10 @@ parse_integer(gpointer ptr,
             ctx->network.firstseen = value;
         else if(ctx->key == KEY_LASTSEEN)
             ctx->network.lastseen = value;
+        else if(ctx->key == KEY_ALTITUDE)
+            ctx->network.altitude = (gfloat)value;
+        else if(ctx->key == KEY_ACCURACY)
+            ctx->network.accuracy = (gfloat)value;
     }
 
     return 1;
@@ -312,8 +328,12 @@ parse_double(gpointer ptr,
             ctx->signal->latitude = value;
         else if(ctx->key == KEY_SIGNALS_LONGITUDE)
             ctx->signal->longitude = value;
+        else if(ctx->key == KEY_SIGNALS_ALTITUDE)
+            ctx->signal->altitude = (gfloat)value;
+        else if(ctx->key == KEY_SIGNALS_ACCURACY)
+            ctx->signal->accuracy = (gfloat)value;
         else if(ctx->key == KEY_SIGNALS_AZIMUTH)
-            ctx->signal->azimuth = value;
+            ctx->signal->azimuth = (gfloat)value;
     }
     else if(ctx->level == LEVEL_NETWORK)
     {
@@ -323,8 +343,12 @@ parse_double(gpointer ptr,
             ctx->network.latitude = value;
         else if(ctx->key == KEY_LONGITUDE)
             ctx->network.longitude = value;
+        else if(ctx->key == KEY_ALTITUDE)
+            ctx->signal->altitude = (gfloat)value;
+        else if(ctx->key == KEY_ACCURACY)
+            ctx->signal->accuracy = (gfloat)value;
         else if(ctx->key == KEY_AZIMUTH)
-            ctx->network.azimuth = value;
+            ctx->network.azimuth = (gfloat)value;
     }
     return 1;
 }
@@ -730,13 +754,27 @@ log_save_foreach(GtkTreeModel *store,
 
     if(!isnan(net.latitude) && !isnan(net.longitude) && !ctx->strip_gps)
     {
-        buffer = model_format_gps(net.latitude, TRUE);
+        buffer = model_format_coord(net.latitude, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LATITUDE], strlen(keys[KEY_LATITUDE]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-        buffer = model_format_gps(net.longitude, TRUE);
+        buffer = model_format_coord(net.longitude, TRUE);
         yajl_gen_string(ctx->gen, (guchar*)keys[KEY_LONGITUDE], strlen(keys[KEY_LONGITUDE]));
         yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+
+        if (!isnan(net.altitude))
+        {
+            buffer = model_format_altitude(net.altitude);
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_ALTITUDE], strlen(keys[KEY_ALTITUDE]));
+            yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+        }
+
+        if (!isnan(net.accuracy))
+        {
+            buffer = model_format_accuracy(net.accuracy);
+            yajl_gen_string(ctx->gen, (guchar*)keys[KEY_ACCURACY], strlen(keys[KEY_ACCURACY]));
+            yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+        }
     }
 
     if(!isnan(net.azimuth) && !ctx->strip_azi)
@@ -762,15 +800,31 @@ log_save_foreach(GtkTreeModel *store,
             yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_RSSI], strlen(keys_signals[KEY_SIGNALS_RSSI]));
             yajl_gen_integer(ctx->gen, sample->rssi);
 
-            if(!isnan(sample->latitude) && !isnan(sample->longitude) && !ctx->strip_gps)
+            if (!isnan(sample->latitude) &&
+                !isnan(sample->longitude) &&
+                !ctx->strip_gps)
             {
-                buffer = model_format_gps(sample->latitude, TRUE);
+                buffer = model_format_coord(sample->latitude, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LATITUDE], strlen(keys_signals[KEY_SIGNALS_LATITUDE]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
 
-                buffer = model_format_gps(sample->longitude, TRUE);
+                buffer = model_format_coord(sample->longitude, TRUE);
                 yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_LONGITUDE], strlen(keys_signals[KEY_SIGNALS_LONGITUDE]));
                 yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+
+                if (!isnan(sample->altitude))
+                {
+                    buffer = model_format_altitude(sample->altitude);
+                    yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_ALTITUDE], strlen(keys_signals[KEY_SIGNALS_ALTITUDE]));
+                    yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+                }
+
+                if (!isnan(sample->accuracy))
+                {
+                    buffer = model_format_accuracy(sample->accuracy);
+                    yajl_gen_string(ctx->gen, (guchar*)keys_signals[KEY_SIGNALS_ACCURACY], strlen(keys_signals[KEY_SIGNALS_ACCURACY]));
+                    yajl_gen_number(ctx->gen, buffer, strlen(buffer));
+                }
             }
 
             if(!isnan(sample->azimuth) && !ctx->strip_azi)

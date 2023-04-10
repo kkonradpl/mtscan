@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2019  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -173,10 +173,12 @@ static void
 ui_callback_network_real(network_t *net)
 {
     const mtscan_gnss_data_t *gnss_data;
-    if(gnss_get_data(&gnss_data) == GNSS_OK)
+    if (gnss_get_data(&gnss_data) == GNSS_OK)
     {
         net->latitude = gnss_data->lat;
         net->longitude = gnss_data->lon;
+        net->altitude = gnss_data->alt;
+        net->accuracy = MAX(gnss_data->epx, gnss_data->epy);
     }
 
     if(conf_get_preferences_clip_invalid_signal())

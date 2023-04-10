@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2021  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 #include <glib.h>
 
 #define APP_NAME          "MTscan"
-#define APP_VERSION       "0.6"
+#define APP_VERSION       "0.7-git"
 #define APP_ICON          "mtscan"
 #define APP_FILE_EXT      ".mtscan"
 #define APP_FILE_COMPRESS ".gz"

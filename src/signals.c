@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2017  Konrad Kosmatka
+ *  Copyright (c) 2015-2023  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -30,6 +30,8 @@ signals_node_new0(void)
     sample->rssi = 0;
     sample->latitude = NAN;
     sample->longitude = NAN;
+    sample->altitude = NAN;
+    sample->accuracy = NAN;
     sample->azimuth = NAN;
     return sample;
 }
@@ -39,6 +41,8 @@ signals_node_new(gint64  timestamp,
                  gint8   rssi,
                  gdouble latitude,
                  gdouble longitude,
+                 gfloat  altitude,
+                 gfloat  accuracy,
                  gfloat  azimuth)
 {
     signals_node_t *sample = g_malloc(sizeof(signals_node_t));
@@ -46,6 +50,8 @@ signals_node_new(gint64  timestamp,
     sample->rssi = rssi;
     sample->latitude = latitude;
     sample->longitude = longitude;
+    sample->altitude = altitude;
+    sample->accuracy = accuracy;
     sample->azimuth = azimuth;
     return sample;
 }
