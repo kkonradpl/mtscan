@@ -140,6 +140,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_fixed_size(renderer, icon_size, icon_size);
     g_object_set_data(G_OBJECT(treeview), "mtscan-icon-renderer", renderer);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_ACTIVITY], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_icon, NULL, NULL);
@@ -153,6 +154,7 @@ ui_view_new(mtscan_model_t *model,
     g_object_set(renderer, "font", "Dejavu Sans Mono", NULL);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_ADDRESS], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_address, GINT_TO_POINTER(COL_ADDRESS), NULL);
@@ -165,6 +167,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_FREQUENCY], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_freq, GINT_TO_POINTER(COL_FREQUENCY), NULL);
@@ -177,6 +180,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_MODE], renderer, "text", COL_MODE, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_MODE), NULL);
@@ -190,6 +194,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_SPATIAL_STREAMS], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_streams, GINT_TO_POINTER(COL_STREAMS), NULL);
@@ -202,6 +207,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_CHANNEL], renderer, "text", COL_CHANNEL, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_CHANNEL), NULL);
@@ -215,6 +221,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_SSID], renderer, "text", COL_SSID, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
@@ -229,6 +236,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, NULL);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_RADIO_NAME], renderer, "text", COL_RADIONAME, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_expand(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
@@ -243,6 +251,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_MAX_RSSI], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_MAXRSSI), NULL);
@@ -256,6 +265,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_RSSI], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_RSSI), NULL);
@@ -269,6 +279,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_NOISE], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_level, GINT_TO_POINTER(COL_NOISE), NULL);
@@ -280,6 +291,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_PRIVACY], renderer, "active", COL_PRIVACY, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_PRIVACY), NULL);
@@ -291,6 +303,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_ROUTEROS], renderer, "active", COL_ROUTEROS, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_ROUTEROS), NULL);
@@ -302,6 +315,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_NSTREME], renderer, "active", COL_NSTREME, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_NSTREME), NULL);
@@ -313,6 +327,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_TDMA], renderer, "active", COL_TDMA, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_TDMA), NULL);
@@ -324,6 +339,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_WDS], renderer, "active", COL_WDS, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_WDS), NULL);
@@ -335,6 +351,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_BRIDGE], renderer, "active", COL_BRIDGE, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_BRIDGE), NULL);
@@ -347,6 +364,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 1, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_ROUTEROS_VER], renderer, "text", COL_ROUTEROS_VER, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_background, GINT_TO_POINTER(COL_ROUTEROS_VER), NULL);
@@ -358,6 +376,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX], renderer, "active", COL_AIRMAX, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_AIRMAX), NULL);
@@ -369,6 +388,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX_AC_PTP], renderer, "active", COL_AIRMAX_AC_PTP, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_AIRMAX_AC_PTP), NULL);
@@ -380,6 +400,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX_AC_PTMP], renderer, "active", COL_AIRMAX_AC_PTMP, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_AIRMAX_AC_PTMP), NULL);
@@ -391,6 +412,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AIRMAX_AC_MIXED], renderer, "active", COL_AIRMAX_AC_MIXED, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_AIRMAX_AC_MIXED), NULL);
@@ -402,6 +424,7 @@ ui_view_new(mtscan_model_t *model,
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_set_padding(renderer, 0, 0);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_WPS], renderer, "active", COL_WPS, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_checkbox, GINT_TO_POINTER(COL_WPS), NULL);
@@ -415,6 +438,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_FIRST_LOG], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_date, GINT_TO_POINTER(COL_FIRSTLOG), NULL);
@@ -428,6 +452,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_LAST_LOG], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_date, GINT_TO_POINTER(COL_LASTLOG), NULL);
@@ -440,6 +465,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_LATITUDE], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LATITUDE), NULL);
@@ -452,6 +478,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_padding(renderer, 2, 0);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_LONGITUDE], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_gps, GINT_TO_POINTER(COL_LONGITUDE), NULL);
@@ -491,6 +518,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_AZIMUTH], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_azimuth, GINT_TO_POINTER(COL_AZIMUTH), NULL);
@@ -504,6 +532,7 @@ ui_view_new(mtscan_model_t *model,
     gtk_cell_renderer_set_alignment(renderer, 1.0, 0.5);
     gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
     column = gtk_tree_view_column_new_with_attributes(mtscan_view_titles[MTSCAN_VIEW_COL_DISTANCE], renderer, NULL);
+    gtk_tree_view_column_set_alignment(column, 0.5);
     gtk_tree_view_column_set_clickable(column, TRUE);
     gtk_tree_view_column_set_visible(column, FALSE);
     gtk_tree_view_column_set_cell_data_func(column, renderer, ui_view_format_distance, GINT_TO_POINTER(COL_DISTANCE), NULL);
