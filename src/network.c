@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2023  Konrad Kosmatka
+ *  Copyright (c) 2015-2024  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -17,7 +17,8 @@
 #include "ui-icons.h"
 #include "model.h"
 
-static void convert_to_utf8(gchar**, const gchar *);
+static void validate_utf8(gchar**, const gchar*);
+static void convert_to_utf8(gchar**, const gchar*);
 
 void
 network_init(network_t *net)
@@ -63,27 +64,31 @@ void
 network_to_utf8(network_t   *net,
                 const gchar *charset)
 {
-    if(net->channel && !g_utf8_validate(net->channel, -1, NULL))
-        convert_to_utf8(&net->channel, charset);
-
-    if(net->mode && !g_utf8_validate(net->mode, -1, NULL))
-        convert_to_utf8(&net->mode, charset);
-
-    if(net->ssid && !g_utf8_validate(net->ssid, -1, NULL))
-        convert_to_utf8(&net->ssid, charset);
-
-    if(net->radioname && !g_utf8_validate(net->radioname, -1, NULL))
-        convert_to_utf8(&net->radioname, charset);
-
-    if(net->routeros_ver && !g_utf8_validate(net->routeros_ver, -1, NULL))
-        convert_to_utf8(&net->routeros_ver, charset);
+    validate_utf8(&net->channel, charset);
+    validate_utf8(&net->mode, charset);
+    validate_utf8(&net->ssid, charset);
+    validate_utf8(&net->radioname, charset);
+    validate_utf8(&net->routeros_ver, charset);
+    validate_utf8(&net->wps_manufacturer, charset);
+    validate_utf8(&net->wps_model_name, charset);
+    validate_utf8(&net->wps_model_number, charset);
+    validate_utf8(&net->wps_serial_number, charset);
+    validate_utf8(&net->wps_device_name, charset);
 }
 
 static void
-convert_to_utf8(gchar       **ptr,
+validate_utf8(gchar       **str,
+              const gchar  *charset)
+{
+    if (*str && !g_utf8_validate(*str, -1, NULL))
+        convert_to_utf8(str, charset);
+}
+
+static void
+convert_to_utf8(gchar       **str,
                 const gchar  *charset)
 {
-    gchar *input = *ptr;
+    gchar *input = *str;
     gchar *output;
     gsize bytes_written;
 
@@ -96,7 +101,7 @@ convert_to_utf8(gchar       **ptr,
                        NULL);
 
     g_free(input);
-    *ptr = output;
+    *str = output;
 }
 
 void
