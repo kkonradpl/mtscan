@@ -35,7 +35,8 @@ add_definitions(${LIBCURL_CFLAGS_OTHER})
 
 INCLUDE (CheckIncludeFile)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wno-deprecated-declarations")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -Wall -pedantic -Wno-deprecated-declarations")
 
 add_subdirectory(src)
 
