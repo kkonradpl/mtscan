@@ -200,6 +200,7 @@ ui_callback_heartbeat(const mt_ssh_t *context)
     ret = mtscan_model_buffer_and_inactive_update(ui.model);
 
     if(ret & MODEL_UPDATE_NEW_ALARM ||
+       ret & MODEL_UPDATE_NEW_WARNING ||
        ret & MODEL_UPDATE_NEW_HIGHLIGHT ||
        ret & MODEL_UPDATE_NEW)
     {
