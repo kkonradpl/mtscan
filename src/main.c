@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2020  Konrad Kosmatka
+ *  Copyright (c) 2015-2024  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -65,6 +65,7 @@ static const gchar *oui_files[] =
     "..\\etc\\manuf",
     "etc\\manuf",
 #else
+    "/usr/share/mtscan/manuf",
     "/etc/manuf",
     "/usr/share/wireshark/manuf",
     "/usr/share/wireshark/wireshark/manuf",

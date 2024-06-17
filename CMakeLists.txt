@@ -44,6 +44,15 @@ if(NOT MAN_INSTALL_DIR)
     set(MAN_INSTALL_DIR share/man/man1)
 endif()
 
+find_program(TSHARK "tshark")
+if(TSHARK)
+    message("Creating manuf file for OUI lookup using tshark")
+    execute_process(COMMAND ${TSHARK} -G manuf
+                    OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/manuf)
+else()
+    message("Unable to create manuf file for OUI lookup (install tshark)")
+endif()
+
 if(NOT MINGW)
     install(TARGETS mtscan DESTINATION bin)
     install(FILES manpages/mtscan.1 DESTINATION ${MAN_INSTALL_DIR})
@@ -54,4 +63,8 @@ if(NOT MINGW)
             PATTERN "INFO" EXCLUDE
             PATTERN "ico" EXCLUDE)
     install(CODE "execute_process(COMMAND gtk-update-icon-cache /usr/share/icons/hicolor)")
+
+    if(TSHARK)
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/manuf DESTINATION share/mtscan)
+    endif()
 endif()

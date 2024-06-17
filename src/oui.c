@@ -1,9 +1,25 @@
+/*
+ *  MTscan - MikroTik RouterOS wireless scanner
+ *  Copyright (c) 2015-2024  Konrad Kosmatka
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ */
+
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 #ifdef G_OS_WIN32
 #include "win32.h"
 #endif
 #include <string.h>
+#include <ctype.h>
 
 #define OUI_MAX_LINE_LEN 256
 
@@ -17,6 +33,7 @@ static GHashTable *oui = NULL;
 
 static gpointer oui_thread(gpointer);
 static gboolean oui_thread_callback(gpointer);
+static void trim_whitespaces(gchar*);
 
 
 gboolean
@@ -78,12 +95,24 @@ oui_thread(gpointer user_data)
 
         /* First column, OUI address */
         token = strsep(&parser, "\t");
-        if(token && strlen(token) == 8)
+        if (token)
         {
-            if(sscanf(token, "%x:%x:%x", &o1, &o2, &o3) != 3)
-                if(sscanf(token, "%x-%x-%x", &o1, &o2, &o3) != 3)
-                    if(sscanf(token, "%x.%x.%x", &o1, &o2, &o3) != 3)
+            trim_whitespaces(token);
+            if (strlen(token) != 8)
+            {
+                continue;
+            }
+
+            if (sscanf(token, "%x:%x:%x", &o1, &o2, &o3) != 3)
+            {
+                if (sscanf(token, "%x-%x-%x", &o1, &o2, &o3) != 3)
+                {
+                    if (sscanf(token, "%x.%x.%x", &o1, &o2, &o3) != 3)
+                    {
                         continue;
+                    }
+                }
+            }
 
             oui = ((o1 & 0xFF) << 16) | (o2 & 0xFF) << 8 | (o3 & 0xFF);
 
@@ -122,4 +151,26 @@ oui_thread_callback(gpointer user_data)
     g_free(context);
 
     return G_SOURCE_REMOVE;
+}
+
+static void
+trim_whitespaces(gchar *string)
+{
+    if (string)
+    {
+        size_t len = strlen(string);
+        if (len)
+        {
+            size_t i;
+            for (i = len - 1; i != 0; i--)
+            {
+                if (!isspace(string[i]))
+                {
+                    break;
+                }
+
+                string[i] = '\0';
+            }
+        }
+    }
 }
