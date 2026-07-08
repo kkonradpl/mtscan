@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2026  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -197,6 +197,8 @@ tzsp_socket_loop(tzsp_socket_t *context)
 #endif
 
             rssi = NULL;
+            channel = NULL;
+            sensor_mac = NULL;
             data_len = (uint32_t)ret;
             if((ptr = decap_tzsp(packet, &data_len, &rssi, &channel, &sensor_mac)) == NULL)
                 continue;
