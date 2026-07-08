@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2021  Konrad Kosmatka
+ *  Copyright (c) 2015-2026  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -1844,7 +1844,7 @@ parse_scan_header_column(const gchar *buff,
         else
         {
             /* This is the last column, it can expand to the end of a line */
-            *length = PTY_COLS - pos;
+            *length = (pos < PTY_COLS) ? (PTY_COLS - pos) : 0;
         }
     }
 
