@@ -46,7 +46,7 @@
 #define SOCKET_BUFFER  PTY_COLS*20
 #define READ_TIMEOUT_MSEC      100
 
-#define DEBUG    0
+#define DEBUG    1
 #define DUMP_PTY 0
 
 #define MAC_ADDR_HEX_LEN 12
@@ -1187,6 +1187,7 @@ mt_ssh_request(mt_ssh_t    *context,
 
     /* Preserve command without '\r' at the end */
     context->sent_command = g_strdup(req);
+    //context->ignore_echo = 1;
     context->ignore_echo = strlen(req);
     /* We need one more iteration for v6.49+ */
     context->ignore_echo++;
@@ -2024,7 +2025,7 @@ parse_scan_string(const gchar *buff,
     if(left_trim)
     {
         /* Left-side trim */
-        while(isspace(*buff))
+        while(str_length > 0 && isspace(*buff))
         {
             buff++;
             str_length--;
