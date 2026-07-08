@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2018  Konrad Kosmatka
+ *  Copyright (c) 2015-2026  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -77,8 +77,8 @@ ie_airmax_ac_parse(const uint8_t *ie,
     if(data_len % 16)
         return NULL;
 
-    /* The IE length must match the data length */
-    if(IE_AIRMAX_AC_HEADER_LEN + data_len < ie_len)
+    /* The IE length must match the header+data length */
+    if(IE_AIRMAX_AC_HEADER_LEN + data_len != ie_len)
         return NULL;
 
     /* Generate the AES key */
