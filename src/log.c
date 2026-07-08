@@ -1,6 +1,6 @@
 /*
  *  MTscan - MikroTik RouterOS wireless scanner
- *  Copyright (c) 2015-2023  Konrad Kosmatka
+ *  Copyright (c) 2015-2026  Konrad Kosmatka
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -344,9 +344,9 @@ parse_double(gpointer ptr,
         else if(ctx->key == KEY_LONGITUDE)
             ctx->network.longitude = value;
         else if(ctx->key == KEY_ALTITUDE)
-            ctx->signal->altitude = (gfloat)value;
+            ctx->network.altitude = (gfloat)value;
         else if(ctx->key == KEY_ACCURACY)
-            ctx->signal->accuracy = (gfloat)value;
+            ctx->network.accuracy = (gfloat)value;
         else if(ctx->key == KEY_AZIMUTH)
             ctx->network.azimuth = (gfloat)value;
     }
