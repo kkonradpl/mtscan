@@ -165,6 +165,7 @@ typedef struct save_context
 static gint parse_integer(gpointer, long long int);
 static gint parse_double(gpointer, double);
 static gint parse_string(gpointer, const guchar*, size_t);
+static void parse_string_update(gchar**, const guchar*, size_t);
 static gint parse_key(gpointer, const guchar*, size_t);
 static gint parse_key_start(gpointer);
 static gint parse_key_end(gpointer);
@@ -362,30 +363,39 @@ parse_string(gpointer      ptr,
     if(ctx->level == LEVEL_NETWORK)
     {
         if(ctx->key == KEY_CHANNEL)
-            ctx->network.channel = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.channel, string, length);
         else if(ctx->key == KEY_MODE)
-            ctx->network.mode = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.mode, string, length);
         else if(ctx->key == KEY_SSID)
-            ctx->network.ssid = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.ssid, string, length);
         else if(ctx->key == KEY_RADIONAME)
-            ctx->network.radioname = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.radioname, string, length);
         else if(ctx->key == KEY_ROUTEROS)
         {
             ctx->network.flags.routeros = TRUE;
-            ctx->network.routeros_ver = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.routeros_ver, string, length);
         }
         else if(ctx->key == KEY_WPS_MANUFACTURER)
-            ctx->network.wps_manufacturer = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.wps_manufacturer, string, length);
         else if(ctx->key == KEY_WPS_MODEL_NAME)
-            ctx->network.wps_model_name = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.wps_model_name, string, length);
         else if(ctx->key == KEY_WPS_MODEL_NUMBER)
-            ctx->network.wps_model_number = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.wps_model_number, string, length);
         else if(ctx->key == KEY_WPS_SERIAL_NUMBER)
-            ctx->network.wps_serial_number = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.wps_serial_number, string, length);
         else if(ctx->key == KEY_WPS_DEVICE_NAME)
-            ctx->network.wps_device_name = g_strndup((gchar*)string, length);
+            parse_string_update(&ctx->network.wps_device_name, string, length);
     }
     return 1;
+}
+
+static void
+parse_string_update(gchar        **destination,
+                    const guchar  *string,
+                    size_t         length)
+{
+    g_free(*destination);
+    *destination = g_strndup((const gchar*)string, length);
 }
 
 static gint
@@ -519,7 +529,7 @@ log_save(const gchar *filename,
          GList       *iterlist)
 {
     save_ctx_t ctx;
-    gchar *ext;
+    const gchar *ext;
     GList *i;
     log_save_error_t *ret;
     gchar *tmp_name = NULL;
