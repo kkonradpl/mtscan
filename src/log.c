@@ -232,8 +232,8 @@ log_read(const gchar  *filename,
             if(err)
             {
                 context.count = LOG_READ_ERROR_READ;
-                break;
             }
+            break;
         }
         status = yajl_parse(json, buffer, (size_t)n);
     } while (!gzeof(gzfp) && status == yajl_status_ok);
